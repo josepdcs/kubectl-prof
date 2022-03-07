@@ -2,6 +2,7 @@ package job
 
 import (
 	"fmt"
+	"github.com/josepdcs/kubectl-flame/api"
 
 	"github.com/josepdcs/kubectl-flame/cli/cmd/data"
 	"github.com/josepdcs/kubectl-flame/cli/cmd/version"
@@ -72,7 +73,7 @@ func (r *rubyCreator) create(targetPod *apiv1.Pod, cfg *data.FlameConfig) (strin
 							Name: "target-filesystem",
 							VolumeSource: apiv1.VolumeSource{
 								HostPath: &apiv1.HostPathVolumeSource{
-									Path: cfg.TargetConfig.DockerPath,
+									Path: cfg.TargetConfig.ContainerRuntimePath,
 								},
 							},
 						},
@@ -89,7 +90,7 @@ func (r *rubyCreator) create(targetPod *apiv1.Pod, cfg *data.FlameConfig) (strin
 							VolumeMounts: []apiv1.VolumeMount{
 								{
 									Name:      "target-filesystem",
-									MountPath: "/var/lib/docker",
+									MountPath: api.GetContainerRuntimePath[cfg.TargetConfig.ContainerRuntime],
 								},
 							},
 							SecurityContext: &apiv1.SecurityContext{

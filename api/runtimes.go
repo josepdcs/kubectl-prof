@@ -12,6 +12,12 @@ var (
 	containerRuntimes = []ContainerRuntime{Docker, Crio, Containerd}
 )
 
+var GetContainerRuntimePath = map[ContainerRuntime]string{
+	Docker:     "/var/lib/docker/",
+	Crio:       "/var/lib/containers/storage/",
+	Containerd: "/var/lib/containerd/",
+}
+
 func AvailableContainerRuntimes() []ContainerRuntime {
 	return containerRuntimes
 }

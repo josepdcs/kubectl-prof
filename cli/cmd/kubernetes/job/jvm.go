@@ -1,9 +1,9 @@
-//: Copyright Verizon Media
 //: Licensed under the terms of the Apache 2.0 License. See LICENSE file in the project root for terms.
 package job
 
 import (
 	"fmt"
+	"github.com/josepdcs/kubectl-flame/api"
 
 	batchv1 "k8s.io/api/batch/v1"
 	apiv1 "k8s.io/api/core/v1"
@@ -70,7 +70,7 @@ func (c *jvmCreator) create(targetPod *apiv1.Pod, cfg *data.FlameConfig) (string
 							Name: "target-filesystem",
 							VolumeSource: apiv1.VolumeSource{
 								HostPath: &apiv1.HostPathVolumeSource{
-									Path: getContainerPath(cfg),
+									Path: cfg.TargetConfig.ContainerRuntimePath,
 								},
 							},
 						},
@@ -87,7 +87,8 @@ func (c *jvmCreator) create(targetPod *apiv1.Pod, cfg *data.FlameConfig) (string
 							VolumeMounts: []apiv1.VolumeMount{
 								{
 									Name:      "target-filesystem",
-									MountPath: "/var/lib/containers/storage",
+									MountPath: api.GetContainerRuntimePath[cfg.TargetConfig.ContainerRuntime],
+									//MountPath: "/var/lib/containers/storage",
 								},
 							},
 							/*SecurityContext: &apiv1.SecurityContext{

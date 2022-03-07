@@ -2,6 +2,7 @@ package job
 
 import (
 	"fmt"
+	"github.com/josepdcs/kubectl-flame/api"
 
 	batchv1 "k8s.io/api/batch/v1"
 	apiv1 "k8s.io/api/core/v1"
@@ -78,7 +79,7 @@ func (p *pythonCreator) create(targetPod *apiv1.Pod, cfg *data.FlameConfig) (str
 							Name: "target-filesystem",
 							VolumeSource: apiv1.VolumeSource{
 								HostPath: &apiv1.HostPathVolumeSource{
-									Path: cfg.TargetConfig.DockerPath,
+									Path: cfg.TargetConfig.ContainerRuntimePath,
 								},
 							},
 						},
@@ -95,7 +96,7 @@ func (p *pythonCreator) create(targetPod *apiv1.Pod, cfg *data.FlameConfig) (str
 							VolumeMounts: []apiv1.VolumeMount{
 								{
 									Name:      "target-filesystem",
-									MountPath: "/var/lib/docker",
+									MountPath: api.GetContainerRuntimePath[cfg.TargetConfig.ContainerRuntime],
 								},
 							},
 							SecurityContext: &apiv1.SecurityContext{

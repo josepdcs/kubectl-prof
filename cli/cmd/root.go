@@ -102,14 +102,14 @@ func NewFlameCommand(streams genericclioptions.IOStreams) *cobra.Command {
 
 	cmd.Flags().StringVarP(&chosenRuntime, "runtime", "r", "crio",
 		fmt.Sprintf("The container runtime used for kubernetes, choose one of %v", api.AvailableContainerRuntimes()))
+	cmd.Flags().StringVar(&targetDetails.ContainerRuntimePath, "runtime-path", api.GetContainerRuntimePath[api.Crio],
+		"Use a different container runtime install path")
 
 	cmd.Flags().DurationVarP(&targetDetails.Duration, "time", "t", defaultDuration, "Max scan Duration")
 	cmd.Flags().StringVarP(&targetDetails.FileName, "file", "f", "flamegraph.svg", "Optional file location")
 	cmd.Flags().BoolVar(&targetDetails.Alpine, "alpine", false, "Target image is based on Alpine")
 	cmd.Flags().BoolVar(&targetDetails.DryRun, "dry-run", false, "Simulate profiling")
 	cmd.Flags().StringVar(&targetDetails.Image, "image", "", "Manually choose agent docker image")
-	cmd.Flags().StringVar(&targetDetails.DockerPath, "docker-path", "/var/lib/docker/", "Use a different Docker install path")
-	cmd.Flags().StringVar(&targetDetails.CrioPath, "crio-path", "/var/lib/containers/storage/", "Use a different CRI-O install path")
 	cmd.Flags().StringVar(&targetDetails.Namespace, "target-namespace", "", "namespace of target pod if differnt from job namespace")
 	cmd.Flags().StringVarP(&targetDetails.Pgrep, "pgrep", "p", "", "name of the target process")
 
