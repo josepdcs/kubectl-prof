@@ -1,0 +1,44 @@
+before:
+  hooks:
+    - go mod download
+builds:
+  - id: kubectl-profiling
+    main: ./cli/main.go
+    binary: kubectl-profiling
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm
+      - arm64
+      - ppc64le
+    goarm: [ 6, 7 ]
+    ldflags: |
+      -X github.com/josepdcs/kubectl-profiling/cli/cmd/version.semver={{ .Tag }}
+      -X github.com/josepdcs/kubectl-profiling/cli/cmd/version.date={{ .Date }}
+      -X github.com/josepdcs/kubectl-profiling/cli/cmd/version.commit={{ .Commit }}
+archives:
+  - id: kubectl-profiling-archive
+    name_template: |
+      kubectl-flame_{{ .Tag }}_{{ .Os }}_{{ .Arch -}}
+      {{- with .Arm -}}
+        {{- if (eq . "6") -}}hf
+        {{- else -}}v{{- . -}}
+        {{- end -}}
+      {{- end -}}
+    builds:
+      - kubectl-profiling
+    replacements:
+      386: i386
+      amd64: x86_64
+    format_overrides:
+      - goos: windows
+        format: zip
+    files: [ "LICENSE" ]
+checksum:
+  name_template: 'checksums.txt'
+  algorithm: sha256
