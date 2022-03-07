@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/josepdcs/kubectl-flame/api"
-	"github.com/josepdcs/kubectl-flame/cli/cmd/data"
-	"github.com/josepdcs/kubectl-flame/cli/cmd/kubernetes"
+	"github.com/josepdcs/kubectl-profiling/api"
+	"github.com/josepdcs/kubectl-profiling/cli/cmd/data"
+	"github.com/josepdcs/kubectl-profiling/cli/cmd/kubernetes"
 	batchv1 "k8s.io/api/batch/v1"
 )
 

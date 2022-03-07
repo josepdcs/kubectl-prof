@@ -2,8 +2,8 @@ package profiler
 
 import (
 	"fmt"
-	"github.com/josepdcs/kubectl-flame/agent/details"
-	"github.com/josepdcs/kubectl-flame/agent/utils"
+	"github.com/josepdcs/kubectl-profiling/agent/details"
+	"github.com/josepdcs/kubectl-profiling/agent/utils"
 	"os"
 	"os/exec"
 	"path/filepath"

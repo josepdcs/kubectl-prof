@@ -1,11 +1,11 @@
-# kubectl flame :fire:
+# kubectl profiling
 
 A kubectl plugin that allows you to profile production applications with low-overhead by generating
 [FlameGraphs](http://www.brendangregg.com/flamegraphs.html)
 
-Running `kubectlf-flame` does **not** require any modification to existing pods.
+Running `kubectlf-profiling` does **not** require any modification to existing pods.
 
-This is an open source fork of https://github.com/yahoo/kubectl-flame with several new features and bug fixes.
+This is an open source fork of https://github.com/yahoo/kubectl-profiling with several new features and bug fixes.
 
 ## Table of Contents
 
@@ -31,7 +31,7 @@ This is an open source fork of https://github.com/yahoo/kubectl-flame with sever
 In order to profile a Java application in pod `mypod` for 1 minute and save the flamegraph as `/tmp/flamegraph.svg` run:
 
 ```shell
-kubectl flame mypod -t 1m --lang java -f /tmp/flamegraph.svg
+kubectl profiling mypod -t 1m --lang java -f /tmp/flamegraph.svg
 ```
 
 ### Profiling Alpine based container
@@ -39,7 +39,7 @@ kubectl flame mypod -t 1m --lang java -f /tmp/flamegraph.svg
 Profiling Java application in alpine based containers require using `--alpine` flag:
 
 ```shell
-kubectl flame mypod -t 1m -f /tmp/flamegraph.svg --lang java --alpine
+kubectl profiling mypod -t 1m -f /tmp/flamegraph.svg --lang java --alpine
 ```
 
 *NOTICE*: this is only required for Java apps, the `--alpine` flag is unnecessary for Go profiling.
@@ -49,7 +49,7 @@ kubectl flame mypod -t 1m -f /tmp/flamegraph.svg --lang java --alpine
 Supported container runtimes values are: `crio`, `containerd` and `docker`
 
 ```shell
-kubectl flame mypod -t 1m -f /tmp/flamegraph.svg --lang java --runtime crio
+kubectl profiling mypod -t 1m -f /tmp/flamegraph.svg --lang java --runtime crio
 ```
 
 ### Profiling sidecar container
@@ -57,7 +57,7 @@ kubectl flame mypod -t 1m -f /tmp/flamegraph.svg --lang java --runtime crio
 Pods that contains more than one container require specifying the target container as an argument:
 
 ```shell
-kubectl flame mypod -t 1m --lang go -f /tmp/flamegraph.svg mycontainer
+kubectl profiling mypod -t 1m --lang go -f /tmp/flamegraph.svg mycontainer
 ```
 
 ### Profiling Golang multi-process container
@@ -66,7 +66,7 @@ Profiling Go application in pods that contains more than one process require spe
 via `--pgrep` flag:
 
 ```shell
-kubectl flame mypod -t 1m --lang go -f /tmp/flamegraph.svg --pgrep go-app
+kubectl profiling mypod -t 1m --lang go -f /tmp/flamegraph.svg --pgrep go-app
 ```
 
 Java profiling assumes that the process name is `java`. Use `--pgrep` flag if your process name is different.
@@ -75,13 +75,13 @@ Java profiling assumes that the process name is `java`. Use `--pgrep` flag if yo
 
 ### Krew
 
-You can install `kubectl flame` using the [Krew](https://github.com/kubernetes-sigs/krew), the package manager for
+You can install `kubectl profiling` using the [Krew](https://github.com/kubernetes-sigs/krew), the package manager for
 kubectl plugins.
 
 Once you have [Krew installed](https://krew.sigs.k8s.io/docs/user-guide/setup/install/) just run:
 
 ```bash
-kubectl krew install flame
+kubectl krew install profiling
 ```
 
 ### Pre-built binaries
@@ -90,7 +90,7 @@ See the release page for the full list of pre-built assets.
 
 ## How it works
 
-`kubectl-flame` launch a Kubernetes Job on the same node as the target pod. Under the hood `kubectl-flame`
+`kubectl-profiling` launch a Kubernetes Job on the same node as the target pod. Under the hood `kubectl-profiling`
 use [async-profiler](https://github.com/jvm-profiling-tools/async-profiler) in order to generate flame graphs for Java
 applications. Interaction with the target JVM is done via a shared `/tmp` folder. Golang support is based
 on [ebpf profiling](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter). Python support is based
@@ -103,9 +103,14 @@ resolved, node process needs to be run with `--perf-basic-prof` flag.
 Please refer to [the contributing.md file](Contributing.md) for information about how to get involved. We welcome
 issues, questions, and pull requests.
 
-## Thanks to the original Author
+## Maintainers
+
+- Josep Damià Carbonell Seguí: josepdcs@gmail.com, josepdcs@ext.inditex.com
+
+### Special thanks to the original Author
 
 - Eden Federman: efederman@verizonmedia.com
+- Verizon Media Code
 
 ## License
 

@@ -9,8 +9,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 
-	"github.com/josepdcs/kubectl-flame/cli/cmd/data"
-	"github.com/josepdcs/kubectl-flame/cli/cmd/version"
+	"github.com/josepdcs/kubectl-profiling/cli/cmd/data"
+	"github.com/josepdcs/kubectl-profiling/cli/cmd/version"
 )
 
 type bpfCreator struct{}
@@ -41,10 +41,10 @@ func (b *bpfCreator) create(targetPod *apiv1.Pod, cfg *data.FlameConfig) (string
 	}
 
 	commonMeta := metav1.ObjectMeta{
-		Name:      fmt.Sprintf("kubectl-flame-%s", id),
+		Name:      fmt.Sprintf("kubectl-profiling-%s", id),
 		Namespace: cfg.JobConfig.Namespace,
 		Labels: map[string]string{
-			"kubectl-flame/id": id,
+			"kubectl-profiling/id": id,
 		},
 		Annotations: map[string]string{
 			"sidecar.istio.io/inject": "false",

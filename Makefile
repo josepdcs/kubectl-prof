@@ -1,9 +1,9 @@
 VERSION := 0.0.1
-CLI_NAME := kubectl-flame
+CLI_NAME := kubectl-profiling
 CLI_DIR := ./cli/
 BUILD_DIR := bin
 REGISTRY := docker.io
-DOCKER_BASE_IMAGE := josepdcs/kubectl-flame
+DOCKER_BASE_IMAGE := josepdcs/kubectl-profiling
 DOCKER_JVM_IMAGE := $(DOCKER_BASE_IMAGE):$(VERSION)-jvm
 DOCKERFILE_JVM := ./agent/docker/jvm/Dockerfile
 DOCKER_JVM_ALPINE_IMAGE := $(DOCKER_BASE_IMAGE):$(VERSION)-jvm-alpine
@@ -19,7 +19,7 @@ dep: ## Get the dependencies
 
 .PHONY: build-cli
 build-cli: dep ## Build the binary file
-	@go build -ldflags="-X 'github.com/josepdcs/kubectl-flame/cli/cmd/version.semver=$(VERSION)'" -o $(BUILD_DIR)/$(CLI_NAME) -v $(CLI_DIR)
+	@go build -ldflags="-X 'github.com/josepdcs/kubectl-profiling/cli/cmd/version.semver=$(VERSION)'" -o $(BUILD_DIR)/$(CLI_NAME) -v $(CLI_DIR)
 
 .PHONY: prepare-minikube
 prepare-minikube:

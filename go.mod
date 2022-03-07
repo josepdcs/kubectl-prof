@@ -1,4 +1,4 @@
-module github.com/josepdcs/kubectl-flame
+module github.com/josepdcs/kubectl-profiling
 
 go 1.17
 

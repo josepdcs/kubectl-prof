@@ -9,9 +9,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/josepdcs/kubectl-flame/agent/details"
-	"github.com/josepdcs/kubectl-flame/agent/profiler"
-	"github.com/josepdcs/kubectl-flame/api"
+	"github.com/josepdcs/kubectl-profiling/agent/details"
+	"github.com/josepdcs/kubectl-profiling/agent/profiler"
+	"github.com/josepdcs/kubectl-profiling/api"
 )
 
 func main() {

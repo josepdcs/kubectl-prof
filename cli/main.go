@@ -4,13 +4,13 @@ import (
 	"github.com/spf13/cobra"
 	"os"
 
-	"github.com/josepdcs/kubectl-flame/cli/cmd"
+	"github.com/josepdcs/kubectl-profiling/cli/cmd"
 	"github.com/spf13/pflag"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 func main() {
-	flags := pflag.NewFlagSet("kubectl-flame", pflag.ExitOnError)
+	flags := pflag.NewFlagSet("kubectl-profiling", pflag.ExitOnError)
 	pflag.CommandLine = flags
 
 	streams := genericclioptions.IOStreams{

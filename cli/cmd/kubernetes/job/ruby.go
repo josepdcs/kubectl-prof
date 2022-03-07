@@ -2,10 +2,10 @@ package job
 
 import (
 	"fmt"
-	"github.com/josepdcs/kubectl-flame/api"
+	"github.com/josepdcs/kubectl-profiling/api"
 
-	"github.com/josepdcs/kubectl-flame/cli/cmd/data"
-	"github.com/josepdcs/kubectl-flame/cli/cmd/version"
+	"github.com/josepdcs/kubectl-profiling/cli/cmd/data"
+	"github.com/josepdcs/kubectl-profiling/cli/cmd/version"
 	batchv1 "k8s.io/api/batch/v1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,10 +39,10 @@ func (r *rubyCreator) create(targetPod *apiv1.Pod, cfg *data.FlameConfig) (strin
 	}
 
 	commonMeta := metav1.ObjectMeta{
-		Name:      fmt.Sprintf("kubectl-flame-%s", id),
+		Name:      fmt.Sprintf("kubectl-profiling-%s", id),
 		Namespace: cfg.JobConfig.Namespace,
 		Labels: map[string]string{
-			"kubectl-flame/id": id,
+			"kubectl-profiling/id": id,
 		},
 		Annotations: map[string]string{
 			"sidecar.istio.io/inject": "false",

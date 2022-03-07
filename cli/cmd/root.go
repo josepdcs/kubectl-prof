@@ -5,9 +5,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/josepdcs/kubectl-flame/api"
-	"github.com/josepdcs/kubectl-flame/cli/cmd/data"
-	"github.com/josepdcs/kubectl-flame/cli/cmd/version"
+	"github.com/josepdcs/kubectl-profiling/api"
+	"github.com/josepdcs/kubectl-profiling/cli/cmd/data"
+	"github.com/josepdcs/kubectl-profiling/cli/cmd/version"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
@@ -15,22 +15,22 @@ import (
 const (
 	defaultDuration = 1 * time.Minute
 	defaultEvent    = string(api.Cpu)
-	flameLong       = `Profile existing applications with low-overhead by generating flame graphs.
+	flameLong       = `Profiling on existing applications with low-overhead by generating flame graphs.
 
 These commands help you identify application performance issues.
 `
 	flameExamples = `
 	# Profile a pod for 5 minutes and save the output as flame.svg file
-	%[1]s flame mypod -f flame.svg -t 5m
+	%[1]s profiling mypod -f flame.svg -t 5m
 
 	# Profile an alpine based container
-	%[1]s flame mypod -f flame.svg --alpine
+	%[1]s profiling mypod -f flame.svg --alpine
 
 	# Profile specific container container1 from pod mypod in namespace test
-	%[1]s flame mypod -f /tmp/flame.svg -n test container1
+	%[1]s profiling mypod -f /tmp/flame.svg -n test container1
 
-	# Set custom resource requests and limits for the kubectl-flame pod (default: neither requests nor limits are set)
-	%[1]s flame mypod -f flame.svg -cpu.requests 100m -cpu.limits 200m -mem.requests 100Mi -mem.limits 200Mi
+	# Set custom resource requests and limits for the kubectl-profiling pod (default: neither requests nor limits are set)
+	%[1]s profiling mypod -f flame.svg -cpu.requests 100m -cpu.limits 200m -mem.requests 100Mi -mem.limits 200Mi
 `
 )
 

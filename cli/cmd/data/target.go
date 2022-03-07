@@ -3,7 +3,7 @@ package data
 import (
 	"time"
 
-	"github.com/josepdcs/kubectl-flame/api"
+	"github.com/josepdcs/kubectl-profiling/api"
 )
 
 type TargetDetails struct {

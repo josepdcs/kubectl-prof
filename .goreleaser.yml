@@ -24,7 +24,7 @@ builds:
 archives:
   - id: kubectl-profiling-archive
     name_template: |
-      kubectl-flame_{{ .Tag }}_{{ .Os }}_{{ .Arch -}}
+      kubectl-profiling_{{ .Tag }}_{{ .Os }}_{{ .Arch -}}
       {{- with .Arm -}}
         {{- if (eq . "6") -}}hf
         {{- else -}}v{{- . -}}

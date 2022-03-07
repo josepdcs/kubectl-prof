@@ -7,13 +7,13 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	apiv1 "k8s.io/api/core/v1"
 
-	"github.com/josepdcs/kubectl-flame/api"
-	"github.com/josepdcs/kubectl-flame/cli/cmd/data"
+	"github.com/josepdcs/kubectl-profiling/api"
+	"github.com/josepdcs/kubectl-profiling/cli/cmd/data"
 )
 
 const (
-	baseImageName = "josepdcs/kubectl-flame"
-	ContainerName = "kubectl-flame"
+	baseImageName = "josepdcs/kubectl-profiling"
+	ContainerName = "kubectl-profiling"
 )
 
 var (

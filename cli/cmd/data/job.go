@@ -8,7 +8,7 @@ import (
 )
 
 // JobDetails holds configuration options for the profiling job that is launched
-// by kubectl-flame.
+// by kubectl-profiling.
 type JobDetails struct {
 	// RequestConfig configures resource requests for the job that is started.
 	RequestConfig ResourceConfig

@@ -6,14 +6,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/josepdcs/kubectl-flame/cli/cmd/kubernetes/job"
+	"github.com/josepdcs/kubectl-profiling/cli/cmd/kubernetes/job"
 	"time"
 
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	"github.com/josepdcs/kubectl-flame/cli/cmd/data"
+	"github.com/josepdcs/kubectl-profiling/cli/cmd/data"
 )
 
 type DataHandler interface {
@@ -40,7 +40,7 @@ func WaitForPodStart(cfg *data.FlameConfig, ctx context.Context) (*apiv1.Pod, er
 				CoreV1().
 				Pods(cfg.JobConfig.Namespace).
 				List(ctx, metav1.ListOptions{
-					LabelSelector: fmt.Sprintf("kubectl-flame/id=%s", cfg.TargetConfig.Id),
+					LabelSelector: fmt.Sprintf("kubectl-profiling/id=%s", cfg.TargetConfig.Id),
 				})
 
 			if err != nil {

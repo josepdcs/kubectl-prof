@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/josepdcs/kubectl-flame/cli/cmd/data"
-	"github.com/josepdcs/kubectl-flame/cli/cmd/handler"
-	"github.com/josepdcs/kubectl-flame/cli/cmd/kubernetes"
+	"github.com/josepdcs/kubectl-profiling/cli/cmd/data"
+	"github.com/josepdcs/kubectl-profiling/cli/cmd/handler"
+	"github.com/josepdcs/kubectl-profiling/cli/cmd/kubernetes"
 	v1 "k8s.io/api/core/v1"
 )
 

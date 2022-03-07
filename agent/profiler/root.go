@@ -3,8 +3,8 @@ package profiler
 import (
 	"fmt"
 
-	"github.com/josepdcs/kubectl-flame/agent/details"
-	"github.com/josepdcs/kubectl-flame/api"
+	"github.com/josepdcs/kubectl-profiling/agent/details"
+	"github.com/josepdcs/kubectl-profiling/api"
 )
 
 type FlameGraphProfiler interface {
