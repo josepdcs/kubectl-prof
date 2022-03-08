@@ -5,7 +5,7 @@ A kubectl plugin that allows you to profile production applications with low-ove
 
 Running `kubectlf-profiling` does **not** require any modification to existing pods.
 
-This is an open source fork of https://github.com/yahoo/kubectl-profiling with several new features and bug fixes.
+This is an open source fork of https://github.com/yahoo/kubectl-flame with several new features and bug fixes.
 
 ## Table of Contents
 
