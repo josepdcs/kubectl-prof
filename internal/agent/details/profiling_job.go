@@ -8,6 +8,7 @@ import (
 type ProfilingJob struct {
 	Duration          time.Duration
 	ID                string
+	ContainerRuntime  api.ContainerRuntime
 	ContainerID       string
 	ContainerName     string
 	PodUID            string

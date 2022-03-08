@@ -102,7 +102,7 @@ func NewFlameCommand(streams genericclioptions.IOStreams) *cobra.Command {
 
 	cmd.Flags().StringVarP(&chosenRuntime, "runtime", "r", "crio",
 		fmt.Sprintf("The container runtime used for kubernetes, choose one of %v", api.AvailableContainerRuntimes()))
-	cmd.Flags().StringVar(&targetDetails.ContainerRuntimePath, "runtime-path", api.GetContainerRuntimePath[api.Crio],
+	cmd.Flags().StringVar(&targetDetails.ContainerRuntimePath, "runtime-path", api.GetContainerRuntimeRootPath[api.Crio],
 		"Use a different container runtime install path")
 
 	cmd.Flags().DurationVarP(&targetDetails.Duration, "time", "t", defaultDuration, "Max scan Duration")

@@ -24,15 +24,15 @@ func (h *ApiEventsHandler) Handle(events chan string, done chan bool, ctx contex
 		if err != nil {
 			fmt.Printf("Got invalid event: %s\n", err)
 		} else {
-			switch data := event.(type) {
+			switch eventType := event.(type) {
 			case *api.ErrorData:
-				fmt.Printf("Error: %s\n", data.Reason)
+				fmt.Printf("Error: %s\n", eventType.Reason)
 			case *api.FlameGraphData:
-				h.createFlameGraph(data)
+				h.createFlameGraph(eventType)
 			case *api.ProgressData:
-				h.reportProgress(data, done, ctx)
+				h.reportProgress(eventType, done, ctx)
 			default:
-				fmt.Printf("Unrecognized event type: %T!\n", data)
+				fmt.Printf("Unrecognized event type: %T!\n", eventType)
 			}
 		}
 	}

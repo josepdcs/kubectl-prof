@@ -30,9 +30,12 @@ func (b *bpfCreator) create(targetPod *apiv1.Pod, cfg *data.FlameConfig) (string
 
 	args := []string{
 		id, string(targetPod.UID),
-		cfg.TargetConfig.ContainerName, cfg.TargetConfig.ContainerId,
-		cfg.TargetConfig.Duration.String(), string(cfg.TargetConfig.Language),
+		cfg.TargetConfig.ContainerName,
+		cfg.TargetConfig.ContainerId,
+		cfg.TargetConfig.Duration.String(),
+		string(cfg.TargetConfig.Language),
 		string(cfg.TargetConfig.Event),
+		string(cfg.TargetConfig.ContainerRuntime),
 	}
 
 	if cfg.TargetConfig.Pgrep != "" {
@@ -40,10 +43,10 @@ func (b *bpfCreator) create(targetPod *apiv1.Pod, cfg *data.FlameConfig) (string
 	}
 
 	commonMeta := metav1.ObjectMeta{
-		Name:      fmt.Sprintf("cli-%s", id),
+		Name:      fmt.Sprintf("kubectl-profiling-%s", id),
 		Namespace: cfg.JobConfig.Namespace,
 		Labels: map[string]string{
-			"cli/id": id,
+			"kubectl-profiling/id": id,
 		},
 		Annotations: map[string]string{
 			"sidecar.istio.io/inject": "false",
@@ -92,7 +95,7 @@ func (b *bpfCreator) create(targetPod *apiv1.Pod, cfg *data.FlameConfig) (string
 					InitContainers:   nil,
 					Containers: []apiv1.Container{
 						{
-							ImagePullPolicy: apiv1.PullIfNotPresent,
+							ImagePullPolicy: apiv1.PullAlways,
 							Name:            ContainerName,
 							Image:           imageName,
 							Command:         []string{"/app/agent"},

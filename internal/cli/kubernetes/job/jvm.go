@@ -1,10 +1,9 @@
-//: Licensed under the terms of the Apache 2.0 License. See LICENSE file in the project root for terms.
 package job
 
 import (
 	"fmt"
 	"github.com/josepdcs/kubectl-profiling/api"
-	data2 "github.com/josepdcs/kubectl-profiling/internal/cli/data"
+	"github.com/josepdcs/kubectl-profiling/internal/cli/data"
 	"github.com/josepdcs/kubectl-profiling/internal/cli/version"
 
 	batchv1 "k8s.io/api/batch/v1"
@@ -15,30 +14,34 @@ import (
 
 type jvmCreator struct{}
 
-func (c *jvmCreator) create(targetPod *apiv1.Pod, cfg *data2.FlameConfig) (string, *batchv1.Job, error) {
+func (c *jvmCreator) create(targetPod *apiv1.Pod, cfg *data.FlameConfig) (string, *batchv1.Job, error) {
 	id := string(uuid.NewUUID())
 	imageName := c.getAgentImage(cfg.TargetConfig)
 	args := []string{
-		id, string(targetPod.UID),
-		cfg.TargetConfig.ContainerName, cfg.TargetConfig.ContainerId,
-		cfg.TargetConfig.Duration.String(), string(cfg.TargetConfig.Language),
+		id,
+		string(targetPod.UID),
+		cfg.TargetConfig.ContainerName,
+		cfg.TargetConfig.ContainerId,
+		cfg.TargetConfig.Duration.String(),
+		string(cfg.TargetConfig.Language),
 		string(cfg.TargetConfig.Event),
+		string(cfg.TargetConfig.ContainerRuntime),
 	}
 
 	if cfg.TargetConfig.Pgrep != "" {
 		args = append(args, cfg.TargetConfig.Pgrep)
 	}
 
-	imagePullSecret := []apiv1.LocalObjectReference{}
+	var imagePullSecret []apiv1.LocalObjectReference
 	if cfg.TargetConfig.ImagePullSecret != "" {
 		imagePullSecret = []apiv1.LocalObjectReference{{Name: cfg.TargetConfig.ImagePullSecret}}
 	}
 
 	commonMeta := metav1.ObjectMeta{
-		Name:      fmt.Sprintf("cli-%s", id),
+		Name:      fmt.Sprintf("kubectl-profiling-%s", id),
 		Namespace: cfg.JobConfig.Namespace,
 		Labels: map[string]string{
-			"cli/id": id,
+			"kubectl-profiling/id": id,
 		},
 		Annotations: map[string]string{
 			"sidecar.istio.io/inject": "false",
@@ -78,7 +81,7 @@ func (c *jvmCreator) create(targetPod *apiv1.Pod, cfg *data2.FlameConfig) (strin
 					InitContainers:   nil,
 					Containers: []apiv1.Container{
 						{
-							ImagePullPolicy: apiv1.PullIfNotPresent,
+							ImagePullPolicy: apiv1.PullAlways,
 							Name:            ContainerName,
 							Image:           imageName,
 							Command:         []string{"/app/agent"},
@@ -86,8 +89,7 @@ func (c *jvmCreator) create(targetPod *apiv1.Pod, cfg *data2.FlameConfig) (strin
 							VolumeMounts: []apiv1.VolumeMount{
 								{
 									Name:      "target-filesystem",
-									MountPath: api.GetContainerRuntimePath[cfg.TargetConfig.ContainerRuntime],
-									//MountPath: "/var/lib/containers/storage",
+									MountPath: api.GetContainerRuntimeRootPath[cfg.TargetConfig.ContainerRuntime],
 								},
 							},
 							/*SecurityContext: &apiv1.SecurityContext{
@@ -110,7 +112,7 @@ func (c *jvmCreator) create(targetPod *apiv1.Pod, cfg *data2.FlameConfig) (strin
 	return id, job, nil
 }
 
-func (c *jvmCreator) getAgentImage(targetDetails *data2.TargetDetails) string {
+func (c *jvmCreator) getAgentImage(targetDetails *data.TargetDetails) string {
 	if targetDetails.Image != "" {
 		return targetDetails.Image
 	}

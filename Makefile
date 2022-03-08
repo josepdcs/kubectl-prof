@@ -55,6 +55,14 @@ build-docker-bpf:
 push-docker-bpf: build-docker-bpf
 	@docker push $(REGISTRY)/$(DOCKER_BPF_IMAGE)
 
+.PHONY: build-docker-perf
+build-docker-perf:
+	docker build -t ${DOCKER_PERF_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_PERF) .
+
+.PHONY: push-docker-perf
+push-docker-perf: build-docker-perf
+	@docker push $(REGISTRY)/$(DOCKER_PERF_IMAGE)
+
 .PHONY: build-docker-python
 build-docker-python:
 	docker build -t ${DOCKER_PYTHON_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_PYTHON) .

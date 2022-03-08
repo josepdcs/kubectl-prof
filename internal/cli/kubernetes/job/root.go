@@ -1,4 +1,3 @@
-//: Licensed under the terms of the Apache 2.0 License. See LICENSE file in the project root for terms.
 package job
 
 import (
@@ -12,8 +11,8 @@ import (
 )
 
 const (
-	baseImageName = "josepdcs/cli"
-	ContainerName = "cli"
+	baseImageName = "josepdcs/kubectl-profiling"
+	ContainerName = "kubectl-profiling"
 )
 
 var (

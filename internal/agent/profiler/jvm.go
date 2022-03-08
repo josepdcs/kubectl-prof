@@ -3,7 +3,7 @@ package profiler
 import (
 	"bytes"
 	"github.com/josepdcs/kubectl-profiling/internal/agent/details"
-	utils2 "github.com/josepdcs/kubectl-profiling/internal/agent/utils"
+	"github.com/josepdcs/kubectl-profiling/internal/agent/utils"
 	"os"
 	"os/exec"
 	"path"
@@ -19,7 +19,7 @@ const (
 type JvmProfiler struct{}
 
 func (j *JvmProfiler) SetUp(job *details.ProfilingJob) error {
-	targetFs, err := utils2.GetTargetFileSystemLocation(job.ContainerID)
+	targetFs, err := utils.GetTargetFileSystemLocation(job.ContainerID)
 	if err != nil {
 		return err
 	}
@@ -38,7 +38,7 @@ func (j *JvmProfiler) SetUp(job *details.ProfilingJob) error {
 }
 
 func (j *JvmProfiler) Invoke(job *details.ProfilingJob) error {
-	pid, err := utils2.FindProcessId(job)
+	pid, err := utils.FindProcessId(job)
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func (j *JvmProfiler) Invoke(job *details.ProfilingJob) error {
 		return err
 	}
 
-	return utils2.PublishFlameGraph(fileName)
+	return utils.PublishFlameGraph(fileName)
 }
 
 func (j *JvmProfiler) copyProfilerToTempDir() error {

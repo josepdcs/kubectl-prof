@@ -26,6 +26,7 @@ func (p *perfCreator) create(targetPod *apiv1.Pod, cfg *data.FlameConfig) (strin
 		cfg.TargetConfig.Duration.String(),
 		string(cfg.TargetConfig.Language),
 		string(cfg.TargetConfig.Event),
+		string(cfg.TargetConfig.ContainerRuntime),
 	}
 
 	if cfg.TargetConfig.Pgrep != "" {
@@ -87,7 +88,7 @@ func (p *perfCreator) create(targetPod *apiv1.Pod, cfg *data.FlameConfig) (strin
 					InitContainers:   nil,
 					Containers: []apiv1.Container{
 						{
-							ImagePullPolicy: apiv1.PullIfNotPresent,
+							ImagePullPolicy: apiv1.PullAlways,
 							Name:            ContainerName,
 							Image:           imageName,
 							Command:         []string{"/app/agent"},
@@ -95,7 +96,7 @@ func (p *perfCreator) create(targetPod *apiv1.Pod, cfg *data.FlameConfig) (strin
 							VolumeMounts: []apiv1.VolumeMount{
 								{
 									Name:      "target-filesystem",
-									MountPath: api.GetContainerRuntimePath[cfg.TargetConfig.ContainerRuntime],
+									MountPath: api.GetContainerRuntimeRootPath[cfg.TargetConfig.ContainerRuntime],
 									//MountPath: "/var/lib/docker",
 								},
 							},

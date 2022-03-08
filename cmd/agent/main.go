@@ -7,7 +7,6 @@ import (
 	"github.com/josepdcs/kubectl-profiling/internal/agent/utils"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -15,20 +14,20 @@ import (
 )
 
 func main() {
-	args, err := validateArgs()
+	job, err := getProfilingJob()
 	handleError(err)
 
 	err = api.PublishEvent(api.Progress, &api.ProgressData{Time: time.Now(), Stage: api.Started})
 	handleError(err)
 
-	p, err := profiler.ForLanguage(args.Language)
+	p, err := profiler.ForLanguage(job.Language)
 	handleError(err)
 
-	err = p.SetUp(args)
+	err = p.SetUp(job)
 	handleError(err)
 
 	done := handleSignals()
-	err = p.Invoke(args)
+	err = p.Invoke(job)
 	handleError(err)
 
 	err = api.PublishEvent(api.Progress, &api.ProgressData{Time: time.Now(), Stage: api.Ended})
@@ -37,9 +36,9 @@ func main() {
 	<-done
 }
 
-func validateArgs() (*details.ProfilingJob, error) {
-	if len(os.Args) != 8 && len(os.Args) != 9 {
-		return nil, errors.New("expected 7 or 8 arguments")
+func getProfilingJob() (*details.ProfilingJob, error) {
+	if len(os.Args) != 9 && len(os.Args) != 10 {
+		return nil, errors.New("expected 8 or 9 arguments")
 	}
 
 	duration, err := time.ParseDuration(os.Args[5])
@@ -47,27 +46,20 @@ func validateArgs() (*details.ProfilingJob, error) {
 		return nil, err
 	}
 
-	currentJob := &details.ProfilingJob{}
-	currentJob.ID = os.Args[1]
-	currentJob.PodUID = os.Args[2]
-	currentJob.ContainerName = os.Args[3]
-	currentJob.ContainerID = utils.NormalizeContainerID(os.Args[4])
-	currentJob.Duration = duration
-	currentJob.Language = api.ProgrammingLanguage(os.Args[6])
-	currentJob.Event = api.ProfilingEvent(os.Args[7])
-	if len(os.Args) == 9 {
-		currentJob.TargetProcessName = os.Args[8]
+	job := &details.ProfilingJob{}
+	job.ID = os.Args[1]
+	job.PodUID = os.Args[2]
+	job.ContainerName = os.Args[3]
+	job.ContainerID = utils.NormalizeContainerID(os.Args[4])
+	job.Duration = duration
+	job.Language = api.ProgrammingLanguage(os.Args[6])
+	job.Event = api.ProfilingEvent(os.Args[7])
+	job.ContainerRuntime = api.ContainerRuntime(os.Args[8])
+	if len(os.Args) == 10 {
+		job.TargetProcessName = os.Args[9]
 	}
 
-	return currentJob, nil
-}
-
-func normalizeContainerID(containerID string) string {
-	var toRemove = []string{"docker://", "crio://", "containerd://"}
-	for _, v := range toRemove {
-		containerID = strings.Replace(containerID, v, "", 1)
-	}
-	return containerID
+	return job, nil
 }
 
 func handleSignals() chan bool {
