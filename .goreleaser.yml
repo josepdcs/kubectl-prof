@@ -3,7 +3,7 @@ before:
     - go mod download
 builds:
   - id: kubectl-profiling
-    main: ./cli/main.go
+    main: ./cmd/cli/main.go
     binary: kubectl-profiling
     env:
       - CGO_ENABLED=0
@@ -18,9 +18,7 @@ builds:
       - ppc64le
     goarm: [ 6, 7 ]
     ldflags: |
-      -X github.com/josepdcs/kubectl-profiling/cli/cmd/version.semver={{ .Tag }}
-      -X github.com/josepdcs/kubectl-profiling/cli/cmd/version.date={{ .Date }}
-      -X github.com/josepdcs/kubectl-profiling/cli/cmd/version.commit={{ .Commit }}
+      -X github.com/josepdcs/kubectl-profiling/internal/cli/version.semver={{ .Tag }}
 archives:
   - id: kubectl-profiling-archive
     name_template: |

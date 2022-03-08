@@ -1,15 +1,21 @@
 VERSION := 0.0.1
 CLI_NAME := kubectl-profiling
-CLI_DIR := ./cli/
+CLI_DIR := ./cmd/cli/
 BUILD_DIR := bin
 REGISTRY := docker.io
 DOCKER_BASE_IMAGE := josepdcs/kubectl-profiling
 DOCKER_JVM_IMAGE := $(DOCKER_BASE_IMAGE):$(VERSION)-jvm
-DOCKERFILE_JVM := ./agent/docker/jvm/Dockerfile
+DOCKERFILE_JVM := ./internal/agent/docker/jvm/Dockerfile
 DOCKER_JVM_ALPINE_IMAGE := $(DOCKER_BASE_IMAGE):$(VERSION)-jvm-alpine
-DOCKERFILE_JVM_ALPINE := ./agent/docker/jvm/alpine/Dockerfile
+DOCKERFILE_JVM_ALPINE := ./internal/agent/docker/jvm/alpine/Dockerfile
 DOCKER_BPF_IMAGE := $(DOCKER_BASE_IMAGE):$(VERSION)-bpf
-DOCKERFILE_BPF := ./agent/docker/bpf/Dockerfile
+DOCKERFILE_BPF := ./internal/agent/docker/bpf/Dockerfile
+DOCKER_PERF_IMAGE := $(DOCKER_BASE_IMAGE):$(VERSION)-perf
+DOCKERFILE_PERF := ./internal/agent/docker/perf/Dockerfile
+DOCKER_PYTHON_IMAGE := $(DOCKER_BASE_IMAGE):$(VERSION)-python
+DOCKERFILE_PYTHON := ./internal/agent/docker/python/Dockerfile
+DOCKER_RUBY_IMAGE := $(DOCKER_BASE_IMAGE):$(VERSION)-ruby
+DOCKERFILE_RUBY := ./internal/agent/docker/ruby/Dockerfile
 
 all: build-cli
 
@@ -19,7 +25,7 @@ dep: ## Get the dependencies
 
 .PHONY: build-cli
 build-cli: dep ## Build the binary file
-	@go build -ldflags="-X 'github.com/josepdcs/kubectl-profiling/cli/cmd/version.semver=$(VERSION)'" -o $(BUILD_DIR)/$(CLI_NAME) -v $(CLI_DIR)
+	@go build -ldflags="-X 'github.com/josepdcs/kubectl-profiling/internal/cli/version.semver=$(VERSION)'" -o $(BUILD_DIR)/$(CLI_NAME) -v $(CLI_DIR)
 
 .PHONY: prepare-minikube
 prepare-minikube:
@@ -44,6 +50,26 @@ push-docker-jvm-alpine: build-docker-jvm-alpine
 .PHONY: build-docker-bpf
 build-docker-bpf:
 	docker build -t ${DOCKER_BPF_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_BPF) .
+
+.PHONY: push-docker-bpf
+push-docker-bpf: build-docker-bpf
+	@docker push $(REGISTRY)/$(DOCKER_BPF_IMAGE)
+
+.PHONY: build-docker-python
+build-docker-python:
+	docker build -t ${DOCKER_PYTHON_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_PYTHON) .
+
+.PHONY: push-docker-python
+push-docker-python: build-docker-python
+	@docker push $(REGISTRY)/$(DOCKER_PYTHON_IMAGE)
+
+.PHONY: build-docker-ruby
+build-docker-ruby:
+	docker build -t ${DOCKER_RUBY_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_RUBY) .
+
+.PHONY: push-docker-ruby
+push-docker-ruby: build-docker-ruby
+	@docker push $(REGISTRY)/$(DOCKER_RUBY_IMAGE)
 
 .PHONY: debug
 debug: clean

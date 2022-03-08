@@ -4,8 +4,8 @@ metadata:
   name: profiling
 spec:
   homepage: https://github.com/josepdcs/kubectl-profiling
-  shortDescription: Generate CPU profiling graphs from pods
-  version: {{ .TagName }}
+  shortDescription: Generate CPU profiling graphs from pods (Docker, Cri-o and Containerd are supported)
+  version: { { .TagName } }
   description: |
     Generate CPU profiling graphs without restarting pods and with low overhead.
   caveats: |
