@@ -69,7 +69,13 @@ via `--pgrep` flag:
 kubectl profiling mypod -t 1m --lang go -f /tmp/flamegraph.svg --pgrep go-app
 ```
 
-Java profiling assumes that the process name is `java`. Use `--pgrep` flag if your process name is different.
+### Additional info
+
+* Java profiling assumes that the process name is `java`.
+* Python profiling assumes that the process name is `python`.
+* Ruby profiling assumes that the process name is `ruby`.
+
+Use `--pgrep` flag if your process name is different.
 
 ## Installing
 

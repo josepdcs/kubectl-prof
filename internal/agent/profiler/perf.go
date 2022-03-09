@@ -3,7 +3,7 @@ package profiler
 import (
 	"fmt"
 	"github.com/josepdcs/kubectl-profiling/internal/agent/details"
-	utils2 "github.com/josepdcs/kubectl-profiling/internal/agent/utils"
+	"github.com/josepdcs/kubectl-profiling/internal/agent/utils"
 	"os"
 	"os/exec"
 	"strconv"
@@ -46,11 +46,11 @@ func (p *PerfProfiler) Invoke(job *details.ProfilingJob) error {
 		return fmt.Errorf("flamegraph generation failed: %s", err)
 	}
 
-	return utils2.PublishFlameGraph(flameGraphPerfOutputFile)
+	return utils.PublishFlameGraph(flameGraphPerfOutputFile)
 }
 
 func (p *PerfProfiler) runPerfRecord(job *details.ProfilingJob) error {
-	pid, err := utils2.FindRootProcessId(job)
+	pid, err := utils.FindRootProcessId(job)
 	if err != nil {
 		return err
 	}

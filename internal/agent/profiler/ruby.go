@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/josepdcs/kubectl-profiling/internal/agent/details"
-	utils2 "github.com/josepdcs/kubectl-profiling/internal/agent/utils"
+	"github.com/josepdcs/kubectl-profiling/internal/agent/utils"
 	"os/exec"
 	"strconv"
 )
@@ -21,7 +21,7 @@ func (r *RubyProfiler) SetUp(job *details.ProfilingJob) error {
 }
 
 func (r *RubyProfiler) Invoke(job *details.ProfilingJob) error {
-	pid, err := utils2.FindRootProcessId(job)
+	pid, err := utils.FindRootProcessId(job)
 	if err != nil {
 		return fmt.Errorf("could not find root process ID: %w", err)
 	}
@@ -37,5 +37,5 @@ func (r *RubyProfiler) Invoke(job *details.ProfilingJob) error {
 		return fmt.Errorf("could not launch profiler: %w", err)
 	}
 
-	return utils2.PublishFlameGraph(rbspyOutputFileName)
+	return utils.PublishFlameGraph(rbspyOutputFileName)
 }

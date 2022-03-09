@@ -19,7 +19,7 @@ const (
 type JvmProfiler struct{}
 
 func (j *JvmProfiler) SetUp(job *details.ProfilingJob) error {
-	targetFs, err := utils.GetTargetFileSystemLocation(job.ContainerID)
+	targetFs, err := utils.TargetFileSystemLocation(job.ContainerRuntime, job.ContainerID)
 	if err != nil {
 		return err
 	}

@@ -3,7 +3,7 @@ package profiler
 import (
 	"bytes"
 	"github.com/josepdcs/kubectl-profiling/internal/agent/details"
-	utils2 "github.com/josepdcs/kubectl-profiling/internal/agent/utils"
+	"github.com/josepdcs/kubectl-profiling/internal/agent/utils"
 	"os/exec"
 	"strconv"
 )
@@ -20,7 +20,7 @@ func (p *PythonProfiler) SetUp(job *details.ProfilingJob) error {
 }
 
 func (p *PythonProfiler) Invoke(job *details.ProfilingJob) error {
-	pid, err := utils2.FindRootProcessId(job)
+	pid, err := utils.FindRootProcessId(job)
 	if err != nil {
 		return err
 	}
@@ -36,5 +36,5 @@ func (p *PythonProfiler) Invoke(job *details.ProfilingJob) error {
 		return err
 	}
 
-	return utils2.PublishFlameGraph(pythonOutputFileName)
+	return utils.PublishFlameGraph(pythonOutputFileName)
 }

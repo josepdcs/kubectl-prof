@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	job, err := getProfilingJob()
+	job, err := profilingJob()
 	handleError(err)
 
 	err = api.PublishEvent(api.Progress, &api.ProgressData{Time: time.Now(), Stage: api.Started})
@@ -36,7 +36,7 @@ func main() {
 	<-done
 }
 
-func getProfilingJob() (*details.ProfilingJob, error) {
+func profilingJob() (*details.ProfilingJob, error) {
 	if len(os.Args) != 9 && len(os.Args) != 10 {
 		return nil, errors.New("expected 8 or 9 arguments")
 	}

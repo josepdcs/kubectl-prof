@@ -3,7 +3,7 @@ package profiler
 import (
 	"fmt"
 	"github.com/josepdcs/kubectl-profiling/internal/agent/details"
-	utils2 "github.com/josepdcs/kubectl-profiling/internal/agent/utils"
+	"github.com/josepdcs/kubectl-profiling/internal/agent/utils"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -22,7 +22,7 @@ const (
 type BpfProfiler struct{}
 
 func (b *BpfProfiler) SetUp(job *details.ProfilingJob) error {
-	exitCode, kernelVersion, err := utils2.ExecuteCommand(exec.Command("uname", "-r"))
+	exitCode, kernelVersion, err := utils.ExecuteCommand(exec.Command("uname", "-r"))
 	if err != nil {
 		return fmt.Errorf("failed to get kernel version, exit code: %d, error: %s", exitCode, err)
 	}
@@ -47,11 +47,11 @@ func (b *BpfProfiler) Invoke(job *details.ProfilingJob) error {
 		return fmt.Errorf("flamegraph generation failed: %s", err)
 	}
 
-	return utils2.PublishFlameGraph(flameGraphOutputLocation)
+	return utils.PublishFlameGraph(flameGraphOutputLocation)
 }
 
 func (b *BpfProfiler) runProfiler(job *details.ProfilingJob) error {
-	pid, err := utils2.FindProcessId(job)
+	pid, err := utils.FindProcessId(job)
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func (b *BpfProfiler) moveSources(target string) error {
 		return err
 	}
 
-	_, _, err = utils2.ExecuteCommand(exec.Command("mv", kernelSourcesDir, target))
+	_, _, err = utils.ExecuteCommand(exec.Command("mv", kernelSourcesDir, target))
 	if err != nil {
 		return fmt.Errorf("failed moving source files, error: %s, tried to move to: %s", err, target)
 	}
