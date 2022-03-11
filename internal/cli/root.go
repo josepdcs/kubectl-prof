@@ -2,7 +2,7 @@ package cli
 
 import (
 	"fmt"
-	data2 "github.com/josepdcs/kubectl-profiling/internal/cli/data"
+	"github.com/josepdcs/kubectl-profiling/internal/cli/data"
 	"github.com/josepdcs/kubectl-profiling/internal/cli/version"
 	"os"
 	"time"
@@ -48,8 +48,8 @@ func NewFlameOptions(streams genericclioptions.IOStreams) *FlameOptions {
 
 func NewFlameCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	var (
-		targetDetails data2.TargetDetails
-		jobDetails    data2.JobDetails
+		targetDetails data.TargetDetails
+		jobDetails    data.JobDetails
 		showVersion   bool
 		chosenRuntime string
 		chosenLang    string
@@ -58,7 +58,7 @@ func NewFlameCommand(streams genericclioptions.IOStreams) *cobra.Command {
 
 	options := NewFlameOptions(streams)
 	cmd := &cobra.Command{
-		Use:                   "flame [pod-name]",
+		Use:                   "profiling [pod-name]",
 		DisableFlagsInUseLine: true,
 		Short:                 "Profile running applications by generating flame graphs.",
 		Long:                  flameLong,
@@ -88,7 +88,7 @@ func NewFlameCommand(streams genericclioptions.IOStreams) *cobra.Command {
 				targetDetails.ContainerName = args[1]
 			}
 
-			cfg := &data2.FlameConfig{
+			cfg := &data.FlameConfig{
 				TargetConfig: &targetDetails,
 				JobConfig:    &jobDetails,
 				ConfigFlags:  options.configFlags,
@@ -130,7 +130,7 @@ func NewFlameCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	return cmd
 }
 
-func validateFlags(runtimeString string, langString string, eventString string, targetDetails *data2.TargetDetails, jobDetails *data2.JobDetails) error {
+func validateFlags(runtimeString string, langString string, eventString string, targetDetails *data.TargetDetails, jobDetails *data.JobDetails) error {
 	if langString == "" {
 		return fmt.Errorf("use -l flag to select one of the supported languages %s", api.AvailableLanguages())
 	}

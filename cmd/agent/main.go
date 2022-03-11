@@ -27,14 +27,14 @@ func main() {
 	err = p.SetUp(job)
 	handleError(err)
 
-	done := handleSignals()
+	//done := handleSignals()
 	err = p.Invoke(job)
 	handleError(err)
 
 	err = api.PublishEvent(api.Progress, &api.ProgressData{Time: time.Now(), Stage: api.Ended})
 	handleError(err)
 
-	<-done
+	//<-done
 }
 
 func profilingJob() (*details.ProfilingJob, error) {
@@ -69,7 +69,8 @@ func handleSignals() chan bool {
 	signal.Notify(sigs, syscall.SIGTERM)
 
 	go func() {
-		<-sigs
+		s := <-sigs
+		log.Infof("Recived signal: %s", s)
 		os.RemoveAll("/tmp/async-profiler")
 		os.Remove("/tmp")
 		done <- true

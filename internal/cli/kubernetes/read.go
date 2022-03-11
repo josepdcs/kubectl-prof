@@ -39,7 +39,7 @@ func WaitForPodStart(cfg *data.FlameConfig, ctx context.Context) (*apiv1.Pod, er
 				CoreV1().
 				Pods(cfg.JobConfig.Namespace).
 				List(ctx, metav1.ListOptions{
-					LabelSelector: fmt.Sprintf("cli/id=%s", cfg.TargetConfig.Id),
+					LabelSelector: fmt.Sprintf("kubectl-profiling/id=%s", cfg.TargetConfig.Id),
 				})
 
 			if err != nil {

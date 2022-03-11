@@ -44,10 +44,10 @@ func (p *pythonCreator) create(targetPod *apiv1.Pod, cfg *data.FlameConfig) (str
 	}
 
 	commonMeta := metav1.ObjectMeta{
-		Name:      fmt.Sprintf("cli-%s", id),
+		Name:      fmt.Sprintf("kubectl-profiling-%s", id),
 		Namespace: cfg.JobConfig.Namespace,
 		Labels: map[string]string{
-			"cli/id": id,
+			"kubectl-profiling/id": id,
 		},
 		Annotations: map[string]string{
 			"sidecar.istio.io/inject": "false",

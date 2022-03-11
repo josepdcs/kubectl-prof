@@ -98,7 +98,7 @@ fdtransfer() {
 
 jattach() {
     set +e
-    "$JATTACH" "$PID" load "$PROFILER" true "$1,log=$LOG"
+    "$JATTACH" "$PID" load "$PROFILER" true "$1,log=$LOG" > /dev/null
     RET=$?
 
     # Check if jattach failed

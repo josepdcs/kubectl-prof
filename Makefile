@@ -33,7 +33,7 @@ prepare-minikube:
 
 .PHONY: build-docker-jvm
 build-docker-jvm:
-	@docker build -t ${DOCKER_JVM_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_JVM) .
+	@docker build --no-cache -t ${DOCKER_JVM_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_JVM) .
 
 .PHONY: push-docker-jvm
 push-docker-jvm: build-docker-jvm
