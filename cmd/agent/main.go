@@ -5,6 +5,7 @@ import (
 	"github.com/josepdcs/kubectl-profiling/internal/agent/details"
 	"github.com/josepdcs/kubectl-profiling/internal/agent/profiler"
 	"github.com/josepdcs/kubectl-profiling/internal/agent/utils"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
 	"syscall"
@@ -77,8 +78,9 @@ func handleSignals() chan bool {
 	return done
 }
 
-func handleError(err error) {
+func handleError(err error, step ...string) {
 	if err != nil {
+		log.Errorf("%s", step)
 		api.PublishError(err)
 		os.Exit(1)
 	}

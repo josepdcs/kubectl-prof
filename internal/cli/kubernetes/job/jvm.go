@@ -92,9 +92,12 @@ func (c *jvmCreator) create(targetPod *apiv1.Pod, cfg *data.FlameConfig) (string
 									MountPath: api.GetContainerRuntimeRootPath[cfg.TargetConfig.ContainerRuntime],
 								},
 							},
-							/*SecurityContext: &apiv1.SecurityContext{
+							SecurityContext: &apiv1.SecurityContext{
 								Privileged: boolPtr(true),
-							},*/
+								Capabilities: &apiv1.Capabilities{
+									Add: []apiv1.Capability{"CAP_SYS_ADMIN"},
+								},
+							},
 							Resources: resources,
 						},
 					},

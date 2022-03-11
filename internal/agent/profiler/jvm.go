@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/josepdcs/kubectl-profiling/internal/agent/details"
 	"github.com/josepdcs/kubectl-profiling/internal/agent/utils"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"path"
@@ -23,6 +24,7 @@ func (j *JvmProfiler) SetUp(job *details.ProfilingJob) error {
 	if err != nil {
 		return err
 	}
+	log.Infof("The target filesystem is: %s", targetFs)
 
 	err = os.RemoveAll("/tmp")
 	if err != nil {
@@ -39,6 +41,7 @@ func (j *JvmProfiler) SetUp(job *details.ProfilingJob) error {
 
 func (j *JvmProfiler) Invoke(job *details.ProfilingJob) error {
 	pid, err := utils.FindProcessId(job)
+	log.Infof("The PID to be profiled: %s", pid)
 	if err != nil {
 		return err
 	}
@@ -52,6 +55,8 @@ func (j *JvmProfiler) Invoke(job *details.ProfilingJob) error {
 	cmd.Stderr = &stderr
 	err = cmd.Run()
 	if err != nil {
+		log.Errorf("Error running command (stdout): %s", out.String())
+		log.Errorf("Error running command (stderr): %s", stderr.String())
 		return err
 	}
 

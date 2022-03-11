@@ -13,8 +13,8 @@ var dockerMountIdLocation = func(containerID string) string {
 	return fmt.Sprintf("/var/lib/docker/image/overlay2/layerdb/mounts/%s/mount-id", containerID)
 }
 
-var dockerTargetFileSystemLocation = func() string {
-	return "/var/lib/docker/overlay2/%s/merged"
+var dockerTargetFileSystemLocation = func(mountID string) string {
+	return fmt.Sprintf("/var/lib/docker/overlay2/%s/merged", string(mountID))
 }
 
 var crioConfigFile = func(containerID string) string {
@@ -36,11 +36,11 @@ func TargetFileSystemLocation(runtime api.ContainerRuntime, containerID string) 
 		return "", errors.New("containerd at not supported yet, coming soon...")
 	case api.Docker:
 		fileName := dockerMountIdLocation(containerID)
-		mountId, err := ioutil.ReadFile(fileName)
+		mountID, err := ioutil.ReadFile(fileName)
 		if err != nil {
 			return "", errors.Wrapf(err, "read file failed: %s", fileName)
 		}
-		return fmt.Sprintf(dockerTargetFileSystemLocation(), string(mountId)), nil
+		return dockerTargetFileSystemLocation(string(mountID)), nil
 	default:
 		return "", errors.Errorf("unsupported container runtime: %s", runtime)
 	}
