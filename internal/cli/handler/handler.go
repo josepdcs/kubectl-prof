@@ -58,7 +58,7 @@ func (h *ApiEventsHandler) reportProgress(data *api.ProgressData, done chan bool
 		fmt.Printf("Profiling ...\n")
 	} else if data.Stage == api.Ended {
 		_ = kubernetes.DeleteProfilingJob(h.Job, h.Target, ctx)
-		fmt.Printf("✔\nFlameGraph saved to: %s 🔥\n", h.Target.FileName)
+		fmt.Printf("✔\nProfiled as FrameGraph saved to: %s 🔥\n", h.Target.FileName)
 		done <- true
 	}
 }
