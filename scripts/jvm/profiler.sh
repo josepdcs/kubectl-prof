@@ -346,6 +346,7 @@ case $ACTION in
         trap - INT
         echo Done >&2
         jattach "stop,file=$FILE,$OUTPUT$FORMAT"
+        exit 0
         ;;
     version)
         if [ "$PID" = "" ]; then

@@ -1,4 +1,15 @@
-//: Licensed under the terms of the Apache 2.0 License. See LICENSE file in the project root for terms.
+/*
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package kubernetes
 
 import (
@@ -6,7 +17,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/josepdcs/kubectl-profiling/internal/cli/data"
+	"github.com/josepdcs/kubectl-profiling/internal/cli/config"
 	"github.com/josepdcs/kubectl-profiling/internal/cli/kubernetes/job"
 	"time"
 
@@ -31,7 +42,7 @@ func GetPodDetails(podName, namespace string, ctx context.Context) (*apiv1.Pod, 
 	return podObject, nil
 }
 
-func WaitForPodStart(cfg *data.FlameConfig, ctx context.Context) (*apiv1.Pod, error) {
+func WaitForPodStart(cfg *config.ProfilerConfig, ctx context.Context) (*apiv1.Pod, error) {
 	var pod *apiv1.Pod
 	err := wait.Poll(1*time.Second, 5*time.Minute,
 		func() (bool, error) {

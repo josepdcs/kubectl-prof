@@ -13,9 +13,9 @@ func RootDir() string {
 }
 
 func CrioTestDataDir() string {
-	return RootDir() + "/test/data/crio"
+	return RootDir() + "/test/config/crio"
 }
 
 func DockerTestDataDir() string {
-	return RootDir() + "/test/data/docker"
+	return RootDir() + "/test/config/docker"
 }

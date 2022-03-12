@@ -1,7 +1,19 @@
+/*
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package api
 
 import (
-	"encoding/json"
+	jsoniter "github.com/json-iterator/go"
 	"time"
 )
 
@@ -12,14 +24,20 @@ const (
 	Error      EventType = "error"
 	FlameGraph EventType = "flamegraph"
 	Progress   EventType = "progress"
+	Log        EventType = "log"
 
 	Started ProgressStage = "started"
 	Ended   ProgressStage = "ended"
+
+	InfoLevel  string = "info"
+	WarnLevel  string = "warn"
+	DebugLevel string = "debug"
+	ErrorLevel string = "error"
 )
 
 type Event struct {
-	Type EventType        `json:"type"`
-	Data *json.RawMessage `json:"data"`
+	Type EventType            `json:"type"`
+	Data *jsoniter.RawMessage `json:"data"`
 }
 
 type ErrorData struct {
@@ -35,10 +53,18 @@ type ProgressData struct {
 	Stage ProgressStage `json:"stage"`
 }
 
+type LogData struct {
+	Time  time.Time `json:"time"`
+	Level string    `json:"level"`
+	Msg   string    `json:"msg"`
+}
+
 var typeToData = map[EventType]interface{}{
 	Error:      &ErrorData{},
 	FlameGraph: &FlameGraphData{},
-	Progress:   &ProgressData{}}
+	Progress:   &ProgressData{},
+	Log:        &LogData{},
+}
 
 func GetDataStructByType(t EventType) interface{} {
 	return typeToData[t]

@@ -3,7 +3,7 @@ package job
 import (
 	"fmt"
 	"github.com/josepdcs/kubectl-profiling/api"
-	"github.com/josepdcs/kubectl-profiling/internal/cli/data"
+	"github.com/josepdcs/kubectl-profiling/internal/cli/config"
 	"github.com/josepdcs/kubectl-profiling/internal/cli/version"
 
 	batchv1 "k8s.io/api/batch/v1"
@@ -14,7 +14,7 @@ import (
 
 type perfCreator struct{}
 
-func (p *perfCreator) create(targetPod *apiv1.Pod, cfg *data.FlameConfig) (string, *batchv1.Job, error) {
+func (p *perfCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
 	id := string(uuid.NewUUID())
 	var imageName string
 	var imagePullSecret []apiv1.LocalObjectReference

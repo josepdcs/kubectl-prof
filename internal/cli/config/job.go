@@ -1,4 +1,4 @@
-package data
+package config
 
 import (
 	"fmt"
@@ -7,9 +7,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
-// JobDetails holds configuration options for the profiling job that is launched
+// JobConfig holds configuration options for the profiling job that is launched
 // by cli.
-type JobDetails struct {
+type JobConfig struct {
 	// RequestConfig configures resource requests for the job that is started.
 	RequestConfig ResourceConfig
 
@@ -26,9 +26,9 @@ type ResourceConfig struct {
 	Memory string
 }
 
-// ToResourceRequirements parses JobDetails into an apiv1.ResourceRequirements
+// ToResourceRequirements parses JobConfig into an apiv1.ResourceRequirements
 // map which can be passed to a container spec.
-func (jd *JobDetails) ToResourceRequirements() (apiv1.ResourceRequirements, error) {
+func (jd *JobConfig) ToResourceRequirements() (apiv1.ResourceRequirements, error) {
 	var out apiv1.ResourceRequirements
 
 	requests, err := jd.RequestConfig.ParseResources()

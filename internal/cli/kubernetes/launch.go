@@ -3,7 +3,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	data2 "github.com/josepdcs/kubectl-profiling/internal/cli/data"
+	data2 "github.com/josepdcs/kubectl-profiling/internal/cli/config"
 	"github.com/josepdcs/kubectl-profiling/internal/cli/kubernetes/job"
 	"os"
 
@@ -13,7 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 )
 
-func LaunchFlameJob(targetPod *v1.Pod, cfg *data2.FlameConfig, ctx context.Context) (string, *batchv1.Job, error) {
+func LaunchFlameJob(targetPod *v1.Pod, cfg *data2.ProfilerConfig, ctx context.Context) (string, *batchv1.Job, error) {
 	id, flameJob, err := job.Create(targetPod, cfg)
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to create job: %w", err)
@@ -43,7 +43,7 @@ func printJob(job *batchv1.Job) error {
 	return encoder.Encode(job, os.Stdout)
 }
 
-func DeleteProfilingJob(job *batchv1.Job, targetDetails *data2.TargetDetails, ctx context.Context) error {
+func DeleteProfilingJob(job *batchv1.Job, targetDetails *data2.TargetConfig, ctx context.Context) error {
 	deleteStrategy := metav1.DeletePropagationForeground
 	return clientSet.
 		BatchV1().

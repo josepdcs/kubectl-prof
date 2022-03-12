@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/josepdcs/kubectl-profiling/internal/cli/data"
+	"github.com/josepdcs/kubectl-profiling/internal/cli/config"
 	"github.com/josepdcs/kubectl-profiling/internal/cli/kubernetes"
+	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 
 	"github.com/josepdcs/kubectl-profiling/api"
@@ -14,7 +15,7 @@ import (
 
 type ApiEventsHandler struct {
 	Job    *batchv1.Job
-	Target *data.TargetDetails
+	Target *config.TargetConfig
 }
 
 func (h *ApiEventsHandler) Handle(events chan string, done chan bool, ctx context.Context) {
@@ -30,6 +31,8 @@ func (h *ApiEventsHandler) Handle(events chan string, done chan bool, ctx contex
 				h.createFlameGraph(eventType)
 			case *api.ProgressData:
 				h.reportProgress(eventType, done, ctx)
+			case *api.LogData:
+				h.logger(eventType)
 			default:
 				fmt.Printf("Unrecognized event type: %T!\n", eventType)
 			}
@@ -52,10 +55,26 @@ func (h *ApiEventsHandler) createFlameGraph(data *api.FlameGraphData) {
 
 func (h *ApiEventsHandler) reportProgress(data *api.ProgressData, done chan bool, ctx context.Context) {
 	if data.Stage == api.Started {
-		fmt.Printf("Profiling ... ")
+		fmt.Printf("Profiling ...\n")
 	} else if data.Stage == api.Ended {
 		_ = kubernetes.DeleteProfilingJob(h.Job, h.Target, ctx)
 		fmt.Printf("✔\nFlameGraph saved to: %s 🔥\n", h.Target.FileName)
 		done <- true
+	}
+}
+
+//logger func config message
+func (h *ApiEventsHandler) logger(data *api.LogData) {
+	switch data.Level {
+	case api.InfoLevel:
+		log.Info(data.Msg)
+	case api.WarnLevel:
+		log.Warn(data.Msg)
+	case api.DebugLevel:
+		log.Debug(data.Msg)
+	case api.ErrorLevel:
+		log.Error(data.Msg)
+	default:
+		log.Trace(data.Msg)
 	}
 }

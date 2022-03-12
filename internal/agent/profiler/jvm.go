@@ -1,14 +1,28 @@
+/*
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package profiler
 
 import (
 	"bytes"
+	"fmt"
+	"github.com/josepdcs/kubectl-profiling/api"
 	"github.com/josepdcs/kubectl-profiling/internal/agent/details"
 	"github.com/josepdcs/kubectl-profiling/internal/agent/utils"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"path"
 	"strconv"
+	"time"
 )
 
 const (
@@ -24,7 +38,13 @@ func (j *JvmProfiler) SetUp(job *details.ProfilingJob) error {
 	if err != nil {
 		return err
 	}
-	log.Infof("The target filesystem is: %s", targetFs)
+	_ = api.PublishEvent(
+		api.Log,
+		&api.LogData{
+			Time:  time.Now(),
+			Level: api.InfoLevel,
+			Msg:   fmt.Sprintf("The target filesystem is: %s", targetFs)},
+	)
 
 	err = os.RemoveAll("/tmp")
 	if err != nil {
@@ -41,7 +61,7 @@ func (j *JvmProfiler) SetUp(job *details.ProfilingJob) error {
 
 func (j *JvmProfiler) Invoke(job *details.ProfilingJob) error {
 	pid, err := utils.FindProcessId(job)
-	log.Infof("The PID to be profiled: %s", pid)
+	//log.Infof("The PID to be profiled: %s", pid)
 	if err != nil {
 		return err
 	}
@@ -55,10 +75,39 @@ func (j *JvmProfiler) Invoke(job *details.ProfilingJob) error {
 	cmd.Stderr = &stderr
 	err = cmd.Run()
 	if err != nil {
-		log.Errorf("Error running command (stdout): %s", out.String())
-		log.Errorf("Error running command (stderr): %s", stderr.String())
+		outStr := out.String()
+		if len(outStr) > 0 {
+			_ = api.PublishEvent(
+				api.Log,
+				&api.LogData{
+					Time:  time.Now(),
+					Level: api.ErrorLevel,
+					Msg:   fmt.Sprint(outStr)},
+			)
+		}
+		errStr := stderr.String()
+		if len(errStr) > 0 {
+			_ = api.PublishEvent(
+				api.Log,
+				&api.LogData{
+					Time:  time.Now(),
+					Level: api.ErrorLevel,
+					Msg:   fmt.Sprint(errStr)},
+			)
+		}
 		return err
 	}
+
+	/*outStr := out.String()
+	if outStr != "" {
+		_ = api.PublishEvent(
+			api.Log,
+			&api.LogData{
+				Time:  time.Now(),
+				Level: api.InfoLevel,
+				Msg:   fmt.Sprint(outStr)},
+		)
+	}*/
 
 	return utils.PublishFlameGraph(fileName)
 }

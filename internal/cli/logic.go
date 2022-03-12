@@ -1,11 +1,22 @@
-//: Licensed under the terms of the Apache 2.0 License. See LICENSE file in the project root for terms.
+/*
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package cli
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/josepdcs/kubectl-profiling/internal/cli/data"
+	"github.com/josepdcs/kubectl-profiling/internal/cli/config"
 	"github.com/josepdcs/kubectl-profiling/internal/cli/handler"
 	"github.com/josepdcs/kubectl-profiling/internal/cli/kubernetes"
 	"log"
@@ -13,7 +24,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-func Flame(cfg *data.FlameConfig) {
+func Flame(cfg *config.ProfilerConfig) {
 	ns, err := kubernetes.Connect(cfg.ConfigFlags)
 	if err != nil {
 		log.Fatalf("Failed connecting to kubernetes cluster: %v\n", err)
@@ -84,7 +95,7 @@ func Flame(cfg *data.FlameConfig) {
 	<-done
 }
 
-func validatePod(pod *v1.Pod, targetDetails *data.TargetDetails) (string, error) {
+func validatePod(pod *v1.Pod, targetDetails *config.TargetConfig) (string, error) {
 	if pod == nil {
 		return "", errors.New(fmt.Sprintf("Could not find pod %s in Namespace %s",
 			targetDetails.PodName, targetDetails.Namespace))

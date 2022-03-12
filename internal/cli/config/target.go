@@ -1,4 +1,4 @@
-package data
+package config
 
 import (
 	"time"
@@ -6,7 +6,7 @@ import (
 	"github.com/josepdcs/kubectl-profiling/api"
 )
 
-type TargetDetails struct {
+type TargetConfig struct {
 	Namespace            string
 	PodName              string
 	ContainerName        string

@@ -1,4 +1,4 @@
-package data
+package config
 
 import (
 	"testing"
@@ -91,18 +91,18 @@ func TestResourceConfig_ParseResources(t *testing.T) {
 func TestJobDetails_ToResourceRequirements(t *testing.T) {
 	tt := []struct {
 		name       string
-		jobDetails *JobDetails
+		jobDetails *JobConfig
 		want       apiv1.ResourceRequirements
 		wantErrMsg string
 	}{
 		{
 			name:       "empty resources yields empty requirements",
-			jobDetails: &JobDetails{},
+			jobDetails: &JobConfig{},
 			want:       apiv1.ResourceRequirements{},
 		},
 		{
 			name: "invalid request CPU yields error",
-			jobDetails: &JobDetails{
+			jobDetails: &JobConfig{
 				RequestConfig: ResourceConfig{
 					CPU: "test",
 				},
@@ -111,7 +111,7 @@ func TestJobDetails_ToResourceRequirements(t *testing.T) {
 		},
 		{
 			name: "invalid request mem yields error",
-			jobDetails: &JobDetails{
+			jobDetails: &JobConfig{
 				RequestConfig: ResourceConfig{
 					Memory: "test",
 				},
@@ -120,7 +120,7 @@ func TestJobDetails_ToResourceRequirements(t *testing.T) {
 		},
 		{
 			name: "valid requests yields requests only",
-			jobDetails: &JobDetails{
+			jobDetails: &JobConfig{
 				RequestConfig: ResourceConfig{
 					CPU:    "100m",
 					Memory: "200Mi",
@@ -135,7 +135,7 @@ func TestJobDetails_ToResourceRequirements(t *testing.T) {
 		},
 		{
 			name: "valid requests & invalid cpu limits yields error",
-			jobDetails: &JobDetails{
+			jobDetails: &JobConfig{
 				RequestConfig: ResourceConfig{
 					CPU:    "100m",
 					Memory: "200Mi",
@@ -150,7 +150,7 @@ func TestJobDetails_ToResourceRequirements(t *testing.T) {
 		},
 		{
 			name: "valid requests & invalid memory limits yields error",
-			jobDetails: &JobDetails{
+			jobDetails: &JobConfig{
 				RequestConfig: ResourceConfig{
 					CPU:    "100m",
 					Memory: "200Mi",
@@ -163,7 +163,7 @@ func TestJobDetails_ToResourceRequirements(t *testing.T) {
 		},
 		{
 			name: "valid requests & invalid memory limits yields error",
-			jobDetails: &JobDetails{
+			jobDetails: &JobConfig{
 				RequestConfig: ResourceConfig{
 					CPU:    "100m",
 					Memory: "200Mi",
@@ -176,7 +176,7 @@ func TestJobDetails_ToResourceRequirements(t *testing.T) {
 		},
 		{
 			name: "valid requests & memory yields both correctly",
-			jobDetails: &JobDetails{
+			jobDetails: &JobConfig{
 				RequestConfig: ResourceConfig{
 					CPU:    "100m",
 					Memory: "200Mi",
@@ -199,7 +199,7 @@ func TestJobDetails_ToResourceRequirements(t *testing.T) {
 		},
 		{
 			name: "missing cpu limits yields requirements without cpu limits",
-			jobDetails: &JobDetails{
+			jobDetails: &JobConfig{
 				RequestConfig: ResourceConfig{
 					CPU:    "100m",
 					Memory: "200Mi",

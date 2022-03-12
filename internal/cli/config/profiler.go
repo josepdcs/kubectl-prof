@@ -1,9 +1,9 @@
-package data
+package config
 
 import "k8s.io/cli-runtime/pkg/genericclioptions"
 
-type FlameConfig struct {
-	TargetConfig *TargetDetails
-	JobConfig    *JobDetails
+type ProfilerConfig struct {
+	TargetConfig *TargetConfig
+	JobConfig    *JobConfig
 	ConfigFlags  *genericclioptions.ConfigFlags
 }

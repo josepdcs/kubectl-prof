@@ -3,7 +3,7 @@ package job
 import (
 	"fmt"
 	"github.com/josepdcs/kubectl-profiling/api"
-	"github.com/josepdcs/kubectl-profiling/internal/cli/data"
+	"github.com/josepdcs/kubectl-profiling/internal/cli/config"
 	"github.com/josepdcs/kubectl-profiling/internal/cli/version"
 
 	batchv1 "k8s.io/api/batch/v1"
@@ -14,7 +14,7 @@ import (
 
 type jvmCreator struct{}
 
-func (c *jvmCreator) create(targetPod *apiv1.Pod, cfg *data.FlameConfig) (string, *batchv1.Job, error) {
+func (c *jvmCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
 	id := string(uuid.NewUUID())
 	imageName := c.getAgentImage(cfg.TargetConfig)
 	args := []string{
@@ -115,7 +115,7 @@ func (c *jvmCreator) create(targetPod *apiv1.Pod, cfg *data.FlameConfig) (string
 	return id, job, nil
 }
 
-func (c *jvmCreator) getAgentImage(targetDetails *data.TargetDetails) string {
+func (c *jvmCreator) getAgentImage(targetDetails *config.TargetConfig) string {
 	if targetDetails.Image != "" {
 		return targetDetails.Image
 	}

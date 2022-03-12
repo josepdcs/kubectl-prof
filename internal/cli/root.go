@@ -2,7 +2,7 @@ package cli
 
 import (
 	"fmt"
-	"github.com/josepdcs/kubectl-profiling/internal/cli/data"
+	"github.com/josepdcs/kubectl-profiling/internal/cli/config"
 	"github.com/josepdcs/kubectl-profiling/internal/cli/version"
 	"os"
 	"time"
@@ -48,8 +48,8 @@ func NewFlameOptions(streams genericclioptions.IOStreams) *FlameOptions {
 
 func NewFlameCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	var (
-		targetDetails data.TargetDetails
-		jobDetails    data.JobDetails
+		targetDetails config.TargetConfig
+		jobDetails    config.JobConfig
 		showVersion   bool
 		chosenRuntime string
 		chosenLang    string
@@ -88,7 +88,7 @@ func NewFlameCommand(streams genericclioptions.IOStreams) *cobra.Command {
 				targetDetails.ContainerName = args[1]
 			}
 
-			cfg := &data.FlameConfig{
+			cfg := &config.ProfilerConfig{
 				TargetConfig: &targetDetails,
 				JobConfig:    &jobDetails,
 				ConfigFlags:  options.configFlags,
@@ -130,7 +130,7 @@ func NewFlameCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	return cmd
 }
 
-func validateFlags(runtimeString string, langString string, eventString string, targetDetails *data.TargetDetails, jobDetails *data.JobDetails) error {
+func validateFlags(runtimeString string, langString string, eventString string, targetDetails *config.TargetConfig, jobDetails *config.JobConfig) error {
 	if langString == "" {
 		return fmt.Errorf("use -l flag to select one of the supported languages %s", api.AvailableLanguages())
 	}
