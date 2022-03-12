@@ -1,7 +1,7 @@
 # Kubectl Profile
 
 A kubectl plugin that allows you to profile production applications with low-overhead by generating
-[FlameGraphs](http://www.brendangregg.com/flamegraphs.html)
+[FlameGraphs](http://www.brendangregg.com/flamegraphs.html) at the moment. More functionalities will be added in the future.
 
 Running `kubectlf-profile` does **not** require any modification to existing pods.
 
