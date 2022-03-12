@@ -17,8 +17,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/josepdcs/kubectl-profiling/internal/cli/config"
-	"github.com/josepdcs/kubectl-profiling/internal/cli/kubernetes/job"
+	"github.com/josepdcs/kubectl-profile/internal/cli/config"
+	"github.com/josepdcs/kubectl-profile/internal/cli/kubernetes/job"
 	"time"
 
 	apiv1 "k8s.io/api/core/v1"
@@ -50,7 +50,7 @@ func WaitForPodStart(cfg *config.ProfilerConfig, ctx context.Context) (*apiv1.Po
 				CoreV1().
 				Pods(cfg.JobConfig.Namespace).
 				List(ctx, metav1.ListOptions{
-					LabelSelector: fmt.Sprintf("kubectl-profiling/id=%s", cfg.TargetConfig.Id),
+					LabelSelector: fmt.Sprintf("kubectl-profile/id=%s", cfg.TargetConfig.Id),
 				})
 
 			if err != nil {

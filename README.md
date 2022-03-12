@@ -96,7 +96,7 @@ See the release page for the full list of pre-built assets.
 
 ## How it works
 
-`kubectl-profiling` launch a Kubernetes Job on the same node as the target pod. Under the hood `kubectl-profiling`
+`kubectl-profile` launch a Kubernetes Job on the same node as the target pod. Under the hood `kubectl-profile`
 use [async-profiler](https://github.com/jvm-profiling-tools/async-profiler) in order to generate flame graphs for Java
 applications. Interaction with the target JVM is done via a shared `/tmp` folder. Golang support is based
 on [ebpf profiling](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter). Python support is based

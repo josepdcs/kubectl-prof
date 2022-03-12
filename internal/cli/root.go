@@ -2,12 +2,12 @@ package cli
 
 import (
 	"fmt"
-	"github.com/josepdcs/kubectl-profiling/internal/cli/config"
-	"github.com/josepdcs/kubectl-profiling/internal/cli/version"
+	"github.com/josepdcs/kubectl-profile/internal/cli/config"
+	"github.com/josepdcs/kubectl-profile/internal/cli/version"
 	"os"
 	"time"
 
-	"github.com/josepdcs/kubectl-profiling/api"
+	"github.com/josepdcs/kubectl-profile/api"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )

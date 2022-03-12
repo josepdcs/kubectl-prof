@@ -14,16 +14,16 @@ package main
 
 import (
 	"errors"
-	"github.com/josepdcs/kubectl-profiling/internal/agent/details"
-	"github.com/josepdcs/kubectl-profiling/internal/agent/profiler"
-	"github.com/josepdcs/kubectl-profiling/internal/agent/utils"
+	"github.com/josepdcs/kubectl-profile/internal/agent/details"
+	"github.com/josepdcs/kubectl-profile/internal/agent/profiler"
+	"github.com/josepdcs/kubectl-profile/internal/agent/utils"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/josepdcs/kubectl-profiling/api"
+	"github.com/josepdcs/kubectl-profile/api"
 )
 
 func main() {

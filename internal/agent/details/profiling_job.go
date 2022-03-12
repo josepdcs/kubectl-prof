@@ -1,7 +1,7 @@
 package details
 
 import (
-	"github.com/josepdcs/kubectl-profiling/api"
+	"github.com/josepdcs/kubectl-profile/api"
 	"time"
 )
 

@@ -1,8 +1,8 @@
 package utils
 
 import (
-	"github.com/josepdcs/kubectl-profiling/api"
-	"github.com/josepdcs/kubectl-profiling/internal/agent/test"
+	"github.com/josepdcs/kubectl-profile/api"
+	"github.com/josepdcs/kubectl-profile/internal/agent/test"
 	"github.com/stretchr/testify/assert"
 	"path/filepath"
 	"testing"

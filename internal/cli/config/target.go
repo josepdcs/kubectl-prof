@@ -3,7 +3,7 @@ package config
 import (
 	"time"
 
-	"github.com/josepdcs/kubectl-profiling/api"
+	"github.com/josepdcs/kubectl-profile/api"
 )
 
 type TargetConfig struct {

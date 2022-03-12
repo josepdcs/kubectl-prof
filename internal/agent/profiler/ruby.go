@@ -3,8 +3,8 @@ package profiler
 import (
 	"bytes"
 	"fmt"
-	"github.com/josepdcs/kubectl-profiling/internal/agent/details"
-	"github.com/josepdcs/kubectl-profiling/internal/agent/utils"
+	"github.com/josepdcs/kubectl-profile/internal/agent/details"
+	"github.com/josepdcs/kubectl-profile/internal/agent/utils"
 	"os/exec"
 	"strconv"
 )

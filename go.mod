@@ -1,4 +1,4 @@
-module github.com/josepdcs/kubectl-profiling
+module github.com/josepdcs/kubectl-profile
 
 go 1.17
 

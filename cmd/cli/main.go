@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/josepdcs/kubectl-profiling/internal/cli"
+	"github.com/josepdcs/kubectl-profile/internal/cli"
 	"github.com/spf13/cobra"
 	"os"
 

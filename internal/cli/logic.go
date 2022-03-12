@@ -16,9 +16,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/josepdcs/kubectl-profiling/internal/cli/config"
-	"github.com/josepdcs/kubectl-profiling/internal/cli/handler"
-	"github.com/josepdcs/kubectl-profiling/internal/cli/kubernetes"
+	"github.com/josepdcs/kubectl-profile/internal/cli/config"
+	"github.com/josepdcs/kubectl-profile/internal/cli/handler"
+	"github.com/josepdcs/kubectl-profile/internal/cli/kubernetes"
 	"log"
 
 	v1 "k8s.io/api/core/v1"

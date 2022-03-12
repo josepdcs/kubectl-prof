@@ -2,17 +2,17 @@ package job
 
 import (
 	"errors"
-	"github.com/josepdcs/kubectl-profiling/internal/cli/config"
+	"github.com/josepdcs/kubectl-profile/internal/cli/config"
 
 	batchv1 "k8s.io/api/batch/v1"
 	apiv1 "k8s.io/api/core/v1"
 
-	"github.com/josepdcs/kubectl-profiling/api"
+	"github.com/josepdcs/kubectl-profile/api"
 )
 
 const (
-	baseImageName = "josepdcs/kubectl-profiling"
-	ContainerName = "kubectl-profiling"
+	baseImageName = "josepdcs/kubectl-profile"
+	ContainerName = "kubectl-profile"
 )
 
 var (

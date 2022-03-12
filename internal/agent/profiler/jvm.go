@@ -15,9 +15,9 @@ package profiler
 import (
 	"bytes"
 	"fmt"
-	"github.com/josepdcs/kubectl-profiling/api"
-	"github.com/josepdcs/kubectl-profiling/internal/agent/details"
-	"github.com/josepdcs/kubectl-profiling/internal/agent/utils"
+	"github.com/josepdcs/kubectl-profile/api"
+	"github.com/josepdcs/kubectl-profile/internal/agent/details"
+	"github.com/josepdcs/kubectl-profile/internal/agent/utils"
 	"os"
 	"os/exec"
 	"path"

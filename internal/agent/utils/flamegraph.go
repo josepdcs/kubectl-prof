@@ -3,7 +3,7 @@ package utils
 import (
 	"bufio"
 	"encoding/base64"
-	"github.com/josepdcs/kubectl-profiling/api"
+	"github.com/josepdcs/kubectl-profile/api"
 	"io/ioutil"
 	"os"
 )
