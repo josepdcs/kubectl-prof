@@ -1,4 +1,4 @@
-# kubectl profile
+# Kubectl Profile
 
 A kubectl plugin that allows you to profile production applications with low-overhead by generating
 [FlameGraphs](http://www.brendangregg.com/flamegraphs.html)
