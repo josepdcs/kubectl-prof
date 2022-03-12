@@ -1,9 +1,9 @@
-# kubectl profiling
+# kubectl profile
 
 A kubectl plugin that allows you to profile production applications with low-overhead by generating
 [FlameGraphs](http://www.brendangregg.com/flamegraphs.html)
 
-Running `kubectlf-profiling` does **not** require any modification to existing pods.
+Running `kubectlf-profile` does **not** require any modification to existing pods.
 
 This is an open source fork of https://github.com/yahoo/kubectl-flame with several new features and bug fixes.
 
@@ -31,7 +31,7 @@ This is an open source fork of https://github.com/yahoo/kubectl-flame with sever
 In order to profile a Java application in pod `mypod` for 1 minute and save the flamegraph as `/tmp/flamegraph.svg` run:
 
 ```shell
-kubectl profiling mypod -t 1m --lang java -f /tmp/flamegraph.svg
+kubectl profile mypod -t 1m --lang java -f /tmp/flamegraph.svg
 ```
 
 ### Profiling Alpine based container
@@ -39,7 +39,7 @@ kubectl profiling mypod -t 1m --lang java -f /tmp/flamegraph.svg
 Profiling Java application in alpine based containers require using `--alpine` flag:
 
 ```shell
-kubectl profiling mypod -t 1m -f /tmp/flamegraph.svg --lang java --alpine
+kubectl profile mypod -t 1m -f /tmp/flamegraph.svg --lang java --alpine
 ```
 
 *NOTICE*: this is only required for Java apps, the `--alpine` flag is unnecessary for Go profiling.
@@ -49,7 +49,7 @@ kubectl profiling mypod -t 1m -f /tmp/flamegraph.svg --lang java --alpine
 Supported container runtimes values are: `crio`, `containerd` and `docker`
 
 ```shell
-kubectl profiling mypod -t 1m -f /tmp/flamegraph.svg --lang java --runtime crio
+kubectl profile mypod -t 1m -f /tmp/flamegraph.svg --lang java --runtime crio
 ```
 
 ### Profiling sidecar container
@@ -57,7 +57,7 @@ kubectl profiling mypod -t 1m -f /tmp/flamegraph.svg --lang java --runtime crio
 Pods that contains more than one container require specifying the target container as an argument:
 
 ```shell
-kubectl profiling mypod -t 1m --lang go -f /tmp/flamegraph.svg mycontainer
+kubectl profile mypod -t 1m --lang go -f /tmp/flamegraph.svg mycontainer
 ```
 
 ### Profiling Golang multi-process container
@@ -66,7 +66,7 @@ Profiling Go application in pods that contains more than one process require spe
 via `--pgrep` flag:
 
 ```shell
-kubectl profiling mypod -t 1m --lang go -f /tmp/flamegraph.svg --pgrep go-app
+kubectl profile mypod -t 1m --lang go -f /tmp/flamegraph.svg --pgrep go-app
 ```
 
 ### Additional info
@@ -81,13 +81,13 @@ Use `--pgrep` flag if your process name is different.
 
 ### Krew
 
-You can install `kubectl profiling` using the [Krew](https://github.com/kubernetes-sigs/krew), the package manager for
+You can install `kubectl profile` using the [Krew](https://github.com/kubernetes-sigs/krew), the package manager for
 kubectl plugins.
 
 Once you have [Krew installed](https://krew.sigs.k8s.io/docs/user-guide/setup/install/) just run:
 
 ```bash
-kubectl krew install profiling
+kubectl krew install profile
 ```
 
 ### Pre-built binaries
