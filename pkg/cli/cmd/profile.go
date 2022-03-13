@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/josepdcs/kubectl-profile/pkg/cli"
 	"github.com/josepdcs/kubectl-profile/pkg/cli/config"
+	"github.com/josepdcs/kubectl-profile/pkg/cli/profiler"
 	"github.com/josepdcs/kubectl-profile/pkg/cli/version"
 	"os"
 	"time"
@@ -95,7 +95,7 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 				ConfigFlags: options.configFlags,
 			}
 
-			cli.RunProfiler(cfg)
+			profiler.Profile(cfg)
 		},
 	}
 

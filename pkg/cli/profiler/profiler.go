@@ -10,12 +10,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cli
+package profiler
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/josepdcs/kubectl-profile/pkg/cli"
 	"github.com/josepdcs/kubectl-profile/pkg/cli/config"
 	"github.com/josepdcs/kubectl-profile/pkg/cli/handler"
 	"github.com/josepdcs/kubectl-profile/pkg/cli/kubernetes"
@@ -24,13 +25,13 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-func RunProfiler(cfg *config.ProfileConfig) {
+func Profile(cfg *config.ProfileConfig) {
 	ns, err := kubernetes.Connect(cfg.ConfigFlags)
 	if err != nil {
 		log.Fatalf("Failed connecting to kubernetes cluster: %v\n", err)
 	}
 
-	p := NewPrinter(cfg.Target.DryRun)
+	p := cli.NewPrinter(cfg.Target.DryRun)
 
 	if cfg.Target.Namespace == "" {
 		cfg.Target.Namespace = ns
@@ -64,7 +65,7 @@ func RunProfiler(cfg *config.ProfileConfig) {
 	cfg.Target.ContainerId = containerId
 
 	p.Print("Launching profiler ... ")
-	profileId, job, err := kubernetes.LaunchFlameJob(pod, cfg, ctx)
+	profileId, job, err := kubernetes.LaunchProfilingJob(pod, cfg, ctx)
 	if err != nil {
 		p.PrintError()
 		log.Fatalf(err.Error())
@@ -75,7 +76,7 @@ func RunProfiler(cfg *config.ProfileConfig) {
 	}
 
 	cfg.Target.Id = profileId
-	profilerPod, err := kubernetes.WaitForPodStart(cfg, ctx)
+	profilerPod, err := kubernetes.CheckPodStatus(cfg, ctx)
 	if err != nil {
 		p.PrintError()
 		log.Fatalf(err.Error())

@@ -42,7 +42,7 @@ func GetPodDetails(podName, namespace string, ctx context.Context) (*apiv1.Pod, 
 	return podObject, nil
 }
 
-func WaitForPodStart(cfg *config.ProfileConfig, ctx context.Context) (*apiv1.Pod, error) {
+func CheckPodStatus(cfg *config.ProfileConfig, ctx context.Context) (*apiv1.Pod, error) {
 	var pod *apiv1.Pod
 	err := wait.Poll(1*time.Second, 5*time.Minute,
 		func() (bool, error) {
