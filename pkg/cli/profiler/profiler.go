@@ -25,7 +25,10 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-func Profile(cfg *config.ProfileConfig) {
+type Profiler struct {
+}
+
+func (pf *Profiler) Profile(cfg *config.ProfileConfig) {
 	ns, err := kubernetes.Connect(cfg.ConfigFlags)
 	if err != nil {
 		log.Fatalf("Failed connecting to kubernetes cluster: %v\n", err)

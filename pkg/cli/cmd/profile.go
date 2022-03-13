@@ -35,6 +35,14 @@ These commands help you identify application performance issues.
 `
 )
 
+type Profiler interface {
+	Profile(cfg *config.ProfileConfig)
+}
+
+func NewProfiler() Profiler {
+	return &profiler.Profiler{}
+}
+
 type ProfileOptions struct {
 	configFlags *genericclioptions.ConfigFlags
 	genericclioptions.IOStreams
@@ -95,7 +103,7 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 				ConfigFlags: options.configFlags,
 			}
 
-			profiler.Profile(cfg)
+			NewProfiler().Profile(cfg)
 		},
 	}
 
