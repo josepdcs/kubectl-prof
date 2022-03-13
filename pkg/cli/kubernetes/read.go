@@ -17,8 +17,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/josepdcs/kubectl-profile/internal/cli/config"
-	"github.com/josepdcs/kubectl-profile/internal/cli/kubernetes/job"
+	"github.com/josepdcs/kubectl-profile/pkg/cli/config"
+	"github.com/josepdcs/kubectl-profile/pkg/cli/kubernetes/job"
 	"time"
 
 	apiv1 "k8s.io/api/core/v1"
@@ -42,15 +42,15 @@ func GetPodDetails(podName, namespace string, ctx context.Context) (*apiv1.Pod, 
 	return podObject, nil
 }
 
-func WaitForPodStart(cfg *config.ProfilerConfig, ctx context.Context) (*apiv1.Pod, error) {
+func WaitForPodStart(cfg *config.ProfileConfig, ctx context.Context) (*apiv1.Pod, error) {
 	var pod *apiv1.Pod
 	err := wait.Poll(1*time.Second, 5*time.Minute,
 		func() (bool, error) {
 			podList, err := clientSet.
 				CoreV1().
-				Pods(cfg.JobConfig.Namespace).
+				Pods(cfg.Job.Namespace).
 				List(ctx, metav1.ListOptions{
-					LabelSelector: fmt.Sprintf("kubectl-profile/id=%s", cfg.TargetConfig.Id),
+					LabelSelector: fmt.Sprintf("kubectl-profile/id=%s", cfg.Target.Id),
 				})
 
 			if err != nil {

@@ -2,7 +2,7 @@ package profiler
 
 import (
 	"fmt"
-	"github.com/josepdcs/kubectl-profile/internal/agent/details"
+	"github.com/josepdcs/kubectl-profile/pkg/agent/details"
 
 	"github.com/josepdcs/kubectl-profile/api"
 )

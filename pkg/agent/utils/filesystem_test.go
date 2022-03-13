@@ -2,7 +2,7 @@ package utils
 
 import (
 	"github.com/josepdcs/kubectl-profile/api"
-	"github.com/josepdcs/kubectl-profile/internal/agent/test"
+	"github.com/josepdcs/kubectl-profile/pkg/agent/test"
 	"github.com/stretchr/testify/assert"
 	"path/filepath"
 	"testing"

@@ -28,15 +28,15 @@ type ResourceConfig struct {
 
 // ToResourceRequirements parses JobConfig into an apiv1.ResourceRequirements
 // map which can be passed to a container spec.
-func (jd *JobConfig) ToResourceRequirements() (apiv1.ResourceRequirements, error) {
+func (j *JobConfig) ToResourceRequirements() (apiv1.ResourceRequirements, error) {
 	var out apiv1.ResourceRequirements
 
-	requests, err := jd.RequestConfig.ParseResources()
+	requests, err := j.RequestConfig.ParseResources()
 	if err != nil {
 		return out, fmt.Errorf("unable to generate container requests: %w", err)
 	}
 
-	limits, err := jd.LimitConfig.ParseResources()
+	limits, err := j.LimitConfig.ParseResources()
 	if err != nil {
 		return out, fmt.Errorf("unable to generate container limits: %w", err)
 	}

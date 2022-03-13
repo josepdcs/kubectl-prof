@@ -16,37 +16,37 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/josepdcs/kubectl-profile/internal/cli/config"
-	"github.com/josepdcs/kubectl-profile/internal/cli/handler"
-	"github.com/josepdcs/kubectl-profile/internal/cli/kubernetes"
+	"github.com/josepdcs/kubectl-profile/pkg/cli/config"
+	"github.com/josepdcs/kubectl-profile/pkg/cli/handler"
+	"github.com/josepdcs/kubectl-profile/pkg/cli/kubernetes"
 	"log"
 
 	v1 "k8s.io/api/core/v1"
 )
 
-func Flame(cfg *config.ProfilerConfig) {
+func RunProfiler(cfg *config.ProfileConfig) {
 	ns, err := kubernetes.Connect(cfg.ConfigFlags)
 	if err != nil {
 		log.Fatalf("Failed connecting to kubernetes cluster: %v\n", err)
 	}
 
-	p := NewPrinter(cfg.TargetConfig.DryRun)
+	p := NewPrinter(cfg.Target.DryRun)
 
-	if cfg.TargetConfig.Namespace == "" {
-		cfg.TargetConfig.Namespace = ns
+	if cfg.Target.Namespace == "" {
+		cfg.Target.Namespace = ns
 	}
-	cfg.JobConfig.Namespace = ns
+	cfg.Job.Namespace = ns
 
 	ctx := context.Background()
 
 	p.Print("Verifying target pod ... ")
-	pod, err := kubernetes.GetPodDetails(cfg.TargetConfig.PodName, cfg.TargetConfig.Namespace, ctx)
+	pod, err := kubernetes.GetPodDetails(cfg.Target.PodName, cfg.Target.Namespace, ctx)
 	if err != nil {
 		p.PrintError()
 		log.Fatalf(err.Error())
 	}
 
-	containerName, err := validatePod(pod, cfg.TargetConfig)
+	containerName, err := validatePod(pod, cfg.Target)
 	if err != nil {
 		p.PrintError()
 		log.Fatalf(err.Error())
@@ -60,8 +60,8 @@ func Flame(cfg *config.ProfilerConfig) {
 
 	p.PrintSuccess()
 
-	cfg.TargetConfig.ContainerName = containerName
-	cfg.TargetConfig.ContainerId = containerId
+	cfg.Target.ContainerName = containerName
+	cfg.Target.ContainerId = containerId
 
 	p.Print("Launching profiler ... ")
 	profileId, job, err := kubernetes.LaunchFlameJob(pod, cfg, ctx)
@@ -70,11 +70,11 @@ func Flame(cfg *config.ProfilerConfig) {
 		log.Fatalf(err.Error())
 	}
 
-	if cfg.TargetConfig.DryRun {
+	if cfg.Target.DryRun {
 		return
 	}
 
-	cfg.TargetConfig.Id = profileId
+	cfg.Target.Id = profileId
 	profilerPod, err := kubernetes.WaitForPodStart(cfg, ctx)
 	if err != nil {
 		p.PrintError()
@@ -84,7 +84,7 @@ func Flame(cfg *config.ProfilerConfig) {
 	p.PrintSuccess()
 	apiHandler := &handler.ApiEventsHandler{
 		Job:    job,
-		Target: cfg.TargetConfig,
+		Target: cfg.Target,
 	}
 	done, err := kubernetes.GetLogsFromPod(profilerPod, apiHandler, ctx)
 	if err != nil {

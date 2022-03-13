@@ -2,7 +2,7 @@ package job
 
 import (
 	"errors"
-	"github.com/josepdcs/kubectl-profile/internal/cli/config"
+	"github.com/josepdcs/kubectl-profile/pkg/cli/config"
 
 	batchv1 "k8s.io/api/batch/v1"
 	apiv1 "k8s.io/api/core/v1"
@@ -24,11 +24,11 @@ var (
 )
 
 type creator interface {
-	create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error)
+	create(targetPod *apiv1.Pod, cfg *config.ProfileConfig) (string, *batchv1.Job, error)
 }
 
-func Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
-	switch cfg.TargetConfig.Language {
+func Create(targetPod *apiv1.Pod, cfg *config.ProfileConfig) (string, *batchv1.Job, error) {
+	switch cfg.Target.Language {
 	case api.Java:
 		return jvm.create(targetPod, cfg)
 	case api.Go:

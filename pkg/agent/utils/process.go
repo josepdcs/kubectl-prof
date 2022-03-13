@@ -5,7 +5,7 @@ import (
 	"errors"
 	"github.com/fntlnz/mountinfo"
 	"github.com/josepdcs/kubectl-profile/api"
-	"github.com/josepdcs/kubectl-profile/internal/agent/details"
+	"github.com/josepdcs/kubectl-profile/pkg/agent/details"
 	"io"
 	"os"
 	"path"

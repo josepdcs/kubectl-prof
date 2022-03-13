@@ -14,9 +14,9 @@ package main
 
 import (
 	"errors"
-	"github.com/josepdcs/kubectl-profile/internal/agent/details"
-	"github.com/josepdcs/kubectl-profile/internal/agent/profiler"
-	"github.com/josepdcs/kubectl-profile/internal/agent/utils"
+	"github.com/josepdcs/kubectl-profile/pkg/agent/details"
+	"github.com/josepdcs/kubectl-profile/pkg/agent/profiler"
+	"github.com/josepdcs/kubectl-profile/pkg/agent/utils"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"os/signal"

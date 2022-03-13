@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/josepdcs/kubectl-profile/internal/cli"
+	"github.com/josepdcs/kubectl-profile/pkg/cli/cmd"
 	"github.com/spf13/cobra"
 	"os"
 
@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	flags := pflag.NewFlagSet("cli", pflag.ExitOnError)
+	flags := pflag.NewFlagSet("kubectl-profile", pflag.ExitOnError)
 	pflag.CommandLine = flags
 
 	streams := genericclioptions.IOStreams{
@@ -19,6 +19,6 @@ func main() {
 		ErrOut: os.Stderr,
 	}
 
-	root := cli.NewFlameCommand(streams)
-	cobra.CheckErr(root.Execute())
+	profileCmd := cmd.NewProfileCommand(streams)
+	cobra.CheckErr(profileCmd.Execute())
 }

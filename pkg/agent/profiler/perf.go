@@ -2,8 +2,8 @@ package profiler
 
 import (
 	"fmt"
-	"github.com/josepdcs/kubectl-profile/internal/agent/details"
-	"github.com/josepdcs/kubectl-profile/internal/agent/utils"
+	"github.com/josepdcs/kubectl-profile/pkg/agent/details"
+	"github.com/josepdcs/kubectl-profile/pkg/agent/utils"
 	"os"
 	"os/exec"
 	"strconv"

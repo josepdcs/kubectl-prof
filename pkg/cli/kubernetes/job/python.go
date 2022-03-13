@@ -3,8 +3,8 @@ package job
 import (
 	"fmt"
 	"github.com/josepdcs/kubectl-profile/api"
-	"github.com/josepdcs/kubectl-profile/internal/cli/config"
-	"github.com/josepdcs/kubectl-profile/internal/cli/version"
+	"github.com/josepdcs/kubectl-profile/pkg/cli/config"
+	"github.com/josepdcs/kubectl-profile/pkg/cli/version"
 
 	batchv1 "k8s.io/api/batch/v1"
 	apiv1 "k8s.io/api/core/v1"
@@ -14,38 +14,38 @@ import (
 
 type pythonCreator struct{}
 
-func (p *pythonCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
+func (p *pythonCreator) create(targetPod *apiv1.Pod, cfg *config.ProfileConfig) (string, *batchv1.Job, error) {
 	id := string(uuid.NewUUID())
 	var imageName string
 	var imagePullSecret []apiv1.LocalObjectReference
 	args := []string{
 		id,
 		string(targetPod.UID),
-		cfg.TargetConfig.ContainerName,
-		cfg.TargetConfig.ContainerId,
-		cfg.TargetConfig.Duration.String(),
-		string(cfg.TargetConfig.Language),
-		string(cfg.TargetConfig.Event),
-		string(cfg.TargetConfig.ContainerRuntime),
+		cfg.Target.ContainerName,
+		cfg.Target.ContainerId,
+		cfg.Target.Duration.String(),
+		string(cfg.Target.Language),
+		string(cfg.Target.Event),
+		string(cfg.Target.ContainerRuntime),
 	}
 
-	if cfg.TargetConfig.Pgrep != "" {
-		args = append(args, cfg.TargetConfig.Pgrep)
+	if cfg.Target.Pgrep != "" {
+		args = append(args, cfg.Target.Pgrep)
 	}
 
-	if cfg.TargetConfig.Image != "" {
-		imageName = cfg.TargetConfig.Image
+	if cfg.Target.Image != "" {
+		imageName = cfg.Target.Image
 	} else {
 		imageName = fmt.Sprintf("%s:%s-python", baseImageName, version.GetCurrent())
 	}
 
-	if cfg.TargetConfig.ImagePullSecret != "" {
-		imagePullSecret = []apiv1.LocalObjectReference{{Name: cfg.TargetConfig.ImagePullSecret}}
+	if cfg.Target.ImagePullSecret != "" {
+		imagePullSecret = []apiv1.LocalObjectReference{{Name: cfg.Target.ImagePullSecret}}
 	}
 
 	commonMeta := metav1.ObjectMeta{
 		Name:      fmt.Sprintf("kubectl-profile-%s", id),
-		Namespace: cfg.JobConfig.Namespace,
+		Namespace: cfg.Job.Namespace,
 		Labels: map[string]string{
 			"kubectl-profile/id": id,
 		},
@@ -54,14 +54,14 @@ func (p *pythonCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig)
 		},
 	}
 
-	resources, err := cfg.JobConfig.ToResourceRequirements()
+	resources, err := cfg.Job.ToResourceRequirements()
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to generate resource requirements: %w", err)
 	}
 
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "Job",
+			Kind:       "JobConfig",
 			APIVersion: "batch/v1",
 		},
 		ObjectMeta: commonMeta,
@@ -79,7 +79,7 @@ func (p *pythonCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig)
 							Name: "target-filesystem",
 							VolumeSource: apiv1.VolumeSource{
 								HostPath: &apiv1.HostPathVolumeSource{
-									Path: cfg.TargetConfig.ContainerRuntimePath,
+									Path: cfg.Target.ContainerRuntimePath,
 								},
 							},
 						},
@@ -96,7 +96,7 @@ func (p *pythonCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig)
 							VolumeMounts: []apiv1.VolumeMount{
 								{
 									Name:      "target-filesystem",
-									MountPath: api.GetContainerRuntimeRootPath[cfg.TargetConfig.ContainerRuntime],
+									MountPath: api.GetContainerRuntimeRootPath[cfg.Target.ContainerRuntime],
 								},
 							},
 							SecurityContext: &apiv1.SecurityContext{
@@ -115,8 +115,8 @@ func (p *pythonCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig)
 		},
 	}
 
-	if cfg.TargetConfig.ServiceAccountName != "" {
-		job.Spec.Template.Spec.ServiceAccountName = cfg.TargetConfig.ServiceAccountName
+	if cfg.Target.ServiceAccountName != "" {
+		job.Spec.Template.Spec.ServiceAccountName = cfg.Target.ServiceAccountName
 	}
 
 	return id, job, nil

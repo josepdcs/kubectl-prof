@@ -5,17 +5,17 @@ BUILD_DIR := bin
 REGISTRY := docker.io
 DOCKER_BASE_IMAGE := josepdcs/kubectl-profile
 DOCKER_JVM_IMAGE := $(DOCKER_BASE_IMAGE):$(VERSION)-jvm
-DOCKERFILE_JVM := ./internal/agent/docker/jvm/Dockerfile
+DOCKERFILE_JVM := ./pkg/agent/docker/jvm/Dockerfile
 DOCKER_JVM_ALPINE_IMAGE := $(DOCKER_BASE_IMAGE):$(VERSION)-jvm-alpine
-DOCKERFILE_JVM_ALPINE := ./internal/agent/docker/jvm/alpine/Dockerfile
+DOCKERFILE_JVM_ALPINE := ./pkg/agent/docker/jvm/alpine/Dockerfile
 DOCKER_BPF_IMAGE := $(DOCKER_BASE_IMAGE):$(VERSION)-bpf
-DOCKERFILE_BPF := ./internal/agent/docker/bpf/Dockerfile
+DOCKERFILE_BPF := ./pkg/agent/docker/bpf/Dockerfile
 DOCKER_PERF_IMAGE := $(DOCKER_BASE_IMAGE):$(VERSION)-perf
-DOCKERFILE_PERF := ./internal/agent/docker/perf/Dockerfile
+DOCKERFILE_PERF := ./pkg/agent/docker/perf/Dockerfile
 DOCKER_PYTHON_IMAGE := $(DOCKER_BASE_IMAGE):$(VERSION)-python
-DOCKERFILE_PYTHON := ./internal/agent/docker/python/Dockerfile
+DOCKERFILE_PYTHON := ./pkg/agent/docker/python/Dockerfile
 DOCKER_RUBY_IMAGE := $(DOCKER_BASE_IMAGE):$(VERSION)-ruby
-DOCKERFILE_RUBY := ./internal/agent/docker/ruby/Dockerfile
+DOCKERFILE_RUBY := ./pkg/agent/docker/ruby/Dockerfile
 
 all: build-cli
 
@@ -25,7 +25,7 @@ dep: ## Get the dependencies
 
 .PHONY: build-cli
 build-cli: dep ## Build the binary file
-	@go build -ldflags="-X 'github.com/josepdcs/kubectl-profile/internal/cli/version.semver=$(VERSION)'" -o $(BUILD_DIR)/$(CLI_NAME) -v $(CLI_DIR)
+	@go build -ldflags="-X 'github.com/josepdcs/kubectl-profile/pkg/cli/version.semver=$(VERSION)'" -o $(BUILD_DIR)/$(CLI_NAME) -v $(CLI_DIR)
 
 .PHONY: prepare-minikube
 prepare-minikube:

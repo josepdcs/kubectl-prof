@@ -1,10 +1,10 @@
-//: Licensed under the terms of the Apache 2.0 License. See LICENSE file in the project root for terms.
 package job
 
 import (
 	"fmt"
-	"github.com/josepdcs/kubectl-profile/internal/cli/config"
-	"github.com/josepdcs/kubectl-profile/internal/cli/version"
+	"github.com/josepdcs/kubectl-profile/api"
+	"github.com/josepdcs/kubectl-profile/pkg/cli/config"
+	"github.com/josepdcs/kubectl-profile/pkg/cli/version"
 
 	batchv1 "k8s.io/api/batch/v1"
 	apiv1 "k8s.io/api/core/v1"
@@ -12,39 +12,40 @@ import (
 	"k8s.io/apimachinery/pkg/util/uuid"
 )
 
-type bpfCreator struct{}
+type rubyCreator struct{}
 
-func (b *bpfCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
+func (r *rubyCreator) create(targetPod *apiv1.Pod, cfg *config.ProfileConfig) (string, *batchv1.Job, error) {
 	id := string(uuid.NewUUID())
 	var imageName string
 	var imagePullSecret []apiv1.LocalObjectReference
-	if cfg.TargetConfig.Image != "" {
-		imageName = cfg.TargetConfig.Image
-	} else {
-		imageName = fmt.Sprintf("%s:%s-bpf", baseImageName, version.GetCurrent())
-	}
-
-	if cfg.TargetConfig.ImagePullSecret != "" {
-		imagePullSecret = []apiv1.LocalObjectReference{{Name: cfg.TargetConfig.ImagePullSecret}}
-	}
-
 	args := []string{
-		id, string(targetPod.UID),
-		cfg.TargetConfig.ContainerName,
-		cfg.TargetConfig.ContainerId,
-		cfg.TargetConfig.Duration.String(),
-		string(cfg.TargetConfig.Language),
-		string(cfg.TargetConfig.Event),
-		string(cfg.TargetConfig.ContainerRuntime),
+		id,
+		string(targetPod.UID),
+		cfg.Target.ContainerName,
+		cfg.Target.ContainerId,
+		cfg.Target.Duration.String(),
+		string(cfg.Target.Language),
+		string(cfg.Target.Event),
+		string(cfg.Target.ContainerRuntime),
 	}
 
-	if cfg.TargetConfig.Pgrep != "" {
-		args = append(args, cfg.TargetConfig.Pgrep)
+	if cfg.Target.Pgrep != "" {
+		args = append(args, cfg.Target.Pgrep)
+	}
+
+	if cfg.Target.Image != "" {
+		imageName = cfg.Target.Image
+	} else {
+		imageName = fmt.Sprintf("%s:%s-ruby", baseImageName, version.GetCurrent())
+	}
+
+	if cfg.Target.ImagePullSecret != "" {
+		imagePullSecret = []apiv1.LocalObjectReference{{Name: cfg.Target.ImagePullSecret}}
 	}
 
 	commonMeta := metav1.ObjectMeta{
 		Name:      fmt.Sprintf("kubectl-profile-%s", id),
-		Namespace: cfg.JobConfig.Namespace,
+		Namespace: cfg.Job.Namespace,
 		Labels: map[string]string{
 			"kubectl-profile/id": id,
 		},
@@ -53,14 +54,14 @@ func (b *bpfCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 		},
 	}
 
-	resources, err := cfg.JobConfig.ToResourceRequirements()
+	resources, err := cfg.Job.ToResourceRequirements()
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to generate resource requirements: %w", err)
 	}
 
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "Job",
+			Kind:       "JobConfig",
 			APIVersion: "batch/v1",
 		},
 		ObjectMeta: commonMeta,
@@ -68,25 +69,16 @@ func (b *bpfCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 			Parallelism:             int32Ptr(1),
 			Completions:             int32Ptr(1),
 			TTLSecondsAfterFinished: int32Ptr(5),
-			BackoffLimit:            int32Ptr(2),
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: commonMeta,
 				Spec: apiv1.PodSpec{
 					HostPID: true,
 					Volumes: []apiv1.Volume{
 						{
-							Name: "sys",
+							Name: "target-filesystem",
 							VolumeSource: apiv1.VolumeSource{
 								HostPath: &apiv1.HostPathVolumeSource{
-									Path: "/sys",
-								},
-							},
-						},
-						{
-							Name: "modules",
-							VolumeSource: apiv1.VolumeSource{
-								HostPath: &apiv1.HostPathVolumeSource{
-									Path: "/lib/modules",
+									Path: cfg.Target.ContainerRuntimePath,
 								},
 							},
 						},
@@ -102,16 +94,15 @@ func (b *bpfCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 							Args:            args,
 							VolumeMounts: []apiv1.VolumeMount{
 								{
-									Name:      "sys",
-									MountPath: "/sys",
-								},
-								{
-									Name:      "modules",
-									MountPath: "/lib/modules",
+									Name:      "target-filesystem",
+									MountPath: api.GetContainerRuntimeRootPath[cfg.Target.ContainerRuntime],
 								},
 							},
 							SecurityContext: &apiv1.SecurityContext{
 								Privileged: boolPtr(true),
+								Capabilities: &apiv1.Capabilities{
+									Add: []apiv1.Capability{"SYS_PTRACE"},
+								},
 							},
 							Resources: resources,
 						},
@@ -123,8 +114,8 @@ func (b *bpfCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 		},
 	}
 
-	if cfg.TargetConfig.ServiceAccountName != "" {
-		job.Spec.Template.Spec.ServiceAccountName = cfg.TargetConfig.ServiceAccountName
+	if cfg.Target.ServiceAccountName != "" {
+		job.Spec.Template.Spec.ServiceAccountName = cfg.Target.ServiceAccountName
 	}
 
 	return id, job, nil

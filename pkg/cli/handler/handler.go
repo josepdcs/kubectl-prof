@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/josepdcs/kubectl-profile/internal/cli/config"
-	"github.com/josepdcs/kubectl-profile/internal/cli/kubernetes"
+	"github.com/josepdcs/kubectl-profile/pkg/cli/config"
+	"github.com/josepdcs/kubectl-profile/pkg/cli/kubernetes"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 
