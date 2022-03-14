@@ -1,4 +1,4 @@
-package details
+package config
 
 import (
 	"github.com/josepdcs/kubectl-profile/api"

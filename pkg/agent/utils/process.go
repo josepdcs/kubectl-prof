@@ -5,7 +5,7 @@ import (
 	"errors"
 	"github.com/fntlnz/mountinfo"
 	"github.com/josepdcs/kubectl-profile/api"
-	"github.com/josepdcs/kubectl-profile/pkg/agent/details"
+	"github.com/josepdcs/kubectl-profile/pkg/agent/config"
 	"io"
 	"os"
 	"path"
@@ -20,7 +20,7 @@ var (
 	}
 )
 
-func getProcessName(job *details.ProfilingJob) string {
+func getProcessName(job *config.ProfilingJob) string {
 	if job.TargetProcessName != "" {
 		return job.TargetProcessName
 	}
@@ -32,7 +32,7 @@ func getProcessName(job *details.ProfilingJob) string {
 	return ""
 }
 
-func FindProcessId(job *details.ProfilingJob) (string, error) {
+func FindProcessId(job *config.ProfilingJob) (string, error) {
 	name := getProcessName(job)
 	foundProc := ""
 	proc, err := os.Open("/proc")
@@ -101,7 +101,7 @@ func FindProcessId(job *details.ProfilingJob) (string, error) {
 	return "", errors.New("could not find any process")
 }
 
-func FindRootProcessId(job *details.ProfilingJob) (string, error) {
+func FindRootProcessId(job *config.ProfilingJob) (string, error) {
 	name := getProcessName(job)
 	procsAndParents := make(map[string]string)
 	proc, err := os.Open("/proc")

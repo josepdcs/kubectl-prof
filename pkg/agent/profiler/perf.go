@@ -2,7 +2,7 @@ package profiler
 
 import (
 	"fmt"
-	"github.com/josepdcs/kubectl-profile/pkg/agent/details"
+	"github.com/josepdcs/kubectl-profile/pkg/agent/config"
 	"github.com/josepdcs/kubectl-profile/pkg/agent/utils"
 	"os"
 	"os/exec"
@@ -21,11 +21,11 @@ const (
 
 type PerfProfiler struct{}
 
-func (p *PerfProfiler) SetUp(job *details.ProfilingJob) error {
+func (p *PerfProfiler) SetUp(job *config.ProfilingJob) error {
 	return nil
 }
 
-func (p *PerfProfiler) Invoke(job *details.ProfilingJob) error {
+func (p *PerfProfiler) Invoke(job *config.ProfilingJob) error {
 	err := p.runPerfRecord(job)
 	if err != nil {
 		return fmt.Errorf("perf record failed: %s", err)
@@ -49,7 +49,7 @@ func (p *PerfProfiler) Invoke(job *details.ProfilingJob) error {
 	return utils.PublishFlameGraph(flameGraphPerfOutputFile)
 }
 
-func (p *PerfProfiler) runPerfRecord(job *details.ProfilingJob) error {
+func (p *PerfProfiler) runPerfRecord(job *config.ProfilingJob) error {
 	pid, err := utils.FindRootProcessId(job)
 	if err != nil {
 		return err
@@ -61,7 +61,7 @@ func (p *PerfProfiler) runPerfRecord(job *details.ProfilingJob) error {
 	return cmd.Run()
 }
 
-func (p *PerfProfiler) runPerfScript(job *details.ProfilingJob) error {
+func (p *PerfProfiler) runPerfScript(job *config.ProfilingJob) error {
 	f, err := os.Create(perfScriptOutputFileName)
 	if err != nil {
 		return err
@@ -74,7 +74,7 @@ func (p *PerfProfiler) runPerfScript(job *details.ProfilingJob) error {
 	return cmd.Run()
 }
 
-func (p *PerfProfiler) foldPerfOutput(job *details.ProfilingJob) error {
+func (p *PerfProfiler) foldPerfOutput(job *config.ProfilingJob) error {
 	f, err := os.Create(perfFoldedOutputFileName)
 	if err != nil {
 		return err
@@ -87,7 +87,7 @@ func (p *PerfProfiler) foldPerfOutput(job *details.ProfilingJob) error {
 	return cmd.Run()
 }
 
-func (p *PerfProfiler) generateFlameGraph(job *details.ProfilingJob) error {
+func (p *PerfProfiler) generateFlameGraph(job *config.ProfilingJob) error {
 	inputFile, err := os.Open(perfFoldedOutputFileName)
 	if err != nil {
 		return err

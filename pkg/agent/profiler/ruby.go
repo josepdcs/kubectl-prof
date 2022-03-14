@@ -3,7 +3,7 @@ package profiler
 import (
 	"bytes"
 	"fmt"
-	"github.com/josepdcs/kubectl-profile/pkg/agent/details"
+	"github.com/josepdcs/kubectl-profile/pkg/agent/config"
 	"github.com/josepdcs/kubectl-profile/pkg/agent/utils"
 	"os/exec"
 	"strconv"
@@ -16,11 +16,11 @@ const (
 
 type RubyProfiler struct{}
 
-func (r *RubyProfiler) SetUp(job *details.ProfilingJob) error {
+func (r *RubyProfiler) SetUp(job *config.ProfilingJob) error {
 	return nil
 }
 
-func (r *RubyProfiler) Invoke(job *details.ProfilingJob) error {
+func (r *RubyProfiler) Invoke(job *config.ProfilingJob) error {
 	pid, err := utils.FindRootProcessId(job)
 	if err != nil {
 		return fmt.Errorf("could not find root process ID: %w", err)

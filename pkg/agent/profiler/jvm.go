@@ -16,7 +16,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/josepdcs/kubectl-profile/api"
-	"github.com/josepdcs/kubectl-profile/pkg/agent/details"
+	"github.com/josepdcs/kubectl-profile/pkg/agent/config"
 	"github.com/josepdcs/kubectl-profile/pkg/agent/utils"
 	"os"
 	"os/exec"
@@ -33,7 +33,7 @@ const (
 
 type JvmProfiler struct{}
 
-func (j *JvmProfiler) SetUp(job *details.ProfilingJob) error {
+func (j *JvmProfiler) SetUp(job *config.ProfilingJob) error {
 	targetFs, err := utils.TargetFileSystemLocation(job.ContainerRuntime, job.ContainerID)
 	if err != nil {
 		return err
@@ -59,12 +59,18 @@ func (j *JvmProfiler) SetUp(job *details.ProfilingJob) error {
 	return j.copyProfilerToTempDir()
 }
 
-func (j *JvmProfiler) Invoke(job *details.ProfilingJob) error {
+func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 	pid, err := utils.FindProcessId(job)
-	//log.Infof("The PID to be profiled: %s", pid)
 	if err != nil {
 		return err
 	}
+	_ = api.PublishEvent(
+		api.Log,
+		&api.LogData{
+			Time:  time.Now(),
+			Level: api.InfoLevel,
+			Msg:   fmt.Sprintf("The PID to be profiled: %s", pid)},
+	)
 
 	duration := strconv.Itoa(int(job.Duration.Seconds()))
 	event := string(job.Event)
@@ -98,8 +104,8 @@ func (j *JvmProfiler) Invoke(job *details.ProfilingJob) error {
 		return err
 	}
 
-	/*outStr := out.String()
-	if outStr != "" {
+	outStr := out.String()
+	if len(outStr) > 0 {
 		_ = api.PublishEvent(
 			api.Log,
 			&api.LogData{
@@ -107,7 +113,7 @@ func (j *JvmProfiler) Invoke(job *details.ProfilingJob) error {
 				Level: api.InfoLevel,
 				Msg:   fmt.Sprint(outStr)},
 		)
-	}*/
+	}
 
 	return utils.PublishFlameGraph(fileName)
 }

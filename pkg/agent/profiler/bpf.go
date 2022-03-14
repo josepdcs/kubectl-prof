@@ -2,7 +2,7 @@ package profiler
 
 import (
 	"fmt"
-	"github.com/josepdcs/kubectl-profile/pkg/agent/details"
+	"github.com/josepdcs/kubectl-profile/pkg/agent/config"
 	"github.com/josepdcs/kubectl-profile/pkg/agent/utils"
 	"os"
 	"os/exec"
@@ -21,7 +21,7 @@ const (
 
 type BpfProfiler struct{}
 
-func (b *BpfProfiler) SetUp(job *details.ProfilingJob) error {
+func (b *BpfProfiler) SetUp(job *config.ProfilingJob) error {
 	exitCode, kernelVersion, err := utils.ExecuteCommand(exec.Command("uname", "-r"))
 	if err != nil {
 		return fmt.Errorf("failed to get kernel version, exit code: %d, error: %s", exitCode, err)
@@ -36,7 +36,7 @@ func (b *BpfProfiler) SetUp(job *details.ProfilingJob) error {
 	return b.moveSources(expectedSourcesLocation)
 }
 
-func (b *BpfProfiler) Invoke(job *details.ProfilingJob) error {
+func (b *BpfProfiler) Invoke(job *config.ProfilingJob) error {
 	err := b.runProfiler(job)
 	if err != nil {
 		return fmt.Errorf("profiling failed: %s", err)
@@ -50,7 +50,7 @@ func (b *BpfProfiler) Invoke(job *details.ProfilingJob) error {
 	return utils.PublishFlameGraph(flameGraphOutputLocation)
 }
 
-func (b *BpfProfiler) runProfiler(job *details.ProfilingJob) error {
+func (b *BpfProfiler) runProfiler(job *config.ProfilingJob) error {
 	pid, err := utils.FindProcessId(job)
 	if err != nil {
 		return err

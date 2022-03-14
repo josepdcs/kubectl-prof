@@ -2,14 +2,14 @@ package profiler
 
 import (
 	"fmt"
-	"github.com/josepdcs/kubectl-profile/pkg/agent/details"
+	"github.com/josepdcs/kubectl-profile/pkg/agent/config"
 
 	"github.com/josepdcs/kubectl-profile/api"
 )
 
 type FlameGraphProfiler interface {
-	SetUp(job *details.ProfilingJob) error
-	Invoke(job *details.ProfilingJob) error
+	SetUp(job *config.ProfilingJob) error
+	Invoke(job *config.ProfilingJob) error
 }
 
 var (

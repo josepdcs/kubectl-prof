@@ -14,7 +14,7 @@ package main
 
 import (
 	"errors"
-	"github.com/josepdcs/kubectl-profile/pkg/agent/details"
+	"github.com/josepdcs/kubectl-profile/pkg/agent/config"
 	"github.com/josepdcs/kubectl-profile/pkg/agent/profiler"
 	"github.com/josepdcs/kubectl-profile/pkg/agent/utils"
 	log "github.com/sirupsen/logrus"
@@ -49,7 +49,7 @@ func main() {
 	<-done
 }
 
-func profilingJob() (*details.ProfilingJob, error) {
+func profilingJob() (*config.ProfilingJob, error) {
 	if len(os.Args) != 9 && len(os.Args) != 10 {
 		return nil, errors.New("expected 8 or 9 arguments")
 	}
@@ -59,7 +59,7 @@ func profilingJob() (*details.ProfilingJob, error) {
 		return nil, err
 	}
 
-	job := &details.ProfilingJob{}
+	job := &config.ProfilingJob{}
 	job.ID = os.Args[1]
 	job.PodUID = os.Args[2]
 	job.ContainerName = os.Args[3]

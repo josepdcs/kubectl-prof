@@ -2,7 +2,7 @@ package profiler
 
 import (
 	"bytes"
-	"github.com/josepdcs/kubectl-profile/pkg/agent/details"
+	"github.com/josepdcs/kubectl-profile/pkg/agent/config"
 	"github.com/josepdcs/kubectl-profile/pkg/agent/utils"
 	"os/exec"
 	"strconv"
@@ -15,11 +15,11 @@ const (
 
 type PythonProfiler struct{}
 
-func (p *PythonProfiler) SetUp(job *details.ProfilingJob) error {
+func (p *PythonProfiler) SetUp(job *config.ProfilingJob) error {
 	return nil
 }
 
-func (p *PythonProfiler) Invoke(job *details.ProfilingJob) error {
+func (p *PythonProfiler) Invoke(job *config.ProfilingJob) error {
 	pid, err := utils.FindRootProcessId(job)
 	if err != nil {
 		return err
