@@ -20,16 +20,46 @@ import (
 	"github.com/josepdcs/kubectl-profile/pkg/cli/config"
 	"github.com/josepdcs/kubectl-profile/pkg/cli/handler"
 	"github.com/josepdcs/kubectl-profile/pkg/cli/kubernetes"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"log"
 
+	apiv1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 )
 
+type KubeConnector interface {
+	Connect(clientGetter genericclioptions.RESTClientGetter) (string, error)
+}
+
+//NewKubeConnector returns new KubeConnector
+func NewKubeConnector() *kubernetes.KubeConnector {
+	return &kubernetes.KubeConnector{}
+}
+
+type KubeGetter interface {
+	GetPod(podName, namespace string, ctx context.Context) (*apiv1.Pod, error)
+	GetProfilingPod(cfg *config.ProfileConfig, ctx context.Context) (*apiv1.Pod, error)
+}
+
+func NewKubeGetter() *kubernetes.KubeGetter {
+	return &kubernetes.KubeGetter{}
+}
+
 type Profiler struct {
+	KubeConnecter KubeConnector
+	KubeGetter    KubeGetter
+}
+
+//NewProfiler returns new Profiler
+func NewProfiler(connector KubeConnector, getter KubeGetter) *Profiler {
+	return &Profiler{
+		KubeConnecter: connector,
+		KubeGetter:    getter,
+	}
 }
 
 func (pf *Profiler) Profile(cfg *config.ProfileConfig) {
-	ns, err := kubernetes.Connect(cfg.ConfigFlags)
+	ns, err := pf.KubeConnecter.Connect(cfg.ConfigFlags)
 	if err != nil {
 		log.Fatalf("Failed connecting to kubernetes cluster: %v\n", err)
 	}
@@ -44,7 +74,7 @@ func (pf *Profiler) Profile(cfg *config.ProfileConfig) {
 	ctx := context.Background()
 
 	p.Print("Verifying target pod ... ")
-	pod, err := kubernetes.GetPodDetails(cfg.Target.PodName, cfg.Target.Namespace, ctx)
+	pod, err := pf.KubeGetter.GetPod(cfg.Target.PodName, cfg.Target.Namespace, ctx)
 	if err != nil {
 		p.PrintError()
 		log.Fatalf(err.Error())
@@ -56,7 +86,7 @@ func (pf *Profiler) Profile(cfg *config.ProfileConfig) {
 		log.Fatalf(err.Error())
 	}
 
-	containerId, err := kubernetes.GetContainerId(containerName, pod)
+	containerId, err := kubernetes.ToContainerId(containerName, pod)
 	if err != nil {
 		p.PrintError()
 		log.Fatalf(err.Error())
@@ -79,18 +109,15 @@ func (pf *Profiler) Profile(cfg *config.ProfileConfig) {
 	}
 
 	cfg.Target.Id = profileId
-	profilerPod, err := kubernetes.CheckPodStatus(cfg, ctx)
+	profilerPod, err := pf.KubeGetter.GetProfilingPod(cfg, ctx)
 	if err != nil {
 		p.PrintError()
 		log.Fatalf(err.Error())
 	}
 
 	p.PrintSuccess()
-	apiHandler := &handler.ApiEventsHandler{
-		Job:    job,
-		Target: cfg.Target,
-	}
-	done, err := kubernetes.GetLogsFromPod(profilerPod, apiHandler, ctx)
+	apiHandler := handler.NewApiEventsHandler(job, cfg.Target)
+	done, err := kubernetes.GetPodLogs(profilerPod, apiHandler, ctx)
 	if err != nil {
 		p.PrintError()
 		fmt.Println(err.Error())
@@ -99,16 +126,16 @@ func (pf *Profiler) Profile(cfg *config.ProfileConfig) {
 	<-done
 }
 
-func validatePod(pod *v1.Pod, targetDetails *config.TargetConfig) (string, error) {
+func validatePod(pod *v1.Pod, cfg *config.TargetConfig) (string, error) {
 	if pod == nil {
 		return "", errors.New(fmt.Sprintf("Could not find pod %s in Namespace %s",
-			targetDetails.PodName, targetDetails.Namespace))
+			cfg.PodName, cfg.Namespace))
 	}
 
 	if len(pod.Spec.Containers) != 1 {
 		var containerNames []string
 		for _, container := range pod.Spec.Containers {
-			if container.Name == targetDetails.ContainerName {
+			if container.Name == cfg.ContainerName {
 				return container.Name, nil // Found given container
 			}
 

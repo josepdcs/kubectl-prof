@@ -39,10 +39,6 @@ type Profiler interface {
 	Profile(cfg *config.ProfileConfig)
 }
 
-func NewProfiler() Profiler {
-	return &profiler.Profiler{}
-}
-
 type ProfileOptions struct {
 	configFlags *genericclioptions.ConfigFlags
 	genericclioptions.IOStreams
@@ -97,13 +93,10 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 				target.ContainerName = args[1]
 			}
 
-			cfg := &config.ProfileConfig{
-				Target:      &target,
-				Job:         &job,
-				ConfigFlags: options.configFlags,
-			}
-
-			NewProfiler().Profile(cfg)
+			cfg := config.NewProfileConfig(&target, &job, options.configFlags)
+			kubeConnector := profiler.NewKubeConnector()
+			kubeGetter := profiler.NewKubeGetter()
+			profiler.NewProfiler(kubeConnector, kubeGetter).Profile(cfg)
 		},
 	}
 

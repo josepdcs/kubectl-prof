@@ -18,6 +18,13 @@ type ApiEventsHandler struct {
 	Target *config.TargetConfig
 }
 
+func NewApiEventsHandler(job *batchv1.Job, cfg *config.TargetConfig) *ApiEventsHandler {
+	return &ApiEventsHandler{
+		Job:    job,
+		Target: cfg,
+	}
+}
+
 func (h *ApiEventsHandler) Handle(events chan string, done chan bool, ctx context.Context) {
 	for eventString := range events {
 		event, err := api.ParseEvent(eventString)

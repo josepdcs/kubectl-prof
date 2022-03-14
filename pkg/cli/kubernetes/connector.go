@@ -18,9 +18,12 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
+type KubeConnector struct {
+}
+
 var clientSet *kubernetes.Clientset
 
-func Connect(clientGetter genericclioptions.RESTClientGetter) (string, error) {
+func (c KubeConnector) Connect(clientGetter genericclioptions.RESTClientGetter) (string, error) {
 	restConfig, err := clientGetter.ToRESTConfig()
 	if err != nil {
 		return "", err

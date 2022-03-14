@@ -30,7 +30,10 @@ type DataHandler interface {
 	Handle(events chan string, done chan bool, ctx context.Context)
 }
 
-func GetPodDetails(podName, namespace string, ctx context.Context) (*apiv1.Pod, error) {
+type KubeGetter struct {
+}
+
+func (g KubeGetter) GetPod(podName, namespace string, ctx context.Context) (*apiv1.Pod, error) {
 	podObject, err := clientSet.
 		CoreV1().
 		Pods(namespace).
@@ -42,7 +45,7 @@ func GetPodDetails(podName, namespace string, ctx context.Context) (*apiv1.Pod, 
 	return podObject, nil
 }
 
-func CheckPodStatus(cfg *config.ProfileConfig, ctx context.Context) (*apiv1.Pod, error) {
+func (g KubeGetter) GetProfilingPod(cfg *config.ProfileConfig, ctx context.Context) (*apiv1.Pod, error) {
 	var pod *apiv1.Pod
 	err := wait.Poll(1*time.Second, 5*time.Minute,
 		func() (bool, error) {
@@ -81,7 +84,7 @@ func CheckPodStatus(cfg *config.ProfileConfig, ctx context.Context) (*apiv1.Pod,
 	return pod, nil
 }
 
-func GetLogsFromPod(pod *apiv1.Pod, handler DataHandler, ctx context.Context) (chan bool, error) {
+func GetPodLogs(pod *apiv1.Pod, handler DataHandler, ctx context.Context) (chan bool, error) {
 	done := make(chan bool)
 	req := clientSet.CoreV1().
 		Pods(pod.Namespace).
@@ -114,7 +117,7 @@ func GetLogsFromPod(pod *apiv1.Pod, handler DataHandler, ctx context.Context) (c
 	return done, nil
 }
 
-func GetContainerId(containerName string, pod *apiv1.Pod) (string, error) {
+func ToContainerId(containerName string, pod *apiv1.Pod) (string, error) {
 	for _, containerStatus := range pod.Status.ContainerStatuses {
 		if containerStatus.Name == containerName {
 			return containerStatus.ContainerID, nil
