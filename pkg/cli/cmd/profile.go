@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/josepdcs/kubectl-profile/pkg/cli/config"
+	"github.com/josepdcs/kubectl-profile/pkg/cli/kubernetes"
 	"github.com/josepdcs/kubectl-profile/pkg/cli/profiler"
 	"github.com/josepdcs/kubectl-profile/pkg/cli/version"
 	"os"
@@ -94,9 +95,11 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 			}
 
 			cfg := config.NewProfileConfig(&target, &job, options.configFlags)
-			kubeConnector := profiler.NewKubeConnector()
-			kubeGetter := profiler.NewKubeGetter()
-			profiler.NewProfiler(kubeConnector, kubeGetter).Profile(cfg)
+			connector := kubernetes.NewConnector()
+			getter := kubernetes.NewGetter()
+			creator := kubernetes.NewCreator()
+			deleter := kubernetes.NewDeleter()
+			profiler.NewProfiler(connector, getter, creator, deleter).Profile(cfg)
 		},
 	}
 

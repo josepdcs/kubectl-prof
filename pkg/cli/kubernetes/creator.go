@@ -5,29 +5,36 @@ import (
 	"fmt"
 	"github.com/josepdcs/kubectl-profile/pkg/cli/config"
 	"github.com/josepdcs/kubectl-profile/pkg/cli/kubernetes/job"
-	"os"
-
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
+	"os"
 )
 
-func LaunchProfilingJob(targetPod *v1.Pod, cfg *config.ProfileConfig, ctx context.Context) (string, *batchv1.Job, error) {
-	id, flameJob, err := job.Create(targetPod, cfg)
+type creator struct {
+}
+
+//NewCreator returns new implementation of Creator
+func NewCreator() *creator {
+	return &creator{}
+}
+
+func (c creator) CreateProfilingJob(targetPod *v1.Pod, cfg *config.ProfileConfig, ctx context.Context) (string, *batchv1.Job, error) {
+	id, profilingJob, err := job.Create(targetPod, cfg)
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to create job: %w", err)
 	}
 
 	if cfg.Target.DryRun {
-		err := printJob(flameJob)
+		err := printJob(profilingJob)
 		return "", nil, err
 	}
 
 	createJob, err := clientSet.
 		BatchV1().
 		Jobs(cfg.Job.Namespace).
-		Create(ctx, flameJob, metav1.CreateOptions{})
+		Create(ctx, profilingJob, metav1.CreateOptions{})
 	if err != nil {
 		return "", nil, err
 	}
@@ -41,14 +48,4 @@ func printJob(job *batchv1.Job) error {
 	})
 
 	return encoder.Encode(job, os.Stdout)
-}
-
-func DeleteProfilingJob(job *batchv1.Job, targetDetails *config.TargetConfig, ctx context.Context) error {
-	deleteStrategy := metav1.DeletePropagationForeground
-	return clientSet.
-		BatchV1().
-		Jobs(targetDetails.Namespace).
-		Delete(ctx, job.Name, metav1.DeleteOptions{
-			PropagationPolicy: &deleteStrategy,
-		})
 }

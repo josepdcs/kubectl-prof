@@ -15,7 +15,6 @@ package kubernetes
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"github.com/josepdcs/kubectl-profile/pkg/cli/config"
 	"github.com/josepdcs/kubectl-profile/pkg/cli/kubernetes/job"
@@ -30,10 +29,15 @@ type DataHandler interface {
 	Handle(events chan string, done chan bool, ctx context.Context)
 }
 
-type KubeGetter struct {
+type getter struct {
 }
 
-func (g KubeGetter) GetPod(podName, namespace string, ctx context.Context) (*apiv1.Pod, error) {
+//NewGetter returns new implementation of Getter
+func NewGetter() *getter {
+	return &getter{}
+}
+
+func (g getter) GetPod(podName, namespace string, ctx context.Context) (*apiv1.Pod, error) {
 	podObject, err := clientSet.
 		CoreV1().
 		Pods(namespace).
@@ -45,7 +49,7 @@ func (g KubeGetter) GetPod(podName, namespace string, ctx context.Context) (*api
 	return podObject, nil
 }
 
-func (g KubeGetter) GetProfilingPod(cfg *config.ProfileConfig, ctx context.Context) (*apiv1.Pod, error) {
+func (g getter) GetProfilingPod(cfg *config.ProfileConfig, ctx context.Context) (*apiv1.Pod, error) {
 	var pod *apiv1.Pod
 	err := wait.Poll(1*time.Second, 5*time.Minute,
 		func() (bool, error) {
@@ -115,14 +119,4 @@ func GetPodLogs(pod *apiv1.Pod, handler DataHandler, ctx context.Context) (chan 
 	}()
 
 	return done, nil
-}
-
-func ToContainerId(containerName string, pod *apiv1.Pod) (string, error) {
-	for _, containerStatus := range pod.Status.ContainerStatuses {
-		if containerStatus.Name == containerName {
-			return containerStatus.ContainerID, nil
-		}
-	}
-
-	return "", errors.New("Could not find container id for " + containerName)
 }

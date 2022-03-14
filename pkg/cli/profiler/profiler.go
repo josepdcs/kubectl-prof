@@ -20,51 +20,35 @@ import (
 	"github.com/josepdcs/kubectl-profile/pkg/cli/config"
 	"github.com/josepdcs/kubectl-profile/pkg/cli/handler"
 	"github.com/josepdcs/kubectl-profile/pkg/cli/kubernetes"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"log"
 
-	apiv1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 )
 
-type KubeConnector interface {
-	Connect(clientGetter genericclioptions.RESTClientGetter) (string, error)
-}
-
-//NewKubeConnector returns new KubeConnector
-func NewKubeConnector() *kubernetes.KubeConnector {
-	return &kubernetes.KubeConnector{}
-}
-
-type KubeGetter interface {
-	GetPod(podName, namespace string, ctx context.Context) (*apiv1.Pod, error)
-	GetProfilingPod(cfg *config.ProfileConfig, ctx context.Context) (*apiv1.Pod, error)
-}
-
-func NewKubeGetter() *kubernetes.KubeGetter {
-	return &kubernetes.KubeGetter{}
-}
-
 type Profiler struct {
-	KubeConnecter KubeConnector
-	KubeGetter    KubeGetter
+	Connector kubernetes.Connector
+	Getter    kubernetes.Getter
+	Creator   kubernetes.Creator
+	Deleter   kubernetes.Deleter
 }
 
 //NewProfiler returns new Profiler
-func NewProfiler(connector KubeConnector, getter KubeGetter) *Profiler {
+func NewProfiler(con kubernetes.Connector, get kubernetes.Getter, cre kubernetes.Creator, del kubernetes.Deleter) *Profiler {
 	return &Profiler{
-		KubeConnecter: connector,
-		KubeGetter:    getter,
+		Connector: con,
+		Getter:    get,
+		Creator:   cre,
+		Deleter:   del,
 	}
 }
 
-func (pf *Profiler) Profile(cfg *config.ProfileConfig) {
-	ns, err := pf.KubeConnecter.Connect(cfg.ConfigFlags)
+func (p *Profiler) Profile(cfg *config.ProfileConfig) {
+	ns, err := p.Connector.Connect(cfg.ConfigFlags)
 	if err != nil {
 		log.Fatalf("Failed connecting to kubernetes cluster: %v\n", err)
 	}
 
-	p := cli.NewPrinter(cfg.Target.DryRun)
+	printer := cli.NewPrinter(cfg.Target.DryRun)
 
 	if cfg.Target.Namespace == "" {
 		cfg.Target.Namespace = ns
@@ -73,34 +57,34 @@ func (pf *Profiler) Profile(cfg *config.ProfileConfig) {
 
 	ctx := context.Background()
 
-	p.Print("Verifying target pod ... ")
-	pod, err := pf.KubeGetter.GetPod(cfg.Target.PodName, cfg.Target.Namespace, ctx)
+	printer.Print("Verifying target pod ... ")
+	pod, err := p.Getter.GetPod(cfg.Target.PodName, cfg.Target.Namespace, ctx)
 	if err != nil {
-		p.PrintError()
+		printer.PrintError()
 		log.Fatalf(err.Error())
 	}
 
 	containerName, err := validatePod(pod, cfg.Target)
 	if err != nil {
-		p.PrintError()
+		printer.PrintError()
 		log.Fatalf(err.Error())
 	}
 
 	containerId, err := kubernetes.ToContainerId(containerName, pod)
 	if err != nil {
-		p.PrintError()
+		printer.PrintError()
 		log.Fatalf(err.Error())
 	}
 
-	p.PrintSuccess()
+	printer.PrintSuccess()
 
 	cfg.Target.ContainerName = containerName
 	cfg.Target.ContainerId = containerId
 
-	p.Print("Launching profiler ... ")
-	profileId, job, err := kubernetes.LaunchProfilingJob(pod, cfg, ctx)
+	printer.Print("Launching profiler ... ")
+	profileId, job, err := p.Creator.CreateProfilingJob(pod, cfg, ctx)
 	if err != nil {
-		p.PrintError()
+		printer.PrintError()
 		log.Fatalf(err.Error())
 	}
 
@@ -109,17 +93,17 @@ func (pf *Profiler) Profile(cfg *config.ProfileConfig) {
 	}
 
 	cfg.Target.Id = profileId
-	profilerPod, err := pf.KubeGetter.GetProfilingPod(cfg, ctx)
+	profilerPod, err := p.Getter.GetProfilingPod(cfg, ctx)
 	if err != nil {
-		p.PrintError()
+		printer.PrintError()
 		log.Fatalf(err.Error())
 	}
 
-	p.PrintSuccess()
-	apiHandler := handler.NewApiEventsHandler(job, cfg.Target)
+	printer.PrintSuccess()
+	apiHandler := handler.NewApiEventsHandler(job, cfg.Target, p.Deleter)
 	done, err := kubernetes.GetPodLogs(profilerPod, apiHandler, ctx)
 	if err != nil {
-		p.PrintError()
+		printer.PrintError()
 		fmt.Println(err.Error())
 	}
 

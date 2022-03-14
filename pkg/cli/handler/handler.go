@@ -14,14 +14,16 @@ import (
 )
 
 type ApiEventsHandler struct {
-	Job    *batchv1.Job
-	Target *config.TargetConfig
+	Job         *batchv1.Job
+	Target      *config.TargetConfig
+	KubeDeleter kubernetes.Deleter
 }
 
-func NewApiEventsHandler(job *batchv1.Job, cfg *config.TargetConfig) *ApiEventsHandler {
+func NewApiEventsHandler(job *batchv1.Job, cfg *config.TargetConfig, deleter kubernetes.Deleter) *ApiEventsHandler {
 	return &ApiEventsHandler{
-		Job:    job,
-		Target: cfg,
+		Job:         job,
+		Target:      cfg,
+		KubeDeleter: deleter,
 	}
 }
 
@@ -64,7 +66,7 @@ func (h *ApiEventsHandler) reportProgress(data *api.ProgressData, done chan bool
 	if data.Stage == api.Started {
 		fmt.Printf("Profiling ...\n")
 	} else if data.Stage == api.Ended {
-		_ = kubernetes.DeleteProfilingJob(h.Job, h.Target, ctx)
+		_ = h.KubeDeleter.DeleteProfilingJob(h.Job, h.Target, ctx)
 		fmt.Printf("✔\nProfiled as FrameGraph saved to: %s 🔥\n", h.Target.FileName)
 		done <- true
 	}
