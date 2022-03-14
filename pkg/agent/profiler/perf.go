@@ -2,6 +2,7 @@ package profiler
 
 import (
 	"fmt"
+	"github.com/josepdcs/kubectl-profile/api"
 	"github.com/josepdcs/kubectl-profile/pkg/agent/config"
 	"github.com/josepdcs/kubectl-profile/pkg/agent/utils"
 	"os"
@@ -54,6 +55,7 @@ func (p *PerfProfiler) runPerfRecord(job *config.ProfilingJob) error {
 	if err != nil {
 		return err
 	}
+	utils.PublishLogEvent(api.InfoLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
 
 	duration := strconv.Itoa(int(job.Duration.Seconds()))
 	cmd := exec.Command(perfLocation, "record", "-p", pid, "-o", perfRecordOutputFileName, "-g", "--", "sleep", duration)

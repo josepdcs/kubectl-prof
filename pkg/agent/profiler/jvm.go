@@ -22,7 +22,6 @@ import (
 	"os/exec"
 	"path"
 	"strconv"
-	"time"
 )
 
 const (
@@ -38,13 +37,7 @@ func (j *JvmProfiler) SetUp(job *config.ProfilingJob) error {
 	if err != nil {
 		return err
 	}
-	_ = api.PublishEvent(
-		api.Log,
-		&api.LogData{
-			Time:  time.Now(),
-			Level: api.InfoLevel,
-			Msg:   fmt.Sprintf("The target filesystem is: %s", targetFs)},
-	)
+	utils.PublishLogEvent(api.InfoLevel, fmt.Sprintf("The target filesystem is: %s", targetFs))
 
 	err = os.RemoveAll("/tmp")
 	if err != nil {
@@ -64,13 +57,7 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 	if err != nil {
 		return err
 	}
-	_ = api.PublishEvent(
-		api.Log,
-		&api.LogData{
-			Time:  time.Now(),
-			Level: api.InfoLevel,
-			Msg:   fmt.Sprintf("The PID to be profiled: %s", pid)},
-	)
+	utils.PublishLogEvent(api.InfoLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
 
 	duration := strconv.Itoa(int(job.Duration.Seconds()))
 	event := string(job.Event)
@@ -81,39 +68,11 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 	cmd.Stderr = &stderr
 	err = cmd.Run()
 	if err != nil {
-		outStr := out.String()
-		if len(outStr) > 0 {
-			_ = api.PublishEvent(
-				api.Log,
-				&api.LogData{
-					Time:  time.Now(),
-					Level: api.ErrorLevel,
-					Msg:   fmt.Sprint(outStr)},
-			)
-		}
-		errStr := stderr.String()
-		if len(errStr) > 0 {
-			_ = api.PublishEvent(
-				api.Log,
-				&api.LogData{
-					Time:  time.Now(),
-					Level: api.ErrorLevel,
-					Msg:   fmt.Sprint(errStr)},
-			)
-		}
+		utils.PublishLogEvent(api.ErrorLevel, out.String())
+		utils.PublishLogEvent(api.ErrorLevel, stderr.String())
 		return err
 	}
-
-	outStr := out.String()
-	if len(outStr) > 0 {
-		_ = api.PublishEvent(
-			api.Log,
-			&api.LogData{
-				Time:  time.Now(),
-				Level: api.InfoLevel,
-				Msg:   fmt.Sprint(outStr)},
-		)
-	}
+	utils.PublishLogEvent(api.InfoLevel, out.String())
 
 	return utils.PublishFlameGraph(fileName)
 }
