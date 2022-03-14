@@ -13,21 +13,21 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 )
 
-type ApiEventsHandler struct {
-	Job         *batchv1.Job
-	Target      *config.TargetConfig
-	KubeDeleter kubernetes.Deleter
+type EventHandler struct {
+	Job     *batchv1.Job
+	Target  *config.TargetConfig
+	Deleter kubernetes.Deleter
 }
 
-func NewApiEventsHandler(job *batchv1.Job, cfg *config.TargetConfig, deleter kubernetes.Deleter) *ApiEventsHandler {
-	return &ApiEventsHandler{
-		Job:         job,
-		Target:      cfg,
-		KubeDeleter: deleter,
+func NewEventHandler(job *batchv1.Job, cfg *config.TargetConfig, del kubernetes.Deleter) *EventHandler {
+	return &EventHandler{
+		Job:     job,
+		Target:  cfg,
+		Deleter: del,
 	}
 }
 
-func (h *ApiEventsHandler) Handle(events chan string, done chan bool, ctx context.Context) {
+func (h *EventHandler) Handle(events chan string, done chan bool, ctx context.Context) {
 	for eventString := range events {
 		event, err := api.ParseEvent(eventString)
 		if err != nil {
@@ -49,7 +49,7 @@ func (h *ApiEventsHandler) Handle(events chan string, done chan bool, ctx contex
 	}
 }
 
-func (h *ApiEventsHandler) createFlameGraph(data *api.FlameGraphData) {
+func (h *EventHandler) createFlameGraph(data *api.FlameGraphData) {
 	decodedData, err := base64.StdEncoding.DecodeString(data.EncodedFile)
 	if err != nil {
 		fmt.Printf("Failed to decode flamegraph: %v\n", err)
@@ -62,18 +62,18 @@ func (h *ApiEventsHandler) createFlameGraph(data *api.FlameGraphData) {
 	}
 }
 
-func (h *ApiEventsHandler) reportProgress(data *api.ProgressData, done chan bool, ctx context.Context) {
+func (h *EventHandler) reportProgress(data *api.ProgressData, done chan bool, ctx context.Context) {
 	if data.Stage == api.Started {
 		fmt.Printf("Profiling ...\n")
 	} else if data.Stage == api.Ended {
-		_ = h.KubeDeleter.DeleteProfilingJob(h.Job, h.Target, ctx)
+		_ = h.Deleter.DeleteProfilingJob(h.Job, h.Target, ctx)
 		fmt.Printf("✔\nProfiled as FrameGraph saved to: %s 🔥\n", h.Target.FileName)
 		done <- true
 	}
 }
 
 //logger func config message
-func (h *ApiEventsHandler) logger(data *api.LogData) {
+func (h *EventHandler) logger(data *api.LogData) {
 	switch data.Level {
 	case api.InfoLevel:
 		log.Info(data.Msg)

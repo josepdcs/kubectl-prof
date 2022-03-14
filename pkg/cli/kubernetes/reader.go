@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-type DataHandler interface {
+type EventHandler interface {
 	Handle(events chan string, done chan bool, ctx context.Context)
 }
 
@@ -88,7 +88,7 @@ func (g getter) GetProfilingPod(cfg *config.ProfileConfig, ctx context.Context) 
 	return pod, nil
 }
 
-func GetPodLogs(pod *apiv1.Pod, handler DataHandler, ctx context.Context) (chan bool, error) {
+func GetPodLogs(pod *apiv1.Pod, handler EventHandler, ctx context.Context) (chan bool, error) {
 	done := make(chan bool)
 	req := clientSet.CoreV1().
 		Pods(pod.Namespace).

@@ -22,13 +22,13 @@ const (
 These commands help you identify application performance issues.
 `
 	flameExamples = `
-	# ProfileConfig a pod for 5 minutes and save the output as flame.svg file
+	# ProfileC a pod for 5 minutes and save the output as flame.svg file
 	%[1]s profile mypod -f flame.svg -t 5m
 
-	# ProfileConfig an alpine based container
+	# Profile an alpine based container
 	%[1]s profile mypod -f flame.svg --alpine
 
-	# ProfileConfig specific container container1 from pod mypod in namespace test
+	# Profile specific container container1 from pod mypod in namespace test
 	%[1]s profile mypod -f /tmp/flame.svg -n test container1
 
 	# Set custom resource requests and limits for the cli pod (default: neither requests nor limits are set)
@@ -66,7 +66,7 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:                   "profile [pod-name]",
 		DisableFlagsInUseLine: true,
-		Short:                 "ProfileConfig running applications by generating flame graphs.",
+		Short:                 "Profile running applications by generating flame graphs.",
 		Long:                  flameLong,
 		Example:               fmt.Sprintf(flameExamples, "kubectl"),
 		PersistentPreRun: func(c *cobra.Command, args []string) {

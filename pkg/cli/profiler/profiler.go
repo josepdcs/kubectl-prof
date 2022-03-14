@@ -93,15 +93,15 @@ func (p *Profiler) Profile(cfg *config.ProfileConfig) {
 	}
 
 	cfg.Target.Id = profileId
-	profilerPod, err := p.Getter.GetProfilingPod(cfg, ctx)
+	profilingPod, err := p.Getter.GetProfilingPod(cfg, ctx)
 	if err != nil {
 		printer.PrintError()
 		log.Fatalf(err.Error())
 	}
 
 	printer.PrintSuccess()
-	apiHandler := handler.NewApiEventsHandler(job, cfg.Target, p.Deleter)
-	done, err := kubernetes.GetPodLogs(profilerPod, apiHandler, ctx)
+	eventHandler := handler.NewEventHandler(job, cfg.Target, p.Deleter)
+	done, err := kubernetes.GetPodLogs(profilingPod, eventHandler, ctx)
 	if err != nil {
 		printer.PrintError()
 		fmt.Println(err.Error())
