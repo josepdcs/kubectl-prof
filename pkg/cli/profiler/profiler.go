@@ -42,7 +42,7 @@ func NewProfiler(con kubernetes.Connector, get kubernetes.Getter, cre kubernetes
 	}
 }
 
-func (p *Profiler) Profile(cfg *config.ProfileConfig) {
+func (p *Profiler) Profile(cfg *config.ProfilerConfig) {
 	ns, err := p.Connector.Connect(cfg.ConfigFlags)
 	if err != nil {
 		log.Fatalf("Failed connecting to kubernetes cluster: %v\n", err)

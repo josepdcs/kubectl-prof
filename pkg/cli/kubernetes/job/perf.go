@@ -14,7 +14,7 @@ import (
 
 type perfCreator struct{}
 
-func (p *perfCreator) create(targetPod *apiv1.Pod, cfg *config.ProfileConfig) (string, *batchv1.Job, error) {
+func (p *perfCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
 	id := string(uuid.NewUUID())
 	var imageName string
 	var imagePullSecret []apiv1.LocalObjectReference

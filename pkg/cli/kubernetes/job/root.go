@@ -24,10 +24,10 @@ var (
 )
 
 type creator interface {
-	create(targetPod *apiv1.Pod, cfg *config.ProfileConfig) (string, *batchv1.Job, error)
+	create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error)
 }
 
-func Create(targetPod *apiv1.Pod, cfg *config.ProfileConfig) (string, *batchv1.Job, error) {
+func Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
 	switch cfg.Target.Language {
 	case api.Java:
 		return jvm.create(targetPod, cfg)

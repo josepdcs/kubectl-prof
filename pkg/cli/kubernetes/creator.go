@@ -20,7 +20,7 @@ func NewCreator() *creator {
 	return &creator{}
 }
 
-func (c creator) CreateProfilingJob(targetPod *v1.Pod, cfg *config.ProfileConfig, ctx context.Context) (string, *batchv1.Job, error) {
+func (c creator) CreateProfilingJob(targetPod *v1.Pod, cfg *config.ProfilerConfig, ctx context.Context) (string, *batchv1.Job, error) {
 	id, profilingJob, err := job.Create(targetPod, cfg)
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to create job: %w", err)

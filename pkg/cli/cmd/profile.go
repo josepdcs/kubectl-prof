@@ -37,7 +37,7 @@ These commands help you identify application performance issues.
 )
 
 type Profiler interface {
-	Profile(cfg *config.ProfileConfig)
+	Profile(cfg *config.ProfilerConfig)
 }
 
 type ProfileOptions struct {
@@ -94,7 +94,7 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 				target.ContainerName = args[1]
 			}
 
-			cfg := config.NewProfileConfig(&target, &job, options.configFlags)
+			cfg := config.NewProfilerConfig(&target, &job, options.configFlags)
 			connector := kubernetes.NewConnector()
 			getter := kubernetes.NewGetter()
 			creator := kubernetes.NewCreator()

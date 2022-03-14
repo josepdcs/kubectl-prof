@@ -1,4 +1,3 @@
-//: Licensed under the terms of the Apache 2.0 License. See LICENSE file in the project root for terms.
 package job
 
 import (
@@ -14,7 +13,7 @@ import (
 
 type bpfCreator struct{}
 
-func (b *bpfCreator) create(targetPod *apiv1.Pod, cfg *config.ProfileConfig) (string, *batchv1.Job, error) {
+func (b *bpfCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
 	id := string(uuid.NewUUID())
 	var imageName string
 	var imagePullSecret []apiv1.LocalObjectReference

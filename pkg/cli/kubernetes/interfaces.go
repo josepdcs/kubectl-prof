@@ -15,11 +15,11 @@ type Connector interface {
 
 type Getter interface {
 	GetPod(podName, namespace string, ctx context.Context) (*apiv1.Pod, error)
-	GetProfilingPod(cfg *config.ProfileConfig, ctx context.Context) (*apiv1.Pod, error)
+	GetProfilingPod(cfg *config.ProfilerConfig, ctx context.Context) (*apiv1.Pod, error)
 }
 
 type Creator interface {
-	CreateProfilingJob(targetPod *v1.Pod, cfg *config.ProfileConfig, ctx context.Context) (string, *batchv1.Job, error)
+	CreateProfilingJob(targetPod *v1.Pod, cfg *config.ProfilerConfig, ctx context.Context) (string, *batchv1.Job, error)
 }
 
 type Deleter interface {

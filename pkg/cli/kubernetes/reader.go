@@ -49,7 +49,7 @@ func (g getter) GetPod(podName, namespace string, ctx context.Context) (*apiv1.P
 	return podObject, nil
 }
 
-func (g getter) GetProfilingPod(cfg *config.ProfileConfig, ctx context.Context) (*apiv1.Pod, error) {
+func (g getter) GetProfilingPod(cfg *config.ProfilerConfig, ctx context.Context) (*apiv1.Pod, error) {
 	var pod *apiv1.Pod
 	err := wait.Poll(1*time.Second, 5*time.Minute,
 		func() (bool, error) {

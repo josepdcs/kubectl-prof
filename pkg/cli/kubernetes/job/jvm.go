@@ -14,7 +14,7 @@ import (
 
 type jvmCreator struct{}
 
-func (c *jvmCreator) create(targetPod *apiv1.Pod, cfg *config.ProfileConfig) (string, *batchv1.Job, error) {
+func (c *jvmCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
 	id := string(uuid.NewUUID())
 	imageName := c.getAgentImage(cfg.Target)
 	args := []string{
