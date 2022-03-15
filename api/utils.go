@@ -15,6 +15,7 @@ package api
 import (
 	"fmt"
 	jsoniter "github.com/json-iterator/go"
+	"time"
 )
 
 func PublishError(err error) {
@@ -38,6 +39,18 @@ func PublishEvent(eventType EventType, data interface{}) error {
 
 	fmt.Println(string(bytes))
 	return nil
+}
+
+func PublishLogEvent(level LogLevel, msg string) {
+	if len(msg) > 0 {
+		_ = PublishEvent(
+			Log,
+			&LogData{
+				Time:  time.Now(),
+				Level: string(level),
+				Msg:   fmt.Sprint(msg)},
+		)
+	}
 }
 
 func ParseEvent(eventString string) (interface{}, error) {

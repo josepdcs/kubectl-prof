@@ -37,7 +37,7 @@ func (j *JvmProfiler) SetUp(job *config.ProfilingJob) error {
 	if err != nil {
 		return err
 	}
-	utils.PublishLogEvent(api.InfoLevel, fmt.Sprintf("The target filesystem is: %s", targetFs))
+	api.PublishLogEvent(api.InfoLevel, fmt.Sprintf("The target filesystem is: %s", targetFs))
 
 	err = os.RemoveAll("/tmp")
 	if err != nil {
@@ -57,7 +57,7 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 	if err != nil {
 		return err
 	}
-	utils.PublishLogEvent(api.InfoLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
+	api.PublishLogEvent(api.InfoLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
 
 	duration := strconv.Itoa(int(job.Duration.Seconds()))
 	event := string(job.Event)
@@ -68,11 +68,11 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 	cmd.Stderr = &stderr
 	err = cmd.Run()
 	if err != nil {
-		utils.PublishLogEvent(api.ErrorLevel, out.String())
-		utils.PublishLogEvent(api.ErrorLevel, stderr.String())
+		api.PublishLogEvent(api.ErrorLevel, out.String())
+		api.PublishLogEvent(api.ErrorLevel, stderr.String())
 		return err
 	}
-	utils.PublishLogEvent(api.InfoLevel, out.String())
+	api.PublishLogEvent(api.InfoLevel, out.String())
 
 	return utils.PublishFlameGraph(fileName)
 }

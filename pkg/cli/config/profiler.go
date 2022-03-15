@@ -6,6 +6,7 @@ type ProfilerConfig struct {
 	Target      *TargetConfig
 	Job         *JobConfig
 	ConfigFlags *genericclioptions.ConfigFlags
+	LogLevel    string
 }
 
 func NewProfilerConfig(Target *TargetConfig, Job *JobConfig, ConfigFlags *genericclioptions.ConfigFlags) *ProfilerConfig {

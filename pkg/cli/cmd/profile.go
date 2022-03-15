@@ -17,11 +17,12 @@ import (
 const (
 	defaultDuration = 1 * time.Minute
 	defaultEvent    = string(api.Cpu)
-	flameLong       = `Profiling on existing applications with low-overhead by generating flame graphs.
+	defaultLogLevel = string(api.InfoLevel)
+	longDescription = `Profiling on existing applications with low-overhead.
 
 These commands help you identify application performance issues.
 `
-	flameExamples = `
+	profilingExamples = `
 	# ProfileC a pod for 5 minutes and save the output as flame.svg file
 	%[1]s profile mypod -f flame.svg -t 5m
 
@@ -66,9 +67,9 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:                   "profile [pod-name]",
 		DisableFlagsInUseLine: true,
-		Short:                 "Profile running applications by generating flame graphs.",
-		Long:                  flameLong,
-		Example:               fmt.Sprintf(flameExamples, "kubectl"),
+		Short:                 "Profile running applications by generating flame graphs at the moment.",
+		Long:                  longDescription,
+		Example:               fmt.Sprintf(profilingExamples, "kubectl"),
 		PersistentPreRun: func(c *cobra.Command, args []string) {
 			c.SetOut(streams.Out)
 			c.SetErr(streams.ErrOut)
@@ -129,6 +130,9 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.Flags().StringVar(&job.LimitConfig.Memory, "mem.limits", "", "Memory limits of the started profiling container")
 	cmd.Flags().StringVar(&target.ImagePullSecret, "imagePullSecret", "", "imagePullSecret for agent docker image")
 	cmd.Flags().StringVar(&target.ServiceAccountName, "serviceAccountName", "", "serviceAccountName to be used for profiling container")
+
+	cmd.Flags().StringVarP(&chosenEvent, "log-level", "", defaultLogLevel,
+		fmt.Sprintf("Log level, choose one of %v", api.AvailableLogLevels()))
 
 	options.configFlags.AddFlags(cmd.Flags())
 

@@ -28,11 +28,6 @@ const (
 
 	Started ProgressStage = "started"
 	Ended   ProgressStage = "ended"
-
-	InfoLevel  string = "info"
-	WarnLevel  string = "warn"
-	DebugLevel string = "debug"
-	ErrorLevel string = "error"
 )
 
 type Event struct {

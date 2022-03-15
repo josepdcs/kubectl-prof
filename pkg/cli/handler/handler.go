@@ -64,7 +64,7 @@ func (h *EventHandler) createFlameGraph(data *api.FlameGraphData) {
 
 func (h *EventHandler) reportProgress(data *api.ProgressData, done chan bool, ctx context.Context) {
 	if data.Stage == api.Started {
-		fmt.Printf("Profiling ...\n")
+		fmt.Printf("Profiling ...")
 	} else if data.Stage == api.Ended {
 		_ = h.Deleter.DeleteProfilingJob(h.Job, h.Target, ctx)
 		fmt.Printf("✔\nProfiled as FrameGraph saved to: %s 🔥\n", h.Target.FileName)
@@ -72,18 +72,19 @@ func (h *EventHandler) reportProgress(data *api.ProgressData, done chan bool, ct
 	}
 }
 
-//logger func config message
+//logger print log
 func (h *EventHandler) logger(data *api.LogData) {
 	switch data.Level {
-	case api.InfoLevel:
-		log.Info(data.Msg)
-	case api.WarnLevel:
-		log.Warn(data.Msg)
-	case api.DebugLevel:
-		log.Debug(data.Msg)
-	case api.ErrorLevel:
-		log.Error(data.Msg)
+	case string(api.InfoLevel):
+		log.Infof("%s", data.Msg)
+	case string(api.WarnLevel):
+		log.Warnf("%s", data.Msg)
+	case string(api.DebugLevel):
+		log.Debugf("%s", data.Msg)
+	case string(api.ErrorLevel):
+		log.Errorf("%s", data.Msg)
 	default:
-		log.Trace(data.Msg)
+		log.Tracef("%s", data.Msg)
 	}
+	fmt.Printf("Profiling ...")
 }

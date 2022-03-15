@@ -2,6 +2,8 @@ package profiler
 
 import (
 	"bytes"
+	"fmt"
+	"github.com/josepdcs/kubectl-profile/api"
 	"github.com/josepdcs/kubectl-profile/pkg/agent/config"
 	"github.com/josepdcs/kubectl-profile/pkg/agent/utils"
 	"os/exec"
@@ -24,6 +26,7 @@ func (p *PythonProfiler) Invoke(job *config.ProfilingJob) error {
 	if err != nil {
 		return err
 	}
+	api.PublishLogEvent(api.InfoLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
 
 	duration := strconv.Itoa(int(job.Duration.Seconds()))
 	cmd := exec.Command(pySpyLocation, "record", "-p", pid, "-o", pythonOutputFileName, "-d", duration, "-s", "-t")
