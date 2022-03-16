@@ -60,7 +60,14 @@ func (b *BpfProfiler) runProfiler(job *config.ProfilingJob) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			fmt.Printf("error closing resource: %s", err)
+			return
+		}
+	}(f)
 
 	duration := strconv.Itoa(int(job.Duration.Seconds()))
 	profileCmd := exec.Command(profilerLocation, "-df", "-p", pid, duration)
@@ -74,13 +81,27 @@ func (b *BpfProfiler) generateFlameGraph() error {
 	if err != nil {
 		return err
 	}
-	defer inputFile.Close()
+
+	defer func(inputFile *os.File) {
+		err := inputFile.Close()
+		if err != nil {
+			fmt.Printf("error closing input file: %s", err)
+			return
+		}
+	}(inputFile)
 
 	outputFile, err := os.Create(flameGraphOutputLocation)
 	if err != nil {
 		return err
 	}
-	defer outputFile.Close()
+
+	defer func(outputFile *os.File) {
+		err := outputFile.Close()
+		if err != nil {
+			fmt.Printf("error closing output file: %s", err)
+			return
+		}
+	}(outputFile)
 
 	flameGraphCmd := exec.Command(flameGraphScriptLocation)
 	flameGraphCmd.Stdin = inputFile

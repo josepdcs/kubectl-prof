@@ -109,18 +109,17 @@ func GetPodLogs(pod *apiv1.Pod, handler EventHandler, ctx context.Context) (chan
 		defer func(readCloser io.ReadCloser) {
 			err := readCloser.Close()
 			if err != nil {
-				_ = fmt.Errorf("error closing resource: %s", err)
+				fmt.Printf("error closing resource: %s", err)
+				return
 			}
 		}(readCloser)
 
 		r := bufio.NewReader(readCloser)
 		for {
 			bytes, err := r.ReadBytes('\n')
-
 			if err != nil {
 				return
 			}
-
 			eventsChan <- string(bytes)
 		}
 	}()
