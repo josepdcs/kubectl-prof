@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"github.com/josepdcs/kubectl-profile/pkg/cli/config"
 	"github.com/josepdcs/kubectl-profile/pkg/cli/kubernetes/job"
+	"io"
 	"time"
 
 	apiv1 "k8s.io/api/core/v1"
@@ -105,7 +106,13 @@ func GetPodLogs(pod *apiv1.Pod, handler EventHandler, ctx context.Context) (chan
 	eventsChan := make(chan string)
 	go handler.Handle(eventsChan, done, ctx)
 	go func() {
-		defer readCloser.Close()
+		defer func(readCloser io.ReadCloser) {
+			err := readCloser.Close()
+			if err != nil {
+				_ = fmt.Errorf("error closing resource: %s", err)
+			}
+		}(readCloser)
+
 		r := bufio.NewReader(readCloser)
 		for {
 			bytes, err := r.ReadBytes('\n')

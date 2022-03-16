@@ -1,21 +1,21 @@
-VERSION := 0.0.1
-CLI_NAME := kubectl-profile
-CLI_DIR := ./cmd/cli/
-BUILD_DIR := bin
-REGISTRY := docker.io
-DOCKER_BASE_IMAGE := josepdcs/kubectl-profile
-DOCKER_JVM_IMAGE := $(DOCKER_BASE_IMAGE):$(VERSION)-jvm
-DOCKERFILE_JVM := ./pkg/agent/docker/jvm/Dockerfile
-DOCKER_JVM_ALPINE_IMAGE := $(DOCKER_BASE_IMAGE):$(VERSION)-jvm-alpine
-DOCKERFILE_JVM_ALPINE := ./pkg/agent/docker/jvm/alpine/Dockerfile
-DOCKER_BPF_IMAGE := $(DOCKER_BASE_IMAGE):$(VERSION)-bpf
-DOCKERFILE_BPF := ./pkg/agent/docker/bpf/Dockerfile
-DOCKER_PERF_IMAGE := $(DOCKER_BASE_IMAGE):$(VERSION)-perf
-DOCKERFILE_PERF := ./pkg/agent/docker/perf/Dockerfile
-DOCKER_PYTHON_IMAGE := $(DOCKER_BASE_IMAGE):$(VERSION)-python
-DOCKERFILE_PYTHON := ./pkg/agent/docker/python/Dockerfile
-DOCKER_RUBY_IMAGE := $(DOCKER_BASE_IMAGE):$(VERSION)-ruby
-DOCKERFILE_RUBY := ./pkg/agent/docker/ruby/Dockerfile
+VERSION ?= 0.0.1
+CLI_NAME ?= kubectl-profile
+CLI_DIR ?= ./cmd/cli/
+BUILD_DIR ?= bin
+REGISTRY ?= docker.io
+DOCKER_BASE_IMAGE ?= josepdcs/kubectl-profile
+DOCKER_JVM_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-jvm
+DOCKERFILE_JVM ?= ./pkg/agent/docker/jvm/Dockerfile
+DOCKER_JVM_ALPINE_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-jvm-alpine
+DOCKERFILE_JVM_ALPINE ?= ./pkg/agent/docker/jvm/alpine/Dockerfile
+DOCKER_BPF_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-bpf
+DOCKERFILE_BPF ?= ./pkg/agent/docker/bpf/Dockerfile
+DOCKER_PERF_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-perf
+DOCKERFILE_PERF ?= ./pkg/agent/docker/perf/Dockerfile
+DOCKER_PYTHON_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-python
+DOCKERFILE_PYTHON ?= ./pkg/agent/docker/python/Dockerfile
+DOCKER_RUBY_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-ruby
+DOCKERFILE_RUBY ?= ./pkg/agent/docker/ruby/Dockerfile
 
 all: build-cli
 
@@ -33,7 +33,7 @@ prepare-minikube:
 
 .PHONY: build-docker-jvm
 build-docker-jvm:
-	@docker build --no-cache -t ${DOCKER_JVM_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_JVM) .
+	@docker build -t ${DOCKER_JVM_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_JVM) .
 
 .PHONY: push-docker-jvm
 push-docker-jvm: build-docker-jvm
@@ -49,7 +49,7 @@ push-docker-jvm-alpine: build-docker-jvm-alpine
 
 .PHONY: build-docker-bpf
 build-docker-bpf:
-	docker build -t ${DOCKER_BPF_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_BPF) .
+	docker build --no-cache -t ${DOCKER_BPF_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_BPF) .
 
 .PHONY: push-docker-bpf
 push-docker-bpf: build-docker-bpf

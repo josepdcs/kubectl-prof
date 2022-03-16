@@ -14,7 +14,6 @@ RUN tar xf /kernel-dev.tar -C /
 RUN mv /usr/src/*/ /usr/src/kernel-source/
 RUN apk add git
 RUN git clone https://github.com/brendangregg/FlameGraph
-RUN git clone https://gist.github.com/edeNFed/83a9438156288661e2283c28fee18b8b bcc-profiler
 
 FROM alpine
 COPY --from=builder /usr/src /usr/src
@@ -23,7 +22,7 @@ RUN ln -s $(which python3) /usr/bin/python
 RUN mkdir -p /app/FlameGraph
 COPY --from=builder /FlameGraph /app/FlameGraph
 COPY --from=agentbuild /go/bin/agent /app
-COPY --from=builder /bcc-profiler /app/bcc-profiler/
+COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-profile/tools/bpf/profile.py /app/bcc-profiler/profile
 RUN chmod +x /app/bcc-profiler/profile
 
 CMD [ "/app/agent" ]
