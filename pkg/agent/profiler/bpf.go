@@ -2,6 +2,7 @@ package profiler
 
 import (
 	"fmt"
+	"github.com/josepdcs/kubectl-profile/api"
 	"github.com/josepdcs/kubectl-profile/pkg/agent/config"
 	"github.com/josepdcs/kubectl-profile/pkg/agent/utils"
 	"os"
@@ -51,10 +52,11 @@ func (b *BpfProfiler) Invoke(job *config.ProfilingJob) error {
 }
 
 func (b *BpfProfiler) runProfiler(job *config.ProfilingJob) error {
-	pid, err := utils.FindProcessId(job)
+	pid, err := utils.ContainerPID(job, false)
 	if err != nil {
 		return err
 	}
+	api.PublishLogEvent(api.InfoLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
 
 	f, err := os.Create(rawProfilerOutputFile)
 	if err != nil {

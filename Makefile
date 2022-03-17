@@ -49,7 +49,7 @@ push-docker-jvm-alpine: build-docker-jvm-alpine
 
 .PHONY: build-docker-bpf
 build-docker-bpf:
-	docker build --no-cache -t ${DOCKER_BPF_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_BPF) .
+	docker build -t ${DOCKER_BPF_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_BPF) .
 
 .PHONY: push-docker-bpf
 push-docker-bpf: build-docker-bpf

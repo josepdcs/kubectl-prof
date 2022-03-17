@@ -28,18 +28,20 @@ This is an open source fork of https://github.com/yahoo/kubectl-flame with sever
 
 ### Profiling Kubernetes Pod
 
-In order to profile a Java application in pod `mypod` for 1 minute and save the flamegraph as `/tmp/flamegraph.svg` run:
+In order to profile a Java application in pod `mypod` for 1 minute and save the flamegraph as `/tmp/flamegraph.html` run:
 
 ```shell
-kubectl profile mypod -t 1m --lang java -f /tmp/flamegraph.svg
+kubectl profile mypod -t 1m --lang java -f /tmp/flamegraph.html
 ```
+
+*NOTICE*: for java case, last version of [async-profiler](https://github.com/jvm-profiling-tools/async-profiler) produces html output, while rest of tools still producing svg outputs
 
 ### Profiling Alpine based container
 
 Profiling Java application in alpine based containers require using `--alpine` flag:
 
 ```shell
-kubectl profile mypod -t 1m -f /tmp/flamegraph.svg --lang java --alpine
+kubectl profile mypod -t 1m -f /tmp/flamegraph.html --lang java --alpine
 ```
 
 *NOTICE*: this is only required for Java apps, the `--alpine` flag is unnecessary for Go profiling.
@@ -49,7 +51,7 @@ kubectl profile mypod -t 1m -f /tmp/flamegraph.svg --lang java --alpine
 Supported container runtimes values are: `crio`, `containerd` and `docker`
 
 ```shell
-kubectl profile mypod -t 1m -f /tmp/flamegraph.svg --lang java --runtime crio
+kubectl profile mypod -t 1m -f /tmp/flamegraph.html --lang java --runtime crio
 ```
 
 ### Profiling sidecar container

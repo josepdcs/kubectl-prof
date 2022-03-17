@@ -97,7 +97,6 @@ func (p *perfCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (
 								{
 									Name:      "target-filesystem",
 									MountPath: api.GetContainerRuntimeRootPath[cfg.Target.ContainerRuntime],
-									//MountPath: "/var/lib/docker",
 								},
 							},
 							SecurityContext: &apiv1.SecurityContext{

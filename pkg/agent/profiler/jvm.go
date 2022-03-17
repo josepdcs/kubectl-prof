@@ -33,7 +33,7 @@ const (
 type JvmProfiler struct{}
 
 func (j *JvmProfiler) SetUp(job *config.ProfilingJob) error {
-	targetFs, err := utils.TargetFileSystemLocation(job.ContainerRuntime, job.ContainerID)
+	targetFs, err := utils.ContainerFileSystem(job.ContainerRuntime, job.ContainerID)
 	if err != nil {
 		return err
 	}
@@ -53,7 +53,7 @@ func (j *JvmProfiler) SetUp(job *config.ProfilingJob) error {
 }
 
 func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
-	pid, err := utils.FindProcessId(job)
+	pid, err := utils.ContainerPID(job, false)
 	if err != nil {
 		return err
 	}

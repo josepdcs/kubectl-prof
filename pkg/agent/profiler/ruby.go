@@ -3,6 +3,7 @@ package profiler
 import (
 	"bytes"
 	"fmt"
+	"github.com/josepdcs/kubectl-profile/api"
 	"github.com/josepdcs/kubectl-profile/pkg/agent/config"
 	"github.com/josepdcs/kubectl-profile/pkg/agent/utils"
 	"os/exec"
@@ -21,10 +22,11 @@ func (r *RubyProfiler) SetUp(job *config.ProfilingJob) error {
 }
 
 func (r *RubyProfiler) Invoke(job *config.ProfilingJob) error {
-	pid, err := utils.FindRootProcessId(job)
+	pid, err := utils.ContainerPID(job, true)
 	if err != nil {
-		return fmt.Errorf("could not find root process ID: %w", err)
+		return err
 	}
+	api.PublishLogEvent(api.InfoLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
 
 	duration := strconv.Itoa(int(job.Duration.Seconds()))
 	cmd := exec.Command(rbspyLocation, "record", "--pid", pid, "--file", rbspyOutputFileName, "--duration", duration, "--format", "flamegraph")

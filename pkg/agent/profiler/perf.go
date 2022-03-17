@@ -51,7 +51,7 @@ func (p *PerfProfiler) Invoke(job *config.ProfilingJob) error {
 }
 
 func (p *PerfProfiler) runPerfRecord(job *config.ProfilingJob) error {
-	pid, err := utils.FindRootProcessId(job)
+	pid, err := utils.ContainerPID(job, true)
 	if err != nil {
 		return err
 	}

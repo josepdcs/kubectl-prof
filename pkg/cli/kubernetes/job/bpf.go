@@ -2,6 +2,7 @@ package job
 
 import (
 	"fmt"
+	"github.com/josepdcs/kubectl-profile/api"
 	"github.com/josepdcs/kubectl-profile/pkg/cli/config"
 	"github.com/josepdcs/kubectl-profile/pkg/cli/version"
 
@@ -74,6 +75,14 @@ func (b *bpfCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 					HostPID: true,
 					Volumes: []apiv1.Volume{
 						{
+							Name: "target-filesystem",
+							VolumeSource: apiv1.VolumeSource{
+								HostPath: &apiv1.HostPathVolumeSource{
+									Path: cfg.Target.ContainerRuntimePath,
+								},
+							},
+						},
+						{
 							Name: "sys",
 							VolumeSource: apiv1.VolumeSource{
 								HostPath: &apiv1.HostPathVolumeSource{
@@ -100,6 +109,10 @@ func (b *bpfCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 							Command:         []string{"/app/agent"},
 							Args:            args,
 							VolumeMounts: []apiv1.VolumeMount{
+								{
+									Name:      "target-filesystem",
+									MountPath: api.GetContainerRuntimeRootPath[cfg.Target.ContainerRuntime],
+								},
 								{
 									Name:      "sys",
 									MountPath: "/sys",
