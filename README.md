@@ -20,9 +20,10 @@ This is an open source fork of https://github.com/yahoo/kubectl-flame with sever
 ## Requirements
 
 * Supported languages: Go, Java (any JVM based language), Python, Ruby, and NodeJS
-* Kubernetes cluster that use Docker as the container runtime (tested on GKE, EKS and AKS)
-    * Currently, CRI-O and Containerd are being to be ported
-    * CRI-O will get to be the default container runtime
+* Kubernetes that use some of the following container runtime:
+    * CRI-O (default)
+    * Docker
+    * Containerd is being to be ported
 
 ## Usage
 
