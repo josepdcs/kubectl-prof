@@ -72,7 +72,7 @@ via `--pgrep` flag:
 kubectl profile mypod -t 1m --lang go -f /tmp/flamegraph.svg --pgrep go-app
 ```
 
-### Additional info
+### Additional info. For Docker runtime
 
 * Java profiling assumes that the process name is `java`.
 * Python profiling assumes that the process name is `python`.
