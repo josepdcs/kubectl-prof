@@ -27,10 +27,6 @@ dep: ## Get the dependencies
 build-cli: dep ## Build the binary file
 	@go build -ldflags="-X 'github.com/josepdcs/kubectl-profile/pkg/cli/version.semver=$(VERSION)'" -o $(BUILD_DIR)/$(CLI_NAME) -v $(CLI_DIR)
 
-.PHONY: prepare-minikube
-prepare-minikube:
-	@eval $(minikube -p minikube docker-env)
-
 .PHONY: build-docker-jvm
 build-docker-jvm:
 	@docker build --no-cache -t ${DOCKER_JVM_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_JVM) .
