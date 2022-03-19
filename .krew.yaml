@@ -4,10 +4,11 @@ metadata:
   name: profile
 spec:
   homepage: https://github.com/josepdcs/kubectl-profile
-  shortDescription: Generate CPU profiling graphs from pods (Docker, Cri-o and Containerd are supported)
+  shortDescription: Generate CPU profiling graphs from pods (Docker, Cri-o are supported). It's a fork from flame plugin.
   version: { { .TagName } }
   description: |
-    Generate CPU profiling graphs without restarting pods and with low overhead.
+    Generate CPU profiling graphs without restarting pods and with low overhead. Docker, Cri-o are supported, Containerd support is comming soon. 
+    It's a fork from flame plugin.
   caveats: |
     Currently supported languages: Go, Java (any JVM based language), Python, Ruby, and NodeJS.
   platforms:
