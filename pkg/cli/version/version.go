@@ -8,19 +8,15 @@ import (
 // populated by goreleaser
 var (
 	semver string
-	commit string
-	date   string
 )
 
 type Version struct {
 	Version   string `json:"version"`
-	Commit    string `json:"commit"`
-	Date      string `json:"date"`
 	GoVersion string `json:"go-version"`
 }
 
 func String() string {
-	return fmt.Sprintf("Version: %s, Commit: %s, Build Date: %s, Go Version: %s", semver, commit, date, runtime.Version())
+	return fmt.Sprintf("Version: %s, Go Version: %s", semver, runtime.Version())
 }
 
 func GetCurrent() string {

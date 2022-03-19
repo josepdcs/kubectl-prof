@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@master
+        uses: actions/checkout@main
       - name: Set env
         id: vars
         run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
@@ -18,7 +18,7 @@ jobs:
           dockerfile: 'agent/docker/jvm/Dockerfile'
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
-          repository: josepdcs/cli
+          repository: josepdcs/kubectl-profile
           tags: ${{ steps.vars.outputs.tag }}-jvm
       - name: Build JVM Alpine Docker Image
         uses: docker/build-push-action@v1
@@ -26,7 +26,7 @@ jobs:
           dockerfile: 'agent/docker/jvm/alpine/Dockerfile'
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
-          repository: josepdcs/cli
+          repository: josepdcs/kubectl-profile
           tags: ${{ steps.vars.outputs.tag }}-jvm-alpine
       - name: Build BPF Docker Image
         uses: docker/build-push-action@v1
@@ -34,7 +34,7 @@ jobs:
           dockerfile: 'agent/docker/bpf/Dockerfile'
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
-          repository: josepdcs/cli
+          repository: josepdcs/kubectl-profile
           tags: ${{ steps.vars.outputs.tag }}-bpf
       - name: Build Python Docker Image
         uses: docker/build-push-action@v1
@@ -42,7 +42,7 @@ jobs:
           dockerfile: 'agent/docker/python/Dockerfile'
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
-          repository: josepdcs/cli
+          repository: josepdcs/kubectl-profile
           tags: ${{ steps.vars.outputs.tag }}-python
       - name: Build Ruby Docker Image
         uses: docker/build-push-action@v1
@@ -50,7 +50,7 @@ jobs:
           dockerfile: 'agent/docker/ruby/Dockerfile'
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
-          repository: josepdcs/cli
+          repository: josepdcs/kubectl-profile
           tags: ${{ steps.vars.outputs.tag }}-ruby
       - name: Build perf Docker Image
         uses: docker/build-push-action@v1
@@ -58,7 +58,7 @@ jobs:
           dockerfile: 'agent/docker/perf/Dockerfile'
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
-          repository: josepdcs/cli
+          repository: josepdcs/kubectl-profile
           tags: ${{ steps.vars.outputs.tag }}-perf
       - name: Setup Go
         uses: actions/setup-go@v1
@@ -72,4 +72,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Update new version in krew-index
-        uses: rajatjindal/krew-release-bot@v0.0.38
+        uses: rajatjindal/krew-release-bot@v0.0.40

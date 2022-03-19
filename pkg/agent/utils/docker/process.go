@@ -44,7 +44,6 @@ func getProcessName(job *config.ProfilingJob) string {
 	return ""
 }
 
-// deprecated
 func FindProcessId(job *config.ProfilingJob) (string, error) {
 	name := getProcessName(job)
 	foundProc := ""
@@ -114,7 +113,6 @@ func FindProcessId(job *config.ProfilingJob) (string, error) {
 	return "", errors.New("could not find any process")
 }
 
-// deprecated
 func FindRootProcessId(job *config.ProfilingJob) (string, error) {
 	name := getProcessName(job)
 	procsAndParents := make(map[string]string)

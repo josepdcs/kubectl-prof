@@ -1,7 +1,7 @@
 apiVersion: krew.googlecontainertools.github.com/v1alpha2
 kind: Plugin
 metadata:
-  name: profiling
+  name: profile
 spec:
   homepage: https://github.com/josepdcs/kubectl-profile
   shortDescription: Generate CPU profiling graphs from pods (Docker, Cri-o and Containerd are supported)

@@ -16,3 +16,16 @@ var (
 func AvailableLogLevels() []LogLevel {
 	return logLevels
 }
+
+func IsSupportedLogLevel(event string) bool {
+	return containsLogLevel(LogLevel(event), AvailableLogLevels())
+}
+
+func containsLogLevel(e LogLevel, events []LogLevel) bool {
+	for _, current := range events {
+		if e == current {
+			return true
+		}
+	}
+	return false
+}

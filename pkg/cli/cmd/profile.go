@@ -55,12 +55,15 @@ func NewProfileOptions(streams genericclioptions.IOStreams) *ProfileOptions {
 
 func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	var (
-		target        config.TargetConfig
-		job           config.JobConfig
-		showVersion   bool
-		chosenRuntime string
-		chosenLang    string
-		chosenEvent   string
+		target         config.TargetConfig
+		job            config.JobConfig
+		showVersion    bool
+		chosenRuntime  string
+		chosenLang     string
+		chosenEvent    string
+		chosenLogLevel string
+		privileged     bool
+		capabilities   string
 	)
 
 	options := NewProfileOptions(streams)
@@ -85,7 +88,7 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 				return
 			}
 
-			if err := validateFlags(chosenRuntime, chosenLang, chosenEvent, &target, &job); err != nil {
+			if err := validateFlags(chosenRuntime, chosenLang, chosenEvent, chosenLogLevel, &target, &job); err != nil {
 				_, _ = fmt.Fprintln(streams.Out, err)
 				os.Exit(1)
 			}
@@ -95,7 +98,10 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 				target.ContainerName = args[1]
 			}
 
-			cfg := config.NewProfilerConfig(&target, &job, options.configFlags)
+			cfg := config.NewProfilerConfig(&target, &job, options.configFlags).
+				WithLogLevel(api.LogLevel(chosenLogLevel)).
+				WithPrivileged(privileged).
+				WithCapabilities(capabilities)
 			connector := kubernetes.NewConnector()
 			getter := kubernetes.NewGetter()
 			creator := kubernetes.NewCreator()
@@ -116,7 +122,7 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.Flags().BoolVar(&target.Alpine, "alpine", false, "TargetConfig image is based on Alpine")
 	cmd.Flags().BoolVar(&target.DryRun, "dry-run", false, "Simulate profiling")
 	cmd.Flags().StringVar(&target.Image, "image", "", "Manually choose agent docker image")
-	cmd.Flags().StringVar(&target.Namespace, "target-namespace", "", "namespace of target pod if differnt from job namespace")
+	cmd.Flags().StringVar(&target.Namespace, "target-namespace", "", "namespace of target pod if different from job namespace")
 	cmd.Flags().StringVarP(&target.Pgrep, "pgrep", "p", "", "name of the target process")
 
 	cmd.Flags().StringVarP(&chosenLang, "lang", "l", "",
@@ -131,15 +137,18 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.Flags().StringVar(&target.ImagePullSecret, "imagePullSecret", "", "imagePullSecret for agent docker image")
 	cmd.Flags().StringVar(&target.ServiceAccountName, "serviceAccountName", "", "serviceAccountName to be used for profiling container")
 
-	cmd.Flags().StringVarP(&chosenEvent, "log-level", "", defaultLogLevel,
+	cmd.Flags().StringVar(&chosenLogLevel, "log-level", defaultLogLevel,
 		fmt.Sprintf("Log level, choose one of %v", api.AvailableLogLevels()))
+	cmd.Flags().BoolVar(&privileged, "privileged", true, "run agent container in privileged mode")
+	cmd.Flags().StringVar(&capabilities, "capabilities", "", "run agent container with capabilities (separated by commas: SYS_ADMIN,SYS_PTRACE)")
 
 	options.configFlags.AddFlags(cmd.Flags())
 
 	return cmd
 }
 
-func validateFlags(runtimeString string, langString string, eventString string, targetDetails *config.TargetConfig, jobDetails *config.JobConfig) error {
+func validateFlags(runtimeString string, langString string, eventString string, logLevelString string,
+	targetDetails *config.TargetConfig, jobDetails *config.JobConfig) error {
 	if langString == "" {
 		return fmt.Errorf("use -l flag to select one of the supported languages %s", api.AvailableLanguages())
 	}
@@ -154,6 +163,10 @@ func validateFlags(runtimeString string, langString string, eventString string, 
 
 	if eventString != "" && !api.IsSupportedEvent(eventString) {
 		return fmt.Errorf("unsupported event, choose one of %s", api.AvailableEvents())
+	}
+
+	if logLevelString != "" && !api.IsSupportedLogLevel(logLevelString) {
+		return fmt.Errorf("unsupported log level, choose one of %s", api.AvailableLogLevels())
 	}
 
 	targetDetails.Language = api.ProgrammingLanguage(langString)

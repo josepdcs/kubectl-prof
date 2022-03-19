@@ -1,4 +1,4 @@
-VERSION ?= 0.0.1
+VERSION ?= 0.1.0
 CLI_NAME ?= kubectl-profile
 CLI_DIR ?= ./cmd/cli/
 BUILD_DIR ?= bin
@@ -17,7 +17,7 @@ DOCKERFILE_PYTHON ?= ./pkg/agent/docker/python/Dockerfile
 DOCKER_RUBY_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-ruby
 DOCKERFILE_RUBY ?= ./pkg/agent/docker/ruby/Dockerfile
 
-all: build-cli
+all: build-cli push-docker-jvm push-docker-jvm-alpine push-docker-bpf push-docker-perf push-docker-python push-docker-ruby
 
 .PHONY: build-dep
 dep: ## Get the dependencies
@@ -33,7 +33,7 @@ prepare-minikube:
 
 .PHONY: build-docker-jvm
 build-docker-jvm:
-	@docker build -t ${DOCKER_JVM_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_JVM) .
+	@docker build --no-cache -t ${DOCKER_JVM_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_JVM) .
 
 .PHONY: push-docker-jvm
 push-docker-jvm: build-docker-jvm

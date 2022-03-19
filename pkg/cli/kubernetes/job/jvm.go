@@ -94,9 +94,6 @@ func (c *jvmCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 							},
 							SecurityContext: &apiv1.SecurityContext{
 								Privileged: boolPtr(true),
-								Capabilities: &apiv1.Capabilities{
-									Add: []apiv1.Capability{"CAP_SYS_ADMIN"},
-								},
 							},
 							Resources: resources,
 						},

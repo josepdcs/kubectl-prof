@@ -123,7 +123,10 @@ func (b *bpfCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 								},
 							},
 							SecurityContext: &apiv1.SecurityContext{
-								Privileged: boolPtr(true),
+								Privileged: &cfg.Privileged,
+								Capabilities: &apiv1.Capabilities{
+									Add: cfg.Capabilities,
+								},
 							},
 							Resources: resources,
 						},
