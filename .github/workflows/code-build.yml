@@ -1,10 +1,10 @@
-name: Code Verify
+name: Code build
 
 on:
   push:
-    branches: [!main]
+    branches: ['*'. '!main']
   pull_request:
-    branches: [*]
+    branches: [ '*' ]
 
 jobs:
 
