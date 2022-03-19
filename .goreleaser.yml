@@ -18,7 +18,7 @@ builds:
       - ppc64le
     goarm: [ 6, 7 ]
     ldflags: |
-      -X github.com/josepdcs/kubectl-profile/internal/cli/version.semver={{ .Tag }}
+      -X github.com/josepdcs/kubectl-profile/pkg/cli/version.semver={{ .Tag }}
 archives:
   - id: kubectl-profile-archive
     name_template: |
