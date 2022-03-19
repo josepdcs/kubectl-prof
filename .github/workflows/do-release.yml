@@ -15,7 +15,7 @@ jobs:
       - name: Build JVM Docker Image
         uses: docker/build-push-action@v1
         with:
-          dockerfile: 'agent/docker/jvm/Dockerfile'
+          dockerfile: '/pkg/agent/docker/jvm/Dockerfile'
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
           repository: josepdcs/kubectl-profile
@@ -23,7 +23,7 @@ jobs:
       - name: Build JVM Alpine Docker Image
         uses: docker/build-push-action@v1
         with:
-          dockerfile: 'agent/docker/jvm/alpine/Dockerfile'
+          dockerfile: '/pkg/agent/docker/jvm/alpine/Dockerfile'
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
           repository: josepdcs/kubectl-profile
@@ -31,7 +31,7 @@ jobs:
       - name: Build BPF Docker Image
         uses: docker/build-push-action@v1
         with:
-          dockerfile: 'agent/docker/bpf/Dockerfile'
+          dockerfile: '/pkg/agent/docker/bpf/Dockerfile'
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
           repository: josepdcs/kubectl-profile
@@ -39,7 +39,7 @@ jobs:
       - name: Build Python Docker Image
         uses: docker/build-push-action@v1
         with:
-          dockerfile: 'agent/docker/python/Dockerfile'
+          dockerfile: '/pkg/agent/docker/python/Dockerfile'
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
           repository: josepdcs/kubectl-profile
@@ -47,7 +47,7 @@ jobs:
       - name: Build Ruby Docker Image
         uses: docker/build-push-action@v1
         with:
-          dockerfile: 'agent/docker/ruby/Dockerfile'
+          dockerfile: '/pkg/agent/docker/ruby/Dockerfile'
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
           repository: josepdcs/kubectl-profile
@@ -55,7 +55,7 @@ jobs:
       - name: Build perf Docker Image
         uses: docker/build-push-action@v1
         with:
-          dockerfile: 'agent/docker/perf/Dockerfile'
+          dockerfile: '/pkg/agent/docker/perf/Dockerfile'
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
           repository: josepdcs/kubectl-profile
