@@ -1,10 +1,10 @@
-name: Code build
+name: Code Verify
 
 on:
-  push:
-    branches: [ main ]
+  #push:
+  #  branches-ignore: [main]
   pull_request:
-    branches: [ main ]
+    branches: ['*']
 
 jobs:
 

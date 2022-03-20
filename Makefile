@@ -1,4 +1,4 @@
-VERSION ?= 0.1.0
+VERSION ?= 0.2.0-dev
 CLI_NAME ?= kubectl-profile
 CLI_DIR ?= ./cmd/cli/
 BUILD_DIR ?= bin
@@ -26,10 +26,6 @@ dep: ## Get the dependencies
 .PHONY: build-cli
 build-cli: dep ## Build the binary file
 	@go build -ldflags="-X 'github.com/josepdcs/kubectl-profile/pkg/cli/version.semver=$(VERSION)'" -o $(BUILD_DIR)/$(CLI_NAME) -v $(CLI_DIR)
-
-.PHONY: prepare-minikube
-prepare-minikube:
-	@eval $(minikube -p minikube docker-env)
 
 .PHONY: build-docker-jvm
 build-docker-jvm:

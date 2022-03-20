@@ -23,7 +23,7 @@ This is an open source fork of https://github.com/yahoo/kubectl-flame with sever
 * Kubernetes that use some of the following container runtimes:
     * CRI-O (default)
     * Docker
-    * Containerd is being ported. Comming soon.
+    * Containerd is being ported. Coming soon.
 
 ## Usage
 
