@@ -3,8 +3,8 @@ ARG KERNEL_VERSION=5.15.15
 FROM linuxkit/kernel:$KERNEL_VERSION AS ksrc
 
 FROM golang:1.17.7-buster as agentbuild
-WORKDIR /go/src/github.com/josepdcs/kubectl-perf
-ADD . /go/src/github.com/josepdcs/kubectl-perf
+WORKDIR /go/src/github.com/josepdcs/kubectl-prof
+ADD . /go/src/github.com/josepdcs/kubectl-prof
 RUN go get -d -v ./...
 RUN cd cmd/agent && go build -o /go/bin/agent
 
@@ -22,7 +22,7 @@ RUN ln -s $(which python3) /usr/bin/python
 RUN mkdir -p /app/FlameGraph
 COPY --from=builder /FlameGraph /app/FlameGraph
 COPY --from=agentbuild /go/bin/agent /app
-COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-perf/tools/bpf/profile.py /app/bcc-profiler/profile
+COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/tools/bpf/profile.py /app/bcc-profiler/profile
 RUN chmod +x /app/bcc-profiler/profile
 
 CMD [ "/app/agent" ]

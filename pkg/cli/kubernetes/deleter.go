@@ -2,7 +2,7 @@ package kubernetes
 
 import (
 	"context"
-	"github.com/josepdcs/kubectl-perf/pkg/cli/config"
+	"github.com/josepdcs/kubectl-prof/pkg/cli/config"
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

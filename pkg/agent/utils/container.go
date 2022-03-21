@@ -1,10 +1,10 @@
 package utils
 
 import (
-	"github.com/josepdcs/kubectl-perf/api"
-	"github.com/josepdcs/kubectl-perf/pkg/agent/config"
-	"github.com/josepdcs/kubectl-perf/pkg/agent/utils/crio"
-	"github.com/josepdcs/kubectl-perf/pkg/agent/utils/docker"
+	"github.com/josepdcs/kubectl-prof/api"
+	"github.com/josepdcs/kubectl-prof/pkg/agent/config"
+	"github.com/josepdcs/kubectl-prof/pkg/agent/utils/crio"
+	"github.com/josepdcs/kubectl-prof/pkg/agent/utils/docker"
 	"github.com/pkg/errors"
 	"regexp"
 )

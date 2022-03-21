@@ -2,9 +2,9 @@ package job
 
 import (
 	"fmt"
-	"github.com/josepdcs/kubectl-perf/api"
-	"github.com/josepdcs/kubectl-perf/pkg/cli/config"
-	"github.com/josepdcs/kubectl-perf/pkg/cli/version"
+	"github.com/josepdcs/kubectl-prof/api"
+	"github.com/josepdcs/kubectl-prof/pkg/cli/config"
+	"github.com/josepdcs/kubectl-prof/pkg/cli/version"
 
 	batchv1 "k8s.io/api/batch/v1"
 	apiv1 "k8s.io/api/core/v1"
@@ -38,10 +38,10 @@ func (c *jvmCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 	}
 
 	commonMeta := metav1.ObjectMeta{
-		Name:      fmt.Sprintf("kubectl-perf-%s", id),
+		Name:      fmt.Sprintf("kubectl-prof-%s", id),
 		Namespace: cfg.Job.Namespace,
 		Labels: map[string]string{
-			"kubectl-perf/id": id,
+			"kubectl-prof/id": id,
 		},
 		Annotations: map[string]string{
 			"sidecar.istio.io/inject": "false",

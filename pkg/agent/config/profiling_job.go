@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/josepdcs/kubectl-perf/api"
+	"github.com/josepdcs/kubectl-prof/api"
 	"time"
 )
 

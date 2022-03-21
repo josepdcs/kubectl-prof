@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/josepdcs/kubectl-perf/api"
+	"github.com/josepdcs/kubectl-prof/api"
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"strings"

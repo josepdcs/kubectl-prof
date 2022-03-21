@@ -1,4 +1,4 @@
-module github.com/josepdcs/kubectl-perf
+module github.com/josepdcs/kubectl-prof
 
 go 1.17
 

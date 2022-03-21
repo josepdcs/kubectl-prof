@@ -1,23 +1,23 @@
 VERSION ?= 0.2.0-dev
-CLI_NAME ?= kubectl-perf
+CLI_NAME ?= kubectl-prof
 CLI_DIR ?= ./cmd/cli/
 BUILD_DIR ?= bin
 REGISTRY ?= docker.io
-DOCKER_BASE_IMAGE ?= josepdcs/kubectl-perf
+DOCKER_BASE_IMAGE ?= josepdcs/kubectl-prof
 DOCKER_JVM_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-jvm
 DOCKERFILE_JVM ?= ./pkg/agent/docker/jvm/Dockerfile
 DOCKER_JVM_ALPINE_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-jvm-alpine
 DOCKERFILE_JVM_ALPINE ?= ./pkg/agent/docker/jvm/alpine/Dockerfile
 DOCKER_BPF_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-bpf
 DOCKERFILE_BPF ?= ./pkg/agent/docker/bpf/Dockerfile
-DOCKER_PERF_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-perf
+DOCKER_PERF_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-prof
 DOCKERFILE_PERF ?= ./pkg/agent/docker/perf/Dockerfile
 DOCKER_PYTHON_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-python
 DOCKERFILE_PYTHON ?= ./pkg/agent/docker/python/Dockerfile
 DOCKER_RUBY_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-ruby
 DOCKERFILE_RUBY ?= ./pkg/agent/docker/ruby/Dockerfile
 
-all: build-cli push-docker-jvm push-docker-jvm-alpine push-docker-bpf push-docker-perf push-docker-python push-docker-ruby
+all: build-cli push-docker-jvm push-docker-jvm-alpine push-docker-bpf push-docker-prof push-docker-python push-docker-ruby
 
 .PHONY: build-dep
 dep: ## Get the dependencies
@@ -25,7 +25,7 @@ dep: ## Get the dependencies
 
 .PHONY: build-cli
 build-cli: dep ## Build the binary file
-	@go build -ldflags="-X 'github.com/josepdcs/kubectl-perf/pkg/cli/version.semver=$(VERSION)'" -o $(BUILD_DIR)/$(CLI_NAME) -v $(CLI_DIR)
+	@go build -ldflags="-X 'github.com/josepdcs/kubectl-prof/pkg/cli/version.semver=$(VERSION)'" -o $(BUILD_DIR)/$(CLI_NAME) -v $(CLI_DIR)
 
 .PHONY: build-docker-jvm
 build-docker-jvm:
@@ -51,12 +51,12 @@ build-docker-bpf:
 push-docker-bpf: build-docker-bpf
 	@docker push $(REGISTRY)/$(DOCKER_BPF_IMAGE)
 
-.PHONY: build-docker-perf
-build-docker-perf:
+.PHONY: build-docker-prof
+build-docker-prof:
 	docker build -t ${DOCKER_PERF_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_PERF) .
 
-.PHONY: push-docker-perf
-push-docker-perf: build-docker-perf
+.PHONY: push-docker-prof
+push-docker-prof: build-docker-prof
 	@docker push $(REGISTRY)/$(DOCKER_PERF_IMAGE)
 
 .PHONY: build-docker-python

@@ -2,9 +2,9 @@ package profiler
 
 import (
 	"fmt"
-	"github.com/josepdcs/kubectl-perf/api"
-	"github.com/josepdcs/kubectl-perf/pkg/agent/config"
-	"github.com/josepdcs/kubectl-perf/pkg/agent/utils"
+	"github.com/josepdcs/kubectl-prof/api"
+	"github.com/josepdcs/kubectl-prof/pkg/agent/config"
+	"github.com/josepdcs/kubectl-prof/pkg/agent/utils"
 	"os"
 	"os/exec"
 	"path/filepath"

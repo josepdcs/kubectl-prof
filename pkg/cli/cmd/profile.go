@@ -2,14 +2,14 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/josepdcs/kubectl-perf/pkg/cli/config"
-	"github.com/josepdcs/kubectl-perf/pkg/cli/kubernetes"
-	"github.com/josepdcs/kubectl-perf/pkg/cli/profiler"
-	"github.com/josepdcs/kubectl-perf/pkg/cli/version"
+	"github.com/josepdcs/kubectl-prof/pkg/cli/config"
+	"github.com/josepdcs/kubectl-prof/pkg/cli/kubernetes"
+	"github.com/josepdcs/kubectl-prof/pkg/cli/profiler"
+	"github.com/josepdcs/kubectl-prof/pkg/cli/version"
 	"os"
 	"time"
 
-	"github.com/josepdcs/kubectl-perf/api"
+	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
@@ -24,16 +24,16 @@ These commands help you identify application performance issues.
 `
 	profilingExamples = `
 	# Profile a pod for 5 minutes and save the output as flame.html file for java language
-	%[1]s perf mypod -f flame.html -t 5m -l java
+	%[1]s prof mypod -f flame.html -t 5m -l java
 
 	# Profile an alpine based container for java language
-	%[1]s perf mypod -f flame.html -l java --alpine 
+	%[1]s prof mypod -f flame.html -l java --alpine 
 
 	# Profile specific container container1 from pod mypod in namespace test for go language
-	%[1]s perf mypod -f /tmp/flame.svg -n test container1 -l go
+	%[1]s prof mypod -f /tmp/flame.svg -n test container1 -l go
 
 	# Set custom resource requests and limits for the cli pod (default: neither requests nor limits are set) for python language
-	%[1]s perf mypod -f flame.svg -cpu.requests 100m -cpu.limits 200m -mem.requests 100Mi -mem.limits 200Mi -l python
+	%[1]s prof mypod -f flame.svg -cpu.requests 100m -cpu.limits 200m -mem.requests 100Mi -mem.limits 200Mi -l python
 `
 )
 
@@ -68,7 +68,7 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 
 	options := NewProfileOptions(streams)
 	cmd := &cobra.Command{
-		Use:                   "perf [pod-name]",
+		Use:                   "prof [pod-name]",
 		DisableFlagsInUseLine: true,
 		Short:                 "Profile running applications by generating flame graphs at the moment.",
 		Long:                  longDescription,
