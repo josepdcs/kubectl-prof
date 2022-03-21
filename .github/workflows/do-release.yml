@@ -1,7 +1,6 @@
 name: Do Release
 on:
   push:
-    branches: [main]
     tags:
       - 'v*.*.*'
 jobs:
