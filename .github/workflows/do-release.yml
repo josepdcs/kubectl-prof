@@ -1,6 +1,7 @@
 name: Do Release
 on:
   push:
+    branches: [main]
     tags:
       - 'v*.*.*'
 jobs:
@@ -13,7 +14,7 @@ jobs:
         id: vars
         run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
       - name: Build JVM Docker Image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v1
         with:
           dockerfile: 'pkg/agent/docker/jvm/Dockerfile'
           username: ${{ secrets.DOCKER_HUB_USER }}

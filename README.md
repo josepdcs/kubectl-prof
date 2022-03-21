@@ -110,7 +110,7 @@ resolved, node process needs to be run with `--prof-basic-prof` flag.
 ## Contribute
 
 Please refer to [the contributing.md file](Contributing.md) for information about how to get involved. We welcome
-issues, questions, and pull requests.
+issues, questions, and pull requests
 
 ## Maintainers
 
