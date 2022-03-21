@@ -2,7 +2,7 @@ package docker
 
 import (
 	"fmt"
-	"github.com/josepdcs/kubectl-profile/pkg/agent/config"
+	"github.com/josepdcs/kubectl-perf/pkg/agent/config"
 	"github.com/pkg/errors"
 	"io/ioutil"
 )

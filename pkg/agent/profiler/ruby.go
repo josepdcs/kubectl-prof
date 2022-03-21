@@ -3,9 +3,9 @@ package profiler
 import (
 	"bytes"
 	"fmt"
-	"github.com/josepdcs/kubectl-profile/api"
-	"github.com/josepdcs/kubectl-profile/pkg/agent/config"
-	"github.com/josepdcs/kubectl-profile/pkg/agent/utils"
+	"github.com/josepdcs/kubectl-perf/api"
+	"github.com/josepdcs/kubectl-perf/pkg/agent/config"
+	"github.com/josepdcs/kubectl-perf/pkg/agent/utils"
 	"os/exec"
 	"strconv"
 )

@@ -2,9 +2,9 @@ before:
   hooks:
     - go mod download
 builds:
-  - id: kubectl-profile
+  - id: kubectl-perf
     main: ./cmd/cli/main.go
-    binary: kubectl-profile
+    binary: kubectl-perf
     env:
       - CGO_ENABLED=0
     goos:
@@ -18,18 +18,18 @@ builds:
       - ppc64le
     goarm: [ 6, 7 ]
     ldflags: |
-      -X github.com/josepdcs/kubectl-profile/pkg/cli/version.semver={{ .Tag }}
+      -X github.com/josepdcs/kubectl-perf/pkg/cli/version.semver={{ .Tag }}
 archives:
-  - id: kubectl-profile-archive
+  - id: kubectl-perf-archive
     name_template: |
-      kubectl-profile_{{ .Tag }}_{{ .Os }}_{{ .Arch -}}
+      kubectl-perf_{{ .Tag }}_{{ .Os }}_{{ .Arch -}}
       {{- with .Arm -}}
         {{- if (eq . "6") -}}hf
         {{- else -}}v{{- . -}}
         {{- end -}}
       {{- end -}}
     builds:
-      - kubectl-profile
+      - kubectl-perf
     replacements:
       386: i386
       amd64: x86_64

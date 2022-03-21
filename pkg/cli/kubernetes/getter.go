@@ -16,8 +16,8 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/josepdcs/kubectl-profile/pkg/cli/config"
-	"github.com/josepdcs/kubectl-profile/pkg/cli/kubernetes/job"
+	"github.com/josepdcs/kubectl-perf/pkg/cli/config"
+	"github.com/josepdcs/kubectl-perf/pkg/cli/kubernetes/job"
 	"io"
 	"time"
 
@@ -58,7 +58,7 @@ func (g getter) GetProfilingPod(cfg *config.ProfilerConfig, ctx context.Context)
 				CoreV1().
 				Pods(cfg.Job.Namespace).
 				List(ctx, metav1.ListOptions{
-					LabelSelector: fmt.Sprintf("kubectl-profile/id=%s", cfg.Target.Id),
+					LabelSelector: fmt.Sprintf("kubectl-perf/id=%s", cfg.Target.Id),
 				})
 
 			if err != nil {

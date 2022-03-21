@@ -3,9 +3,9 @@
 A kubectl plugin that allows you to profile production applications with low-overhead by generating
 [FlameGraphs](http://www.brendangregg.com/flamegraphs.html) at the moment. More functionalities will be added in the future.
 
-Running `kubectlf-profile` does **not** require any modification to existing pods.
+Running `kubectl-perf` does **not** require any modification to existing pods.
 
-This is an open source fork of https://github.com/yahoo/kubectl-flame with several new features and bug fixes.
+This is an open source fork of [kubectl-flame](https://github.com/yahoo/kubectl-flame) with several new features and bug fixes.
 
 ## Table of Contents
 
@@ -32,7 +32,7 @@ This is an open source fork of https://github.com/yahoo/kubectl-flame with sever
 In order to profile a Java application in pod `mypod` for 1 minute and save the flamegraph as `/tmp/flamegraph.html` run:
 
 ```shell
-kubectl profile mypod -t 1m --lang java -f /tmp/flamegraph.html
+kubectl perf mypod -t 1m --lang java -f /tmp/flamegraph.html
 ```
 
 *NOTICE*: for java case, last version of [async-profiler](https://github.com/jvm-profiling-tools/async-profiler) produces html output, while rest of tools still producing svg outputs
@@ -42,7 +42,7 @@ kubectl profile mypod -t 1m --lang java -f /tmp/flamegraph.html
 Profiling Java application in alpine based containers require using `--alpine` flag:
 
 ```shell
-kubectl profile mypod -t 1m -f /tmp/flamegraph.html --lang java --alpine
+kubectl perf mypod -t 1m -f /tmp/flamegraph.html --lang java --alpine
 ```
 
 *NOTICE*: this is only required for Java apps, the `--alpine` flag is unnecessary for Go profiling.
@@ -52,7 +52,7 @@ kubectl profile mypod -t 1m -f /tmp/flamegraph.html --lang java --alpine
 Supported container runtimes values are: `crio`, `containerd` and `docker`
 
 ```shell
-kubectl profile mypod -t 1m -f /tmp/flamegraph.html --lang java --runtime crio
+kubectl perf mypod -t 1m -f /tmp/flamegraph.html --lang java --runtime crio
 ```
 
 ### Profiling sidecar container
@@ -60,7 +60,7 @@ kubectl profile mypod -t 1m -f /tmp/flamegraph.html --lang java --runtime crio
 Pods that contains more than one container require specifying the target container as an argument:
 
 ```shell
-kubectl profile mypod -t 1m --lang go -f /tmp/flamegraph.svg mycontainer
+kubectl perf mypod -t 1m --lang go -f /tmp/flamegraph.svg mycontainer
 ```
 
 ### Profiling Golang multi-process container
@@ -69,7 +69,7 @@ Profiling Go application in pods that contains more than one process require spe
 via `--pgrep` flag:
 
 ```shell
-kubectl profile mypod -t 1m --lang go -f /tmp/flamegraph.svg --pgrep go-app
+kubectl perf mypod -t 1m --lang go -f /tmp/flamegraph.svg --pgrep go-app
 ```
 
 ### Additional info. For Docker runtime
@@ -84,13 +84,13 @@ Use `--pgrep` flag if your process name is different.
 
 ### Krew
 
-You can install `kubectl profile` using the [Krew](https://github.com/kubernetes-sigs/krew), the package manager for
+You can install `kubectl perf` using the [Krew](https://github.com/kubernetes-sigs/krew), the package manager for
 kubectl plugins.
 
 Once you have [Krew installed](https://krew.sigs.k8s.io/docs/user-guide/setup/install/) just run:
 
 ```bash
-kubectl krew install profile
+kubectl krew install perf
 ```
 
 ### Pre-built binaries
@@ -99,7 +99,7 @@ See the release page for the full list of pre-built assets.
 
 ## How it works
 
-`kubectl-profile` launch a Kubernetes Job on the same node as the target pod. Under the hood `kubectl-profile`
+`kubectl-perf` launch a Kubernetes Job on the same node as the target pod. Under the hood `kubectl-perf`
 use [async-profiler](https://github.com/jvm-profiling-tools/async-profiler) in order to generate flame graphs for Java
 applications. Interaction with the target JVM is done via a shared `/tmp` folder. Golang support is based
 on [ebpf profiling](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter). Python support is based

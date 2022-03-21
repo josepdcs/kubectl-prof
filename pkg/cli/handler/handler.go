@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/josepdcs/kubectl-profile/pkg/cli/config"
-	"github.com/josepdcs/kubectl-profile/pkg/cli/kubernetes"
+	"github.com/josepdcs/kubectl-perf/pkg/cli/config"
+	"github.com/josepdcs/kubectl-perf/pkg/cli/kubernetes"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 
-	"github.com/josepdcs/kubectl-profile/api"
+	"github.com/josepdcs/kubectl-perf/api"
 	batchv1 "k8s.io/api/batch/v1"
 )
 

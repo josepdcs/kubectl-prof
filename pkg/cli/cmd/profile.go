@@ -2,14 +2,14 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/josepdcs/kubectl-profile/pkg/cli/config"
-	"github.com/josepdcs/kubectl-profile/pkg/cli/kubernetes"
-	"github.com/josepdcs/kubectl-profile/pkg/cli/profiler"
-	"github.com/josepdcs/kubectl-profile/pkg/cli/version"
+	"github.com/josepdcs/kubectl-perf/pkg/cli/config"
+	"github.com/josepdcs/kubectl-perf/pkg/cli/kubernetes"
+	"github.com/josepdcs/kubectl-perf/pkg/cli/profiler"
+	"github.com/josepdcs/kubectl-perf/pkg/cli/version"
 	"os"
 	"time"
 
-	"github.com/josepdcs/kubectl-profile/api"
+	"github.com/josepdcs/kubectl-perf/api"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
@@ -23,17 +23,17 @@ const (
 These commands help you identify application performance issues.
 `
 	profilingExamples = `
-	# ProfileC a pod for 5 minutes and save the output as flame.svg file
-	%[1]s profile mypod -f flame.svg -t 5m
+	# Profile a pod for 5 minutes and save the output as flame.html file for java language
+	%[1]s perf mypod -f flame.html -t 5m -l java
 
-	# Profile an alpine based container
-	%[1]s profile mypod -f flame.svg --alpine
+	# Profile an alpine based container for java language
+	%[1]s perf mypod -f flame.html -l java --alpine 
 
-	# Profile specific container container1 from pod mypod in namespace test
-	%[1]s profile mypod -f /tmp/flame.svg -n test container1
+	# Profile specific container container1 from pod mypod in namespace test for go language
+	%[1]s perf mypod -f /tmp/flame.svg -n test container1 -l go
 
-	# Set custom resource requests and limits for the cli pod (default: neither requests nor limits are set)
-	%[1]s profile mypod -f flame.svg -cpu.requests 100m -cpu.limits 200m -mem.requests 100Mi -mem.limits 200Mi
+	# Set custom resource requests and limits for the cli pod (default: neither requests nor limits are set) for python language
+	%[1]s perf mypod -f flame.svg -cpu.requests 100m -cpu.limits 200m -mem.requests 100Mi -mem.limits 200Mi -l python
 `
 )
 
@@ -68,7 +68,7 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 
 	options := NewProfileOptions(streams)
 	cmd := &cobra.Command{
-		Use:                   "profile [pod-name]",
+		Use:                   "perf [pod-name]",
 		DisableFlagsInUseLine: true,
 		Short:                 "Profile running applications by generating flame graphs at the moment.",
 		Long:                  longDescription,

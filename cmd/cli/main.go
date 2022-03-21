@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/josepdcs/kubectl-profile/pkg/cli/cmd"
+	"github.com/josepdcs/kubectl-perf/pkg/cli/cmd"
 	"github.com/spf13/cobra"
 	"os"
 
@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	flags := pflag.NewFlagSet("kubectl-profile", pflag.ExitOnError)
+	flags := pflag.NewFlagSet("kubectl-perf", pflag.ExitOnError)
 	pflag.CommandLine = flags
 
 	streams := genericclioptions.IOStreams{

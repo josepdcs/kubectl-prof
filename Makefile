@@ -1,9 +1,9 @@
 VERSION ?= 0.2.0-dev
-CLI_NAME ?= kubectl-profile
+CLI_NAME ?= kubectl-perf
 CLI_DIR ?= ./cmd/cli/
 BUILD_DIR ?= bin
 REGISTRY ?= docker.io
-DOCKER_BASE_IMAGE ?= josepdcs/kubectl-profile
+DOCKER_BASE_IMAGE ?= josepdcs/kubectl-perf
 DOCKER_JVM_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-jvm
 DOCKERFILE_JVM ?= ./pkg/agent/docker/jvm/Dockerfile
 DOCKER_JVM_ALPINE_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-jvm-alpine
@@ -25,7 +25,7 @@ dep: ## Get the dependencies
 
 .PHONY: build-cli
 build-cli: dep ## Build the binary file
-	@go build -ldflags="-X 'github.com/josepdcs/kubectl-profile/pkg/cli/version.semver=$(VERSION)'" -o $(BUILD_DIR)/$(CLI_NAME) -v $(CLI_DIR)
+	@go build -ldflags="-X 'github.com/josepdcs/kubectl-perf/pkg/cli/version.semver=$(VERSION)'" -o $(BUILD_DIR)/$(CLI_NAME) -v $(CLI_DIR)
 
 .PHONY: build-docker-jvm
 build-docker-jvm:

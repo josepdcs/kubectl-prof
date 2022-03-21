@@ -1,6 +1,6 @@
 FROM golang:1.17.7-buster as agentbuild
-WORKDIR /go/src/github.com/josepdcs/kubectl-profile
-ADD . /go/src/github.com/josepdcs/kubectl-profile
+WORKDIR /go/src/github.com/josepdcs/kubectl-perf
+ADD . /go/src/github.com/josepdcs/kubectl-perf
 RUN go get -d -v ./...
 RUN cd cmd/agent && go build -o /go/bin/agent
 

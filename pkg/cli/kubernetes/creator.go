@@ -3,8 +3,8 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	"github.com/josepdcs/kubectl-profile/pkg/cli/config"
-	"github.com/josepdcs/kubectl-profile/pkg/cli/kubernetes/job"
+	"github.com/josepdcs/kubectl-perf/pkg/cli/config"
+	"github.com/josepdcs/kubectl-perf/pkg/cli/kubernetes/job"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
