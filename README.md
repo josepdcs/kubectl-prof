@@ -80,22 +80,41 @@ kubectl prof mypod -t 1m --lang go -f /tmp/flamegraph.svg --pgrep go-app
 
 Use `--pgrep` flag if your process name is different.
 
-## Installing
-
-### Krew
-
-You can install `kubectl prof` using the [Krew](https://github.com/kubernetes-sigs/krew), the package manager for
-kubectl plugins.
-
-Once you have [Krew installed](https://krew.sigs.k8s.io/docs/user-guide/setup/install/) just run:
-
-```bash
-kubectl krew install prof
-```
+## Installation
 
 ### Pre-built binaries
 
-See the release page for the full list of pre-built assets.
+See the [release](https://github.com/josepdcs/kubectl-prof/releases/tag/v0.1.0) page for the full list of pre-built assets. And download the binary according yours architecture.
+
+### Installing for Linux x86_64
+```shell
+curl -sL https://github.com/josepdcs/kubectl-prof/releases/download/v0.1.0/kubectl-prof_v0.1.0_linux_x86_64.tar.gz -o kubectl-prof.tar.gz
+tar xvfz kubectl-prof.tar.gz && sudo install kubectl-prof /usr/local/bin/
+```
+
+## Building
+
+### Install source code and golang dependencies
+
+```sh
+$ go get -d github.com/josepdcs/kubectl-prof
+$ cd $GOPATH/src/github.com/josepdcs/kubectl-prof
+$ make install-deps
+```
+
+### Build binary
+
+```sh
+$ make
+```
+
+### Build Agents Containers
+
+Modify Makefile, property DOCKER_BASE_IMAGE, and run: 
+
+```sh
+$ make agents
+```
 
 ## How it works
 

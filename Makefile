@@ -17,14 +17,21 @@ DOCKERFILE_PYTHON ?= ./pkg/agent/docker/python/Dockerfile
 DOCKER_RUBY_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-ruby
 DOCKERFILE_RUBY ?= ./pkg/agent/docker/ruby/Dockerfile
 
+.PHONY: build
+build: build-cli
+
+.PHONY: all
 all: build-cli push-docker-jvm push-docker-jvm-alpine push-docker-bpf push-docker-prof push-docker-python push-docker-ruby
 
-.PHONY: build-dep
-dep: ## Get the dependencies
+.PHONY: agents
+agents: build-docker-bpf build-docker-jvm build-docker-jvm-alpine build-docker-prof build-docker-python build-docker-ruby
+
+.PHONY: install-deps
+install-deps: ## Get the dependencies
 	@go get -v -d ./...
 
 .PHONY: build-cli
-build-cli: dep ## Build the binary file
+build-cli: install-deps ## Build the binary file
 	@go build -ldflags="-X 'github.com/josepdcs/kubectl-prof/pkg/cli/version.semver=$(VERSION)'" -o $(BUILD_DIR)/$(CLI_NAME) -v $(CLI_DIR)
 
 .PHONY: build-docker-jvm
