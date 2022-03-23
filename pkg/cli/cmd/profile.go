@@ -6,6 +6,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/pkg/cli/kubernetes"
 	"github.com/josepdcs/kubectl-prof/pkg/cli/profiler"
 	"github.com/josepdcs/kubectl-prof/pkg/cli/version"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"time"
 
@@ -93,15 +94,21 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 				os.Exit(1)
 			}
 
+			// set log level
+			level, _ := log.ParseLevel(chosenLogLevel)
+			log.SetLevel(level)
+
 			target.PodName = args[0]
 			if len(args) > 1 {
 				target.ContainerName = args[1]
 			}
 
+			// Prepare profiler
 			cfg := config.NewProfilerConfig(&target, &job, options.configFlags).
 				WithLogLevel(api.LogLevel(chosenLogLevel)).
 				WithPrivileged(privileged).
 				WithCapabilities(capabilities)
+
 			connector := kubernetes.NewConnector()
 			getter := kubernetes.NewGetter()
 			creator := kubernetes.NewCreator()
@@ -148,7 +155,7 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 }
 
 func validateFlags(runtimeString string, langString string, eventString string, logLevelString string,
-	targetDetails *config.TargetConfig, jobDetails *config.JobConfig) error {
+	target *config.TargetConfig, job *config.JobConfig) error {
 	if langString == "" {
 		return fmt.Errorf("use -l flag to select one of the supported languages %s", api.AvailableLanguages())
 	}
@@ -169,15 +176,15 @@ func validateFlags(runtimeString string, langString string, eventString string, 
 		return fmt.Errorf("unsupported log level, choose one of %s", api.AvailableLogLevels())
 	}
 
-	targetDetails.Language = api.ProgrammingLanguage(langString)
-	targetDetails.ContainerRuntime = api.ContainerRuntime(runtimeString)
-	targetDetails.Event = api.ProfilingEvent(eventString)
+	target.Language = api.ProgrammingLanguage(langString)
+	target.ContainerRuntime = api.ContainerRuntime(runtimeString)
+	target.Event = api.ProfilingEvent(eventString)
 
-	if _, err := jobDetails.RequestConfig.ParseResources(); err != nil {
+	if _, err := job.RequestConfig.ParseResources(); err != nil {
 		return fmt.Errorf("unable to parse resource requests: %w", err)
 	}
 
-	if _, err := jobDetails.LimitConfig.ParseResources(); err != nil {
+	if _, err := job.LimitConfig.ParseResources(); err != nil {
 		return fmt.Errorf("unable to parse resourse limits: %w", err)
 	}
 

@@ -36,7 +36,7 @@ func (p *perfCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (
 	if cfg.Target.Image != "" {
 		imageName = cfg.Target.Image
 	} else {
-		imageName = fmt.Sprintf("%s:%s-prof", baseImageName, version.GetCurrent())
+		imageName = fmt.Sprintf("%s:%s-perf", baseImageName, version.GetCurrent())
 	}
 
 	if cfg.Target.ImagePullSecret != "" {

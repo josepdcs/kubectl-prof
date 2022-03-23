@@ -1,6 +1,22 @@
 package utils
 
-import "os/exec"
+import (
+	"github.com/josepdcs/kubectl-prof/api"
+	"os/exec"
+	"strings"
+)
+
+func Command(name string, arg ...string) *exec.Cmd {
+	var builder strings.Builder
+	builder.WriteString(name)
+	for _, str := range arg {
+		builder.WriteString(str)
+		builder.WriteString(" ")
+	}
+	api.PublishLogEvent(api.DebugLevel, strings.TrimSpace(builder.String()))
+
+	return exec.Command(name, arg...)
+}
 
 func ExecuteCommand(cmd *exec.Cmd) (int, string, error) {
 	exitCode := 0
