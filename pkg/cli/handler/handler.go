@@ -52,13 +52,13 @@ func (h *EventHandler) Handle(events chan string, done chan bool, ctx context.Co
 func (h *EventHandler) createFlameGraph(data *api.FlameGraphData) {
 	decodedData, err := base64.StdEncoding.DecodeString(data.EncodedFile)
 	if err != nil {
-		fmt.Printf("Failed to decode flamegraph: %v\n", err)
+		fmt.Printf("Failed to decode result data: %v\n", err)
 		return
 	}
 
 	err = ioutil.WriteFile(h.Target.FileName, decodedData, 0777)
 	if err != nil {
-		fmt.Printf("Failed to write flamegraph file: %v\n", err)
+		fmt.Printf("Failed to write result file: %v\n", err)
 	}
 }
 
@@ -67,13 +67,14 @@ func (h *EventHandler) reportProgress(data *api.ProgressData, done chan bool, ct
 		fmt.Printf("Profiling ...")
 	} else if data.Stage == api.Ended {
 		_ = h.Deleter.DeleteProfilingJob(h.Job, h.Target, ctx)
-		fmt.Printf("✔\nProfiled as FrameGraph saved to: %s 🔥\n", h.Target.FileName)
+		fmt.Printf("✔\nResult profiling data saved to: %s 🔥\n", h.Target.FileName)
 		done <- true
 	}
 }
 
 //logger print log
 func (h *EventHandler) logger(data *api.LogData) {
+	fmt.Print("\n")
 	switch data.Level {
 	case string(api.InfoLevel):
 		log.Infof("%s", data.Msg)
@@ -86,5 +87,5 @@ func (h *EventHandler) logger(data *api.LogData) {
 	default:
 		log.Tracef("%s", data.Msg)
 	}
-	fmt.Printf("Profiling ...")
+	fmt.Printf("Still profiling ...")
 }

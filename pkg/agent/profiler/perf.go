@@ -58,6 +58,9 @@ func (p *PerfProfiler) runPerfRecord(job *config.ProfilingJob) error {
 	api.PublishLogEvent(api.InfoLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
 
 	duration := strconv.Itoa(int(job.Duration.Seconds()))
+
+	api.PublishLogEvent(api.DebugLevel, fmt.Sprintf("%s record -p %s -o %s -g -- sleep %s", perfLocation, pid, perfRecordOutputFileName, duration))
+
 	cmd := exec.Command(perfLocation, "record", "-p", pid, "-o", perfRecordOutputFileName, "-g", "--", "sleep", duration)
 
 	return cmd.Run()

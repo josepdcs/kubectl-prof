@@ -10,7 +10,7 @@ DOCKER_JVM_ALPINE_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-jvm-alpine
 DOCKERFILE_JVM_ALPINE ?= ./pkg/agent/docker/jvm/alpine/Dockerfile
 DOCKER_BPF_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-bpf
 DOCKERFILE_BPF ?= ./pkg/agent/docker/bpf/Dockerfile
-DOCKER_PERF_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-prof
+DOCKER_PERF_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-perf
 DOCKERFILE_PERF ?= ./pkg/agent/docker/perf/Dockerfile
 DOCKER_PYTHON_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-python
 DOCKERFILE_PYTHON ?= ./pkg/agent/docker/python/Dockerfile
@@ -21,10 +21,10 @@ DOCKERFILE_RUBY ?= ./pkg/agent/docker/ruby/Dockerfile
 build: build-cli
 
 .PHONY: all
-all: build-cli push-docker-jvm push-docker-jvm-alpine push-docker-bpf push-docker-prof push-docker-python push-docker-ruby
+all: build-cli push-docker-jvm push-docker-jvm-alpine push-docker-bpf push-docker-perf push-docker-python push-docker-ruby
 
 .PHONY: agents
-agents: build-docker-bpf build-docker-jvm build-docker-jvm-alpine build-docker-prof build-docker-python build-docker-ruby
+agents: build-docker-bpf build-docker-jvm build-docker-jvm-alpine build-docker-perf build-docker-python build-docker-ruby
 
 .PHONY: install-deps
 install-deps: ## Get the dependencies
@@ -58,12 +58,12 @@ build-docker-bpf:
 push-docker-bpf: build-docker-bpf
 	@docker push $(REGISTRY)/$(DOCKER_BPF_IMAGE)
 
-.PHONY: build-docker-prof
-build-docker-prof:
-	docker build -t ${DOCKER_PERF_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_PERF) .
+.PHONY: build-docker-perf
+build-docker-perf:
+	docker build --no-cache -t ${DOCKER_PERF_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_PERF) .
 
-.PHONY: push-docker-prof
-push-docker-prof: build-docker-prof
+.PHONY: push-docker-perf
+push-docker-perf: build-docker-perf
 	@docker push $(REGISTRY)/$(DOCKER_PERF_IMAGE)
 
 .PHONY: build-docker-python

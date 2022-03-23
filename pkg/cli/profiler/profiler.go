@@ -20,7 +20,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/pkg/cli/config"
 	"github.com/josepdcs/kubectl-prof/pkg/cli/handler"
 	"github.com/josepdcs/kubectl-prof/pkg/cli/kubernetes"
-	"log"
+	log "github.com/sirupsen/logrus"
 
 	v1 "k8s.io/api/core/v1"
 )

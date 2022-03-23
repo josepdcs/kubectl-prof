@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/fntlnz/mountinfo v0.0.0-20171106231217-40cb42681fad
+	github.com/golang/snappy v0.0.4
 	github.com/json-iterator/go v1.1.12
 	github.com/opencontainers/runtime-spec v1.0.2
 	github.com/pkg/errors v0.9.1
