@@ -1,6 +1,7 @@
 package profiler
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/config"
@@ -23,7 +24,7 @@ const (
 type BpfProfiler struct{}
 
 func (b *BpfProfiler) SetUp(job *config.ProfilingJob) error {
-	exitCode, kernelVersion, err := utils.ExecuteCommand(exec.Command("uname", "-r"))
+	exitCode, kernelVersion, err := utils.ExecuteCommand(utils.Command("uname", "-r"))
 	if err != nil {
 		return fmt.Errorf("failed to get kernel version, exit code: %d, error: %s", exitCode, err)
 	}
@@ -56,7 +57,7 @@ func (b *BpfProfiler) runProfiler(job *config.ProfilingJob) error {
 	if err != nil {
 		return err
 	}
-	api.PublishLogEvent(api.InfoLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
+	api.PublishLogEvent(api.DebugLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
 
 	f, err := os.Create(rawProfilerOutputFile)
 	if err != nil {
@@ -72,10 +73,16 @@ func (b *BpfProfiler) runProfiler(job *config.ProfilingJob) error {
 	}(f)
 
 	duration := strconv.Itoa(int(job.Duration.Seconds()))
-	profileCmd := exec.Command(profilerLocation, "-df", "-p", pid, duration)
-	profileCmd.Stdout = f
+	var stderr bytes.Buffer
+	cmd := utils.Command(profilerLocation, "-df", "-p", pid, duration)
+	cmd.Stdout = f
+	cmd.Stderr = &stderr
 
-	return profileCmd.Run()
+	err = cmd.Run()
+	if err != nil {
+		api.PublishLogEvent(api.ErrorLevel, stderr.String())
+	}
+	return err
 }
 
 func (b *BpfProfiler) generateFlameGraph() error {
@@ -119,7 +126,7 @@ func (b *BpfProfiler) moveSources(target string) error {
 		return err
 	}
 
-	_, _, err = utils.ExecuteCommand(exec.Command("mv", kernelSourcesDir, target))
+	_, _, err = utils.ExecuteCommand(utils.Command("mv", kernelSourcesDir, target))
 	if err != nil {
 		return fmt.Errorf("failed moving source files, error: %s, tried to move to: %s", err, target)
 	}

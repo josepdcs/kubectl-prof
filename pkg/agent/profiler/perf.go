@@ -1,12 +1,12 @@
 package profiler
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/config"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/utils"
 	"os"
-	"os/exec"
 	"strconv"
 )
 
@@ -55,15 +55,20 @@ func (p *PerfProfiler) runPerfRecord(job *config.ProfilingJob) error {
 	if err != nil {
 		return err
 	}
-	api.PublishLogEvent(api.InfoLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
+	api.PublishLogEvent(api.DebugLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
 
 	duration := strconv.Itoa(int(job.Duration.Seconds()))
 
-	api.PublishLogEvent(api.DebugLevel, fmt.Sprintf("%s record -p %s -o %s -g -- sleep %s", perfLocation, pid, perfRecordOutputFileName, duration))
+	//cmd := utils.Command(perfLocation, "record", "-F", "99", "-p", pid, "-o", perfRecordOutputFileName, "-g", "--", "sleep", duration)
+	var stderr bytes.Buffer
+	cmd := utils.Command(perfLocation, "record", "-p", pid, "-o", perfRecordOutputFileName, "-g", "--", "sleep", duration)
+	cmd.Stderr = &stderr
 
-	cmd := exec.Command(perfLocation, "record", "-p", pid, "-o", perfRecordOutputFileName, "-g", "--", "sleep", duration)
-
-	return cmd.Run()
+	err = cmd.Run()
+	if err != nil {
+		api.PublishLogEvent(api.ErrorLevel, stderr.String())
+	}
+	return err
 }
 
 func (p *PerfProfiler) runPerfScript(job *config.ProfilingJob) error {
@@ -79,10 +84,16 @@ func (p *PerfProfiler) runPerfScript(job *config.ProfilingJob) error {
 		}
 	}(f)
 
-	cmd := exec.Command(perfLocation, "script", "-i", perfRecordOutputFileName)
+	var stderr bytes.Buffer
+	cmd := utils.Command(perfLocation, "script", "-i", perfRecordOutputFileName)
 	cmd.Stdout = f
+	cmd.Stderr = &stderr
 
-	return cmd.Run()
+	err = cmd.Run()
+	if err != nil {
+		api.PublishLogEvent(api.ErrorLevel, stderr.String())
+	}
+	return err
 }
 
 func (p *PerfProfiler) foldPerfOutput(job *config.ProfilingJob) error {
@@ -98,10 +109,16 @@ func (p *PerfProfiler) foldPerfOutput(job *config.ProfilingJob) error {
 		}
 	}(f)
 
-	cmd := exec.Command(flameGraphStackCollapseLocation, perfScriptOutputFileName)
+	var stderr bytes.Buffer
+	cmd := utils.Command(flameGraphStackCollapseLocation, perfScriptOutputFileName)
 	cmd.Stdout = f
+	cmd.Stderr = &stderr
 
-	return cmd.Run()
+	err = cmd.Run()
+	if err != nil {
+		api.PublishLogEvent(api.ErrorLevel, stderr.String())
+	}
+	return err
 }
 
 func (p *PerfProfiler) generateFlameGraph(job *config.ProfilingJob) error {
@@ -129,9 +146,26 @@ func (p *PerfProfiler) generateFlameGraph(job *config.ProfilingJob) error {
 		}
 	}(outputFile)
 
-	cmd := exec.Command(flameGraphPlLocation)
+	var stderr bytes.Buffer
+	cmd := utils.Command(flameGraphPlLocation, "--colors", getColors(job.Language))
 	cmd.Stdin = inputFile
 	cmd.Stdout = outputFile
+	cmd.Stderr = &stderr
 
-	return cmd.Run()
+	err = cmd.Run()
+	if err != nil {
+		api.PublishLogEvent(api.ErrorLevel, stderr.String())
+	}
+	return err
+}
+
+func getColors(l api.ProgrammingLanguage) string {
+	switch l {
+	case api.Node:
+		return "js"
+	case api.Java:
+		return "java"
+	default:
+		return "green"
+	}
 }

@@ -19,7 +19,6 @@ import (
 	"github.com/josepdcs/kubectl-prof/pkg/agent/config"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/utils"
 	"os"
-	"os/exec"
 	"path"
 	"strconv"
 )
@@ -37,7 +36,7 @@ func (j *JvmProfiler) SetUp(job *config.ProfilingJob) error {
 	if err != nil {
 		return err
 	}
-	api.PublishLogEvent(api.InfoLevel, fmt.Sprintf("The target filesystem is: %s", targetFs))
+	api.PublishLogEvent(api.DebugLevel, fmt.Sprintf("The target filesystem is: %s", targetFs))
 
 	err = os.RemoveAll("/tmp")
 	if err != nil {
@@ -57,11 +56,11 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 	if err != nil {
 		return err
 	}
-	api.PublishLogEvent(api.InfoLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
+	api.PublishLogEvent(api.DebugLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
 
 	duration := strconv.Itoa(int(job.Duration.Seconds()))
 	event := string(job.Event)
-	cmd := exec.Command(profilerSh, "-d", duration, "-f", fileName, "-e", event, pid)
+	cmd := utils.Command(profilerSh, "-d", duration, "-f", fileName, "-e", event, pid)
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &out
@@ -70,7 +69,7 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 	if err != nil {
 		api.PublishLogEvent(api.ErrorLevel, out.String())
 		api.PublishLogEvent(api.ErrorLevel, stderr.String())
-		return err
+		return fmt.Errorf("could not launch profiler: %w", err)
 	}
 	api.PublishLogEvent(api.InfoLevel, out.String())
 
@@ -78,6 +77,6 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 }
 
 func (j *JvmProfiler) copyProfilerToTempDir() error {
-	cmd := exec.Command("cp", "-r", "/app/async-profiler", "/tmp")
+	cmd := utils.Command("cp", "-r", "/app/async-profiler", "/tmp")
 	return cmd.Run()
 }
