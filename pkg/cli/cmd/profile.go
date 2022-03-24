@@ -16,10 +16,11 @@ import (
 )
 
 const (
-	defaultDuration = 1 * time.Minute
-	defaultEvent    = string(api.Cpu)
-	defaultLogLevel = string(api.InfoLevel)
-	longDescription = `Profiling on existing applications with low-overhead.
+	defaultDuration   = 1 * time.Minute
+	defaultEvent      = string(api.Cpu)
+	defaultLogLevel   = string(api.InfoLevel)
+	defaultCompressor = string(api.Snappy)
+	longDescription   = `Profiling on existing applications with low-overhead.
 
 These commands help you identify application performance issues.
 `
@@ -65,6 +66,7 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 		chosenLogLevel string
 		privileged     bool
 		capabilities   string
+		compressor     string
 	)
 
 	options := NewProfileOptions(streams)
@@ -89,7 +91,7 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 				return
 			}
 
-			if err := validateFlags(chosenRuntime, chosenLang, chosenEvent, chosenLogLevel, &target, &job); err != nil {
+			if err := validateFlags(chosenRuntime, chosenLang, chosenEvent, chosenLogLevel, compressor, &target, &job); err != nil {
 				_, _ = fmt.Fprintln(streams.Out, err)
 				os.Exit(1)
 			}
@@ -148,13 +150,15 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 		fmt.Sprintf("Log level, choose one of %v", api.AvailableLogLevels()))
 	cmd.Flags().BoolVar(&privileged, "privileged", true, "run agent container in privileged mode")
 	cmd.Flags().StringVar(&capabilities, "capabilities", "", "run agent container with capabilities (separated by commas: SYS_ADMIN,SYS_PTRACE)")
+	cmd.Flags().StringVarP(&compressor, "compressor", "c", defaultCompressor,
+		fmt.Sprintf("Compressor for compressing generated profiling result, choose one of %v", api.AvailableCompressors()))
 
 	options.configFlags.AddFlags(cmd.Flags())
 
 	return cmd
 }
 
-func validateFlags(runtimeString string, langString string, eventString string, logLevelString string,
+func validateFlags(runtimeString string, langString string, eventString string, logLevelString string, compressorString string,
 	target *config.TargetConfig, job *config.JobConfig) error {
 	if langString == "" {
 		return fmt.Errorf("use -l flag to select one of the supported languages %s", api.AvailableLanguages())
@@ -176,9 +180,14 @@ func validateFlags(runtimeString string, langString string, eventString string, 
 		return fmt.Errorf("unsupported log level, choose one of %s", api.AvailableLogLevels())
 	}
 
+	if compressorString != "" && !api.IsSupportedCompressor(compressorString) {
+		return fmt.Errorf("unsupported compressor, choose one of %s", api.AvailableCompressors())
+	}
+
 	target.Language = api.ProgrammingLanguage(langString)
 	target.ContainerRuntime = api.ContainerRuntime(runtimeString)
 	target.Event = api.ProfilingEvent(eventString)
+	target.Compressor = api.Compressor(compressorString)
 
 	if _, err := job.RequestConfig.ParseResources(); err != nil {
 		return fmt.Errorf("unable to parse resource requests: %w", err)

@@ -50,8 +50,8 @@ func main() {
 }
 
 func profilingJob() (*config.ProfilingJob, error) {
-	if len(os.Args) != 9 && len(os.Args) != 10 {
-		return nil, errors.New("expected 8 or 9 arguments")
+	if len(os.Args) != 10 && len(os.Args) != 11 {
+		return nil, errors.New("expected 9 or 10 arguments")
 	}
 
 	duration, err := time.ParseDuration(os.Args[5])
@@ -68,9 +68,12 @@ func profilingJob() (*config.ProfilingJob, error) {
 	job.Language = api.ProgrammingLanguage(os.Args[6])
 	job.Event = api.ProfilingEvent(os.Args[7])
 	job.ContainerRuntime = api.ContainerRuntime(os.Args[8])
-	if len(os.Args) == 10 {
-		job.TargetProcessName = os.Args[9]
+	job.Compressor = api.Compressor(os.Args[9])
+	if len(os.Args) == 11 {
+		job.TargetProcessName = os.Args[10]
 	}
+
+	api.PublishLogEvent(api.DebugLevel, job.String())
 
 	return job, nil
 }
@@ -83,8 +86,14 @@ func handleSignals() chan bool {
 	go func() {
 		s := <-sigs
 		log.Infof("Recived signal: %s", s)
-		os.RemoveAll("/tmp/async-profiler")
-		os.Remove("/tmp")
+		err := os.RemoveAll("/tmp/async-profiler")
+		if err != nil {
+			log.Warnf("directory could no be removed: %s", err)
+		}
+		err = os.Remove("/tmp")
+		if err != nil {
+			log.Warnf("directory could no be removed: %s", err)
+		}
 		done <- true
 	}()
 
