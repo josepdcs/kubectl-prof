@@ -26,6 +26,7 @@ func (c *jvmCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 		string(cfg.Target.Language),
 		string(cfg.Target.Event),
 		string(cfg.Target.ContainerRuntime),
+		string(cfg.Target.Compressor),
 	}
 
 	if cfg.Target.Pgrep != "" {

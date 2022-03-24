@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/josepdcs/kubectl-prof/api"
+	jsoniter "github.com/json-iterator/go"
 	"time"
 )
 
@@ -15,4 +16,10 @@ type ProfilingJob struct {
 	Language          api.ProgrammingLanguage
 	TargetProcessName string
 	Event             api.ProfilingEvent
+	Compressor        api.Compressor
+}
+
+func (p *ProfilingJob) String() string {
+	out, _ := jsoniter.Marshal(p)
+	return string(out)
 }

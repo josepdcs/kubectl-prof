@@ -21,6 +21,7 @@ type TargetConfig struct {
 	ContainerRuntime     api.ContainerRuntime
 	ContainerRuntimePath string
 	Language             api.ProgrammingLanguage
+	Compressor           api.Compressor
 	Pgrep                string
 	ImagePullSecret      string
 	ServiceAccountName   string

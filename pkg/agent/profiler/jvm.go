@@ -73,7 +73,7 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 	}
 	api.PublishLogEvent(api.InfoLevel, out.String())
 
-	return utils.PublishFlameGraph(fileName)
+	return utils.PublishFlameGraph(job.Compressor, fileName)
 }
 
 func (j *JvmProfiler) copyProfilerToTempDir() error {

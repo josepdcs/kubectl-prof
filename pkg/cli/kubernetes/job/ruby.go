@@ -27,6 +27,7 @@ func (r *rubyCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (
 		string(cfg.Target.Language),
 		string(cfg.Target.Event),
 		string(cfg.Target.ContainerRuntime),
+		string(cfg.Target.Compressor),
 	}
 
 	if cfg.Target.Pgrep != "" {

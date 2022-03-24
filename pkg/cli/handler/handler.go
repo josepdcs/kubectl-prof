@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/josepdcs/kubectl-prof/pkg/cli/config"
 	"github.com/josepdcs/kubectl-prof/pkg/cli/kubernetes"
+	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 
@@ -50,13 +51,23 @@ func (h *EventHandler) Handle(events chan string, done chan bool, ctx context.Co
 }
 
 func (h *EventHandler) createFlameGraph(data *api.FlameGraphData) {
-	decodedData, err := base64.StdEncoding.DecodeString(data.EncodedFile)
+	decoded, err := base64.StdEncoding.DecodeString(data.EncodedFile)
 	if err != nil {
 		fmt.Printf("Failed to decode result data: %v\n", err)
 		return
 	}
 
-	err = ioutil.WriteFile(h.Target.FileName, decodedData, 0777)
+	c, err := compressor.Get(h.Target.Compressor)
+	if err != nil {
+		fmt.Printf("Failed to get compressor: %v\n", err)
+	}
+
+	decoded, err = c.Decode(decoded)
+	if err != nil {
+		fmt.Printf("Failed to decode snappy result data: %v\n", err)
+	}
+
+	err = ioutil.WriteFile(h.Target.FileName, decoded, 0777)
 	if err != nil {
 		fmt.Printf("Failed to write result file: %v\n", err)
 	}
