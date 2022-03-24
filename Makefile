@@ -1,4 +1,4 @@
-VERSION ?= 0.2.0-dev
+VERSION ?= 0.3.0-dev
 CLI_NAME ?= kubectl-prof
 CLI_DIR ?= ./cmd/cli/
 BUILD_DIR ?= bin
