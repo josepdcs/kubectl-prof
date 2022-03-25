@@ -84,11 +84,11 @@ Use `--pgrep` flag if your process name is different.
 
 ### Pre-built binaries
 
-See the [release](https://github.com/josepdcs/kubectl-prof/releases/tag/v0.1.0) page for the full list of pre-built assets. And download the binary according yours architecture.
+See the [release](https://github.com/josepdcs/kubectl-prof/releases/tag/v0.2.0) page for the full list of pre-built assets. And download the binary according yours architecture.
 
 ### Installing for Linux x86_64
 ```shell
-curl -sL https://github.com/josepdcs/kubectl-prof/releases/download/v0.1.0/kubectl-prof_v0.1.0_linux_x86_64.tar.gz -o kubectl-prof.tar.gz
+curl -sL https://github.com/josepdcs/kubectl-prof/releases/download/v0.2.0/kubectl-prof_v0.1.0_linux_x86_64.tar.gz -o kubectl-prof.tar.gz
 tar xvfz kubectl-prof.tar.gz && sudo install kubectl-prof /usr/local/bin/
 ```
 
