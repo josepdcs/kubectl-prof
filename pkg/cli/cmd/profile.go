@@ -64,8 +64,6 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 		chosenLang     string
 		chosenEvent    string
 		chosenLogLevel string
-		privileged     bool
-		capabilities   string
 		compressor     string
 	)
 
@@ -107,9 +105,7 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 
 			// Prepare profiler
 			cfg := config.NewProfilerConfig(&target, &job, options.configFlags).
-				WithLogLevel(api.LogLevel(chosenLogLevel)).
-				WithPrivileged(privileged).
-				WithCapabilities(capabilities)
+				WithLogLevel(api.LogLevel(chosenLogLevel))
 
 			connector := kubernetes.NewConnector()
 			getter := kubernetes.NewGetter()
@@ -148,8 +144,6 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 
 	cmd.Flags().StringVar(&chosenLogLevel, "log-level", defaultLogLevel,
 		fmt.Sprintf("Log level, choose one of %v", api.AvailableLogLevels()))
-	cmd.Flags().BoolVar(&privileged, "privileged", true, "run agent container in privileged mode")
-	cmd.Flags().StringVar(&capabilities, "capabilities", "", "run agent container with capabilities (separated by commas: SYS_ADMIN,SYS_PTRACE)")
 	cmd.Flags().StringVarP(&compressor, "compressor", "c", defaultCompressor,
 		fmt.Sprintf("Compressor for compressing generated profiling result, choose one of %v", api.AvailableCompressors()))
 

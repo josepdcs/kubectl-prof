@@ -92,7 +92,7 @@ func handleSignals() chan bool {
 		}
 		err = os.Remove("/tmp")
 		if err != nil {
-			log.Warnf("directory could no be removed: %s", err)
+			// log.Warnf("directory could no be removed: %s", err)
 		}
 		done <- true
 	}()

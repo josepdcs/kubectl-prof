@@ -93,9 +93,6 @@ func (c *jvmCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 									MountPath: api.GetContainerRuntimeRootPath[cfg.Target.ContainerRuntime],
 								},
 							},
-							SecurityContext: &apiv1.SecurityContext{
-								Privileged: boolPtr(true),
-							},
 							Resources: resources,
 						},
 					},
