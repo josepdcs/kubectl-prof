@@ -46,6 +46,7 @@ func (c *jvmCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 		},
 		Annotations: map[string]string{
 			"sidecar.istio.io/inject": "false",
+			"linkerd.io/inject":       "disabled",
 		},
 	}
 	resources, err := cfg.Job.ToResourceRequirements()
