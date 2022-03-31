@@ -60,7 +60,7 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 
 	duration := strconv.Itoa(int(job.Duration.Seconds()))
 	event := string(job.Event)
-	cmd := utils.Command(profilerSh, "-d", duration, "-f", fileName, "-e", event, pid)
+	cmd := utils.Command(profilerSh, "-d", duration, "-f", fileName, "-e", event, "--fdtransfer", pid)
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &out

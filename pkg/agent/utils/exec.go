@@ -9,6 +9,7 @@ import (
 func Command(name string, arg ...string) *exec.Cmd {
 	var builder strings.Builder
 	builder.WriteString(name)
+	builder.WriteString(" ")
 	for _, str := range arg {
 		builder.WriteString(str)
 		builder.WriteString(" ")
