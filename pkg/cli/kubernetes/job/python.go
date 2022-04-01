@@ -52,6 +52,7 @@ func (p *pythonCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig)
 		},
 		Annotations: map[string]string{
 			"sidecar.istio.io/inject": "false",
+			"linkerd.io/inject":       "disabled",
 		},
 	}
 
@@ -101,9 +102,8 @@ func (p *pythonCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig)
 								},
 							},
 							SecurityContext: &apiv1.SecurityContext{
-								Privileged: &cfg.Privileged,
 								Capabilities: &apiv1.Capabilities{
-									Add: cfg.Capabilities,
+									Add: []apiv1.Capability{"SYS_PTRACE"},
 								},
 							},
 							Resources: resources,

@@ -51,6 +51,7 @@ func (b *bpfCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 		},
 		Annotations: map[string]string{
 			"sidecar.istio.io/inject": "false",
+			"linkerd.io/inject":       "disabled",
 		},
 	}
 
@@ -124,10 +125,7 @@ func (b *bpfCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 								},
 							},
 							SecurityContext: &apiv1.SecurityContext{
-								Privileged: &cfg.Privileged,
-								Capabilities: &apiv1.Capabilities{
-									Add: cfg.Capabilities,
-								},
+								Privileged: boolPtr(true),
 							},
 							Resources: resources,
 						},
