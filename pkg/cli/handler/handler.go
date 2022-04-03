@@ -15,16 +15,18 @@ import (
 )
 
 type EventHandler struct {
-	Job     *batchv1.Job
-	Target  *config.TargetConfig
-	Deleter kubernetes.Deleter
+	Job      *batchv1.Job
+	Target   *config.TargetConfig
+	Deleter  kubernetes.Deleter
+	LogLevel api.LogLevel
 }
 
-func NewEventHandler(job *batchv1.Job, cfg *config.TargetConfig, del kubernetes.Deleter) *EventHandler {
+func NewEventHandler(job *batchv1.Job, cfg *config.TargetConfig, del kubernetes.Deleter, level api.LogLevel) *EventHandler {
 	return &EventHandler{
-		Job:     job,
-		Target:  cfg,
-		Deleter: del,
+		Job:      job,
+		Target:   cfg,
+		Deleter:  del,
+		LogLevel: level,
 	}
 }
 
@@ -85,18 +87,20 @@ func (h *EventHandler) reportProgress(data *api.ProgressData, done chan bool, ct
 
 //logger print log
 func (h *EventHandler) logger(data *api.LogData) {
-	fmt.Print("\n")
-	switch data.Level {
-	case string(api.InfoLevel):
-		log.Infof("%s", data.Msg)
-	case string(api.WarnLevel):
-		log.Warnf("%s", data.Msg)
-	case string(api.DebugLevel):
-		log.Debugf("%s", data.Msg)
-	case string(api.ErrorLevel):
-		log.Errorf("%s", data.Msg)
-	default:
-		log.Tracef("%s", data.Msg)
+	if api.LogLevel(data.Level) == h.LogLevel {
+		fmt.Print("\n")
+		switch data.Level {
+		case string(api.InfoLevel):
+			log.Infof("%s", data.Msg)
+		case string(api.WarnLevel):
+			log.Warnf("%s", data.Msg)
+		case string(api.DebugLevel):
+			log.Debugf("%s", data.Msg)
+		case string(api.ErrorLevel):
+			log.Errorf("%s", data.Msg)
+		default:
+			log.Tracef("%s", data.Msg)
+		}
+		fmt.Printf("Still profiling ...")
 	}
-	fmt.Printf("Still profiling ...")
 }

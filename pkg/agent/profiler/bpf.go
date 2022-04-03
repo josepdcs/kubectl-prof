@@ -57,7 +57,7 @@ func (b *BpfProfiler) runProfiler(job *config.ProfilingJob) error {
 	if err != nil {
 		return err
 	}
-	api.PublishLogEvent(api.InfoLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
+	api.PublishLogEvent(api.DebugLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
 
 	f, err := os.Create(rawProfilerOutputFile)
 	if err != nil {
@@ -74,7 +74,7 @@ func (b *BpfProfiler) runProfiler(job *config.ProfilingJob) error {
 
 	duration := strconv.Itoa(int(job.Duration.Seconds()))
 	var stderr bytes.Buffer
-	cmd := utils.Command(profilerLocation, "-df", "-p", pid, duration)
+	cmd := utils.Command(profilerLocation, "-df", "-U", "-p", pid, duration)
 	cmd.Stdout = f
 	cmd.Stderr = &stderr
 

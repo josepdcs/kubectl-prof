@@ -8,10 +8,12 @@ const (
 	Python ProgrammingLanguage = "python"
 	Ruby   ProgrammingLanguage = "ruby"
 	Node   ProgrammingLanguage = "node"
+	//Deprecated: NodeWithPerf is deprecated. This option will be removed. Use instead Node, that use BPF for running profiling
+	NodeWithPerf ProgrammingLanguage = "node-perf"
 )
 
 var (
-	supportedLangs = []ProgrammingLanguage{Java, Go, Python, Ruby, Node}
+	supportedLangs = []ProgrammingLanguage{Java, Go, Python, Ruby, Node, NodeWithPerf}
 )
 
 func AvailableLanguages() []ProgrammingLanguage {

@@ -62,7 +62,7 @@ spec:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: psp:default
+  name: psp-default
   namespace: default
 rules:
   - apiGroups:
@@ -79,12 +79,12 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: psp:default
+  name: psp-default
   namespace: default
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: psp:default
+  name: psp-default
 subjects:
   - apiGroup: rbac.authorization.k8s.io
     kind: Group
@@ -104,7 +104,7 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: psp:privileged
+  name: psp-privileged
   namespace: default
 rules:
   - apiGroups:
@@ -121,7 +121,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: psp:privileged
+  name: psp-privileged
 subjects:
   - kind: ServiceAccount
     name: profiler
@@ -129,4 +129,4 @@ subjects:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: psp:privileged
+  name: psp-privileged

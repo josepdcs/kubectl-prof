@@ -100,7 +100,7 @@ func (p *Profiler) Profile(cfg *config.ProfilerConfig) {
 	}
 
 	printer.PrintSuccess()
-	eventHandler := handler.NewEventHandler(job, cfg.Target, p.Deleter)
+	eventHandler := handler.NewEventHandler(job, cfg.Target, p.Deleter, cfg.LogLevel)
 	done, err := kubernetes.GetPodLogs(profilingPod, eventHandler, ctx)
 	if err != nil {
 		printer.PrintError()

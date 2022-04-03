@@ -13,6 +13,7 @@ import (
 const (
 	baseImageName = "josepdcs/kubectl-prof"
 	ContainerName = "kubectl-prof"
+	LabelID       = "kubectl-prof/id"
 )
 
 var (
@@ -38,6 +39,8 @@ func Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.
 	case api.Ruby:
 		return ruby.create(targetPod, cfg)
 	case api.Node:
+		return bpf.create(targetPod, cfg)
+	case api.NodeWithPerf:
 		return perf.create(targetPod, cfg)
 	}
 

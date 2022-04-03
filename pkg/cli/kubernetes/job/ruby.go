@@ -45,10 +45,10 @@ func (r *rubyCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (
 	}
 
 	commonMeta := metav1.ObjectMeta{
-		Name:      fmt.Sprintf("kubectl-prof-%s", id),
+		Name:      fmt.Sprintf("%s-ruby-%s", ContainerName, id),
 		Namespace: cfg.Job.Namespace,
 		Labels: map[string]string{
-			"kubectl-prof/id": id,
+			LabelID: id,
 		},
 		Annotations: map[string]string{
 			"sidecar.istio.io/inject": "false",
