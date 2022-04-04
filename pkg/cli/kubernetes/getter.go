@@ -58,7 +58,7 @@ func (g getter) GetProfilingPod(cfg *config.ProfilerConfig, ctx context.Context)
 				CoreV1().
 				Pods(cfg.Job.Namespace).
 				List(ctx, metav1.ListOptions{
-					LabelSelector: fmt.Sprintf("kubectl-prof/id=%s", cfg.Target.Id),
+					LabelSelector: fmt.Sprintf("%s=%s", job.LabelID, cfg.Target.Id),
 				})
 
 			if err != nil {

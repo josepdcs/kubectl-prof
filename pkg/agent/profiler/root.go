@@ -31,6 +31,8 @@ func ForLanguage(lang api.ProgrammingLanguage) (FlameGraphProfiler, error) {
 	case api.Ruby:
 		return &ruby, nil
 	case api.Node:
+		return &bpf, nil
+	case api.NodeWithPerf:
 		return &perf, nil
 	default:
 		return nil, fmt.Errorf("could not find profiler for language %s", lang)
