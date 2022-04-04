@@ -9,6 +9,7 @@ type ProfilerConfig struct {
 	Target      *TargetConfig
 	Job         *JobConfig
 	ConfigFlags *genericclioptions.ConfigFlags
+	Privileged  bool
 	LogLevel    api.LogLevel
 }
 
@@ -18,8 +19,15 @@ func NewProfilerConfig(Target *TargetConfig, Job *JobConfig, ConfigFlags *generi
 		Target:      Target,
 		Job:         Job,
 		ConfigFlags: ConfigFlags,
+		Privileged:  false,
 		LogLevel:    api.InfoLevel,
 	}
+}
+
+//WithPrivileged set privileged flag for running container in privileged mode
+func (p *ProfilerConfig) WithPrivileged(privileged bool) *ProfilerConfig {
+	p.Privileged = privileged
+	return p
 }
 
 //WithLogLevel set log level
