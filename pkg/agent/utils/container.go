@@ -3,6 +3,7 @@ package utils
 import (
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/config"
+	"github.com/josepdcs/kubectl-prof/pkg/agent/utils/containerd"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/utils/crio"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/utils/docker"
 	"github.com/pkg/errors"
@@ -21,7 +22,7 @@ func ContainerFileSystem(runtime api.ContainerRuntime, containerID string) (stri
 	case api.Crio:
 		return crio.RootFileSystemLocation(containerID)
 	case api.Containerd:
-		return "", errors.New("containerd at not supported yet, coming soon...")
+		return containerd.RootFileSystemLocation(containerID)
 	case api.Docker:
 		return docker.RootFileSystemLocation(containerID)
 	default:
@@ -37,7 +38,7 @@ func ContainerPID(job *config.ProfilingJob, PPID bool) (string, error) {
 	case api.Crio:
 		return crio.PID(job.ContainerID)
 	case api.Containerd:
-		return "", errors.New("containerd at not supported yet, coming soon...")
+		return containerd.PID(job.ContainerID)
 	case api.Docker:
 		if PPID {
 			return docker.PPID(job)
