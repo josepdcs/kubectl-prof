@@ -123,8 +123,7 @@ use [async-profiler](https://github.com/jvm-profiling-tools/async-profiler) in o
 applications. Interaction with the target JVM is done via a shared `/tmp` folder. Golang support is based
 on [ebpf profiling](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter). Python support is based
 on [py-spy](https://github.com/benfred/py-spy). Ruby support is based on [rbspy](https://rbspy.github.io/). NodeJS
-support is based on [perf](https://perf.wiki.kernel.org/index.php/Main_Page). In order for Javascript Symbols to be
-resolved, node process needs to be run with `--prof-basic-prof` flag.
+support is also based on [ebpf profiling](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter). Remains support for [perf](https://perf.wiki.kernel.org/index.php/Main_Page) but not recommended. In order for Javascript Symbols to be resolved, node process needs to be run with `--prof-basic-prof` flag.
 
 ## Contribute
 
