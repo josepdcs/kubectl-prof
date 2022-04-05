@@ -22,8 +22,8 @@ This is an open source fork of [kubectl-flame](https://github.com/yahoo/kubectl-
 * Supported languages: Go, Java (any JVM based language), Python, Ruby, and NodeJS
 * Kubernetes that use some of the following container runtimes:
     * CRI-O (default)
-    * Docker
-    * Containerd is being ported. Coming soon.
+    * Containerd
+    * Docker (support will be removed since is deprecated as container runtime from Kubernetes v1.20 and will be removed in [Kubernetes v1.24](https://kubernetes.io/blog/2022/01/07/kubernetes-is-moving-on-from-dockershim/))
 
 ## Usage
 
