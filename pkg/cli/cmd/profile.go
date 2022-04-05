@@ -183,6 +183,7 @@ func validateFlags(runtimeString string, langString string, eventString string, 
 
 	target.Language = api.ProgrammingLanguage(langString)
 	target.ContainerRuntime = api.ContainerRuntime(runtimeString)
+	target.ContainerRuntimePath = api.GetContainerRuntimeRootPath[target.ContainerRuntime]
 	target.Event = api.ProfilingEvent(eventString)
 	target.Compressor = api.Compressor(compressorString)
 
