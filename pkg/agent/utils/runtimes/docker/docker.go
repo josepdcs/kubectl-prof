@@ -7,6 +7,13 @@ import (
 	"io/ioutil"
 )
 
+type Docker struct {
+}
+
+func NewDocker() *Docker {
+	return &Docker{}
+}
+
 var dockerMountIdLocation = func(containerID string) string {
 	return fmt.Sprintf("/var/lib/docker/image/overlay2/layerdb/mounts/%s/mount-id", containerID)
 }
@@ -15,7 +22,7 @@ var dockerTargetFileSystemLocation = func(mountID string) string {
 	return fmt.Sprintf("/var/lib/docker/overlay2/%s/merged", mountID)
 }
 
-func RootFileSystemLocation(containerID string) (string, error) {
+func (d *Docker) RootFileSystemLocation(containerID string) (string, error) {
 	fileName := dockerMountIdLocation(containerID)
 	mountID, err := ioutil.ReadFile(fileName)
 	if err != nil {
@@ -25,10 +32,10 @@ func RootFileSystemLocation(containerID string) (string, error) {
 
 }
 
-func PID(job *config.ProfilingJob) (string, error) {
+func (d *Docker) PID(job *config.ProfilingJob) (string, error) {
 	return FindProcessId(job)
 }
 
-func PPID(job *config.ProfilingJob) (string, error) {
+func (d *Docker) PPID(job *config.ProfilingJob) (string, error) {
 	return FindRootProcessId(job)
 }

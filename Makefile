@@ -1,4 +1,4 @@
-VERSION ?= 0.3.0-dev
+VERSION ?= 0.4.0-dev
 CLI_NAME ?= kubectl-prof
 CLI_DIR ?= ./cmd/cli/
 BUILD_DIR ?= bin
@@ -82,10 +82,19 @@ build-docker-ruby:
 push-docker-ruby: build-docker-ruby
 	@docker push $(REGISTRY)/$(DOCKER_RUBY_IMAGE)
 
+.PHONY: test
+test:
+	GOARCH=amd64 GOOS=linux go test ./... -coverprofile=coverage.out
+
+.PHONY: coverage
+coverage: test
+	GOARCH=amd64 GOOS=linux go tool cover -html=coverage.out && unlink coverage.out
+
 .PHONY: debug
 debug: clean
 	GOARCH=amd64 GOOS=linux go build -gcflags="all=-N -l" -o $(BUILD_DIR)/$(CLI_NAME)
 
 .PHONY: clean
 clean: ## Remove previous build
+	@rm -f coverage.out
 	@rm -rf $(BUILD_DIR)

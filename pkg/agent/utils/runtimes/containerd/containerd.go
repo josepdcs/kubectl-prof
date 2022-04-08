@@ -6,6 +6,13 @@ import (
 	"io/ioutil"
 )
 
+type Containerd struct {
+}
+
+func NewContainerd() *Containerd {
+	return &Containerd{}
+}
+
 var pidFile = func(containerID string) string {
 	return fmt.Sprintf("/run/containerd/io.containerd.runtime.v2.task/k8s.io/%s/init.pid", containerID)
 }
@@ -14,7 +21,7 @@ var rootFS = func(containerID string) string {
 	return fmt.Sprintf("/run/containerd/io.containerd.runtime.v2.task/k8s.io/%s/rootfs", containerID)
 }
 
-func RootFileSystemLocation(containerID string) (string, error) {
+func (c *Containerd) RootFileSystemLocation(containerID string) (string, error) {
 	if containerID == "" {
 		return "", errors.New("container ID is mandatory")
 	}
@@ -22,7 +29,7 @@ func RootFileSystemLocation(containerID string) (string, error) {
 	return rootFS(containerID), nil
 }
 
-func PID(containerID string) (string, error) {
+func (c *Containerd) PID(containerID string) (string, error) {
 	if containerID == "" {
 		return "", errors.New("container ID is mandatory")
 	}

@@ -9,6 +9,13 @@ import (
 	"strconv"
 )
 
+type Crio struct {
+}
+
+func NewCrio() *Crio {
+	return &Crio{}
+}
+
 var crioConfigFile = func(containerID string) string {
 	return fmt.Sprintf("/var/lib/containers/storage/overlay-containers/%s/userdata/config.json", containerID)
 }
@@ -17,7 +24,7 @@ var crioStateFile = func(containerID string) string {
 	return fmt.Sprintf("/var/lib/containers/storage/overlay-containers/%s/userdata/state.json", containerID)
 }
 
-func RootFileSystemLocation(containerID string) (string, error) {
+func (c *Crio) RootFileSystemLocation(containerID string) (string, error) {
 	if containerID == "" {
 		return "", errors.New("container ID is mandatory")
 	}
@@ -45,7 +52,7 @@ func runtimeSpec(configFile string) (rspec.Spec, error) {
 	return result, nil
 }
 
-func PID(containerID string) (string, error) {
+func (c *Crio) PID(containerID string) (string, error) {
 	if containerID == "" {
 		return "", errors.New("container ID is mandatory")
 	}
