@@ -28,7 +28,7 @@ func TestContainerFileSystem(t *testing.T) {
 		runtime         api.ContainerRuntime
 		containerID     string
 		mockFunc        func()
-		expected        string
+		wanted          string
 		containedErrMsg string
 	}{
 		{
@@ -59,7 +59,7 @@ func TestContainerFileSystem(t *testing.T) {
 					return fake.NewRuntimeFake(), nil
 				}
 			},
-			expected: "/root/fs/1234",
+			wanted: "/root/fs/1234",
 		},
 		{
 			name:        "containerd container runtime",
@@ -70,7 +70,7 @@ func TestContainerFileSystem(t *testing.T) {
 					return fake.NewRuntimeFake(), nil
 				}
 			},
-			expected: "/root/fs/1234",
+			wanted: "/root/fs/1234",
 		},
 	}
 
@@ -84,7 +84,7 @@ func TestContainerFileSystem(t *testing.T) {
 			if err != nil {
 				assert.Contains(t, err.Error(), tt.containedErrMsg)
 			}
-			assert.Equal(t, tt.expected, location)
+			assert.Equal(t, tt.wanted, location)
 		})
 	}
 	runtime = original

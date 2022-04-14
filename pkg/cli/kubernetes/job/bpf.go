@@ -16,20 +16,16 @@ type bpfCreator struct{}
 
 func (b *bpfCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
 	id := string(uuid.NewUUID())
-	var imageName string
-	var imagePullSecret []apiv1.LocalObjectReference
-	if cfg.Target.Image != "" {
-		imageName = cfg.Target.Image
-	} else {
-		imageName = fmt.Sprintf("%s:%s-bpf", baseImageName, version.GetCurrent())
-	}
+	imageName := b.getImageName(cfg.Target)
 
+	var imagePullSecret []apiv1.LocalObjectReference
 	if cfg.Target.ImagePullSecret != "" {
 		imagePullSecret = []apiv1.LocalObjectReference{{Name: cfg.Target.ImagePullSecret}}
 	}
 
 	args := []string{
-		id, string(targetPod.UID),
+		id,
+		string(targetPod.UID),
 		cfg.Target.ContainerName,
 		cfg.Target.ContainerId,
 		cfg.Target.Duration.String(),
@@ -43,17 +39,7 @@ func (b *bpfCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 		args = append(args, cfg.Target.Pgrep)
 	}
 
-	commonMeta := metav1.ObjectMeta{
-		Name:      fmt.Sprintf("%s-%s-bpf-%s", ContainerName, cfg.Target.Language, id),
-		Namespace: cfg.Job.Namespace,
-		Labels: map[string]string{
-			LabelID: id,
-		},
-		Annotations: map[string]string{
-			"sidecar.istio.io/inject": "false",
-			"linkerd.io/inject":       "disabled",
-		},
-	}
+	commonMeta := b.getObjectMeta(id, cfg)
 
 	resources, err := cfg.Job.ToResourceRequirements()
 	if err != nil {
@@ -125,7 +111,7 @@ func (b *bpfCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 								},
 							},
 							SecurityContext: &apiv1.SecurityContext{
-								Privileged: &cfg.Privileged,
+								Privileged: &cfg.Job.Privileged,
 								Capabilities: &apiv1.Capabilities{
 									Add: []apiv1.Capability{"SYS_ADMIN", "PERFMON", "SYS_PTRACE", "SYSLOG"},
 								},
@@ -145,4 +131,29 @@ func (b *bpfCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 	}
 
 	return id, job, nil
+}
+
+//getImageName if image name is provider from config.TargetConfig this one is returned otherwise a new one is built
+func (b *bpfCreator) getImageName(t *config.TargetConfig) string {
+	var imageName string
+	if t.Image != "" {
+		imageName = t.Image
+	} else {
+		imageName = fmt.Sprintf("%s:%s-bpf", baseImageName, version.GetCurrent())
+	}
+	return imageName
+}
+
+func (b *bpfCreator) getObjectMeta(id string, cfg *config.ProfilerConfig) metav1.ObjectMeta {
+	return metav1.ObjectMeta{
+		Name:      fmt.Sprintf("%s-%s-bpf-%s", ContainerName, cfg.Target.Language, id),
+		Namespace: cfg.Job.Namespace,
+		Labels: map[string]string{
+			LabelID: id,
+		},
+		Annotations: map[string]string{
+			"sidecar.istio.io/inject": "false",
+			"linkerd.io/inject":       "disabled",
+		},
+	}
 }

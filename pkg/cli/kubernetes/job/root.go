@@ -24,7 +24,7 @@ var (
 	perf   = perfCreator{}
 )
 
-type creator interface {
+type Creator interface {
 	create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error)
 }
 

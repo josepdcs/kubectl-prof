@@ -16,7 +16,7 @@ type perfCreator struct{}
 
 func (p *perfCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
 	id := string(uuid.NewUUID())
-	var imageName string
+	imageName := p.getImageName(cfg.Target)
 	var imagePullSecret []apiv1.LocalObjectReference
 	args := []string{
 		id,
@@ -34,27 +34,11 @@ func (p *perfCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (
 		args = append(args, cfg.Target.Pgrep)
 	}
 
-	if cfg.Target.Image != "" {
-		imageName = cfg.Target.Image
-	} else {
-		imageName = fmt.Sprintf("%s:%s-perf", baseImageName, version.GetCurrent())
-	}
-
 	if cfg.Target.ImagePullSecret != "" {
 		imagePullSecret = []apiv1.LocalObjectReference{{Name: cfg.Target.ImagePullSecret}}
 	}
 
-	commonMeta := metav1.ObjectMeta{
-		Name:      fmt.Sprintf("%s-perf-%s", ContainerName, id),
-		Namespace: cfg.Job.Namespace,
-		Labels: map[string]string{
-			LabelID: id,
-		},
-		Annotations: map[string]string{
-			"sidecar.istio.io/inject": "false",
-			"linkerd.io/inject":       "disabled",
-		},
-	}
+	commonMeta := p.getObjectMeta(id, cfg)
 
 	resources, err := cfg.Job.ToResourceRequirements()
 	if err != nil {
@@ -103,7 +87,7 @@ func (p *perfCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (
 							},
 							SecurityContext: &apiv1.SecurityContext{
 								// Perf works fine if it runs in privileged mode, SYS_ADMIN may not be enough
-								Privileged: &cfg.Privileged,
+								Privileged: &cfg.Job.Privileged,
 								Capabilities: &apiv1.Capabilities{
 									Add: []apiv1.Capability{"SYS_ADMIN", "PERFMON", "SYS_PTRACE", "SYSLOG"},
 								},
@@ -123,4 +107,29 @@ func (p *perfCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (
 	}
 
 	return id, job, nil
+}
+
+//getImageName if image name is provider from config.TargetConfig this one is returned otherwise a new one is built
+func (p *perfCreator) getImageName(t *config.TargetConfig) string {
+	var imageName string
+	if t.Image != "" {
+		imageName = t.Image
+	} else {
+		imageName = fmt.Sprintf("%s:%s-perf", baseImageName, version.GetCurrent())
+	}
+	return imageName
+}
+
+func (p *perfCreator) getObjectMeta(id string, cfg *config.ProfilerConfig) metav1.ObjectMeta {
+	return metav1.ObjectMeta{
+		Name:      fmt.Sprintf("%s-perf-%s", ContainerName, id),
+		Namespace: cfg.Job.Namespace,
+		Labels: map[string]string{
+			LabelID: id,
+		},
+		Annotations: map[string]string{
+			"sidecar.istio.io/inject": "false",
+			"linkerd.io/inject":       "disabled",
+		},
+	}
 }
