@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/pkg/cli/config"
 	"github.com/josepdcs/kubectl-prof/pkg/cli/kubernetes/job"
 	batchv1 "k8s.io/api/batch/v1"
@@ -20,8 +21,16 @@ func NewCreator() *creator {
 	return &creator{}
 }
 
+var jobType = func(language api.ProgrammingLanguage) (job.Creator, error) {
+	return job.Get(language)
+}
+
 func (c creator) CreateProfilingJob(targetPod *v1.Pod, cfg *config.ProfilerConfig, ctx context.Context) (string, *batchv1.Job, error) {
-	id, profilingJob, err := job.Create(targetPod, cfg)
+	j, err := jobType(cfg.Target.Language)
+	if err != nil {
+		return "", nil, fmt.Errorf("unable to get type of job: %w", err)
+	}
+	id, profilingJob, err := j.Create(targetPod, cfg)
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to create job: %w", err)
 	}
@@ -30,7 +39,6 @@ func (c creator) CreateProfilingJob(targetPod *v1.Pod, cfg *config.ProfilerConfi
 		err := printJob(profilingJob)
 		return "", nil, err
 	}
-
 	createJob, err := clientSet.
 		BatchV1().
 		Jobs(cfg.Job.Namespace).

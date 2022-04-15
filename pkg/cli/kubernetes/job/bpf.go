@@ -14,7 +14,7 @@ import (
 
 type bpfCreator struct{}
 
-func (b *bpfCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
+func (b *bpfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
 	id := string(uuid.NewUUID())
 	imageName := b.getImageName(cfg.Target)
 

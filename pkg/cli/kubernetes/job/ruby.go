@@ -14,7 +14,7 @@ import (
 
 type rubyCreator struct{}
 
-func (r *rubyCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
+func (r *rubyCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
 	id := string(uuid.NewUUID())
 	imageName := r.getImageName(cfg.Target)
 

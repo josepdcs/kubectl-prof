@@ -59,7 +59,7 @@ func Test_rubyCreate_create(t *testing.T) {
 		},
 	}
 	b := &rubyCreator{}
-	id, job, err := b.create(targetPod, cfg)
+	id, job, err := b.Create(targetPod, cfg)
 
 	require.NoError(t, err)
 	assert.NotEmpty(t, id)
@@ -188,7 +188,7 @@ func Test_rubyCreate_shouldFailWhenUnableGenerateResources(t *testing.T) {
 		},
 	}
 	b := &rubyCreator{}
-	id, job, err := b.create(targetPod, cfg)
+	id, job, err := b.Create(targetPod, cfg)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unable to generate resource requirements")
