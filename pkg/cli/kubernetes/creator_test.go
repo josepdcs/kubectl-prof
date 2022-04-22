@@ -35,13 +35,12 @@ func Test_creator_CreateProfilingJob(t *testing.T) {
 		ctx       context.Context
 	}
 	tests := []struct {
-		name          string
-		args          args
-		mockJobType   func()
-		mockClientSet func()
-		wantId        string
-		wantJob       *batchv1.Job
-		wantErrMsg    string
+		name        string
+		args        args
+		mockJobType func()
+		wantId      string
+		wantJob     *batchv1.Job
+		wantErrMsg  string
 	}{
 		{
 			name: "should create profiling job",
@@ -65,9 +64,6 @@ func Test_creator_CreateProfilingJob(t *testing.T) {
 					return &m, nil
 				}
 			},
-			mockClientSet: func() {
-				//clientSet = testclient.NewSimpleClientset()
-			},
 			wantId: "ID",
 			wantJob: &batchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
@@ -79,7 +75,6 @@ func Test_creator_CreateProfilingJob(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockJobType()
-			tt.mockClientSet()
 
 			c := creator{
 				clientSet: testclient.NewSimpleClientset(),
@@ -95,26 +90,6 @@ func Test_creator_CreateProfilingJob(t *testing.T) {
 
 			assert.Equal(t, tt.wantId, gotId)
 			assert.Equal(t, tt.wantJob, gotJob)
-		})
-	}
-}
-
-func Test_printJob(t *testing.T) {
-	type args struct {
-		job *batchv1.Job
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := printJob(tt.args.job); (err != nil) != tt.wantErr {
-				t.Errorf("printJob() error = %v, wantErr %v", err, tt.wantErr)
-			}
 		})
 	}
 }
