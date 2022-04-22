@@ -26,36 +26,24 @@ import (
 )
 
 type Profiler struct {
-	Connector kubernetes.Connector
-	Getter    kubernetes.Getter
-	Creator   kubernetes.Creator
-	Deleter   kubernetes.Deleter
+	Getter  kubernetes.Getter
+	Creator kubernetes.Creator
+	Deleter kubernetes.Deleter
 }
 
 //NewProfiler returns new Profiler
-func NewProfiler(con kubernetes.Connector, get kubernetes.Getter, cre kubernetes.Creator, del kubernetes.Deleter) *Profiler {
+func NewProfiler(get kubernetes.Getter, cre kubernetes.Creator, del kubernetes.Deleter) *Profiler {
 	return &Profiler{
-		Connector: con,
-		Getter:    get,
-		Creator:   cre,
-		Deleter:   del,
+		Getter:  get,
+		Creator: cre,
+		Deleter: del,
 	}
 }
 
 func (p *Profiler) Profile(cfg *config.ProfilerConfig) {
-	ns, err := p.Connector.Connect(cfg.ConfigFlags)
-	if err != nil {
-		log.Fatalf("Failed connecting to kubernetes cluster: %v\n", err)
-	}
+	ctx := context.Background()
 
 	printer := cli.NewPrinter(cfg.Target.DryRun)
-
-	if cfg.Target.Namespace == "" {
-		cfg.Target.Namespace = ns
-	}
-	cfg.Job.Namespace = ns
-
-	ctx := context.Background()
 
 	printer.Print("Verifying target pod ... ")
 	pod, err := p.Getter.GetPod(cfg.Target.PodName, cfg.Target.Namespace, ctx)
@@ -101,7 +89,7 @@ func (p *Profiler) Profile(cfg *config.ProfilerConfig) {
 
 	printer.PrintSuccess()
 	eventHandler := handler.NewEventHandler(job, cfg.Target, p.Deleter, cfg.LogLevel)
-	done, err := kubernetes.GetPodLogs(profilingPod, eventHandler, ctx)
+	done, err := p.Getter.GetPodLogs(profilingPod, eventHandler, ctx)
 	if err != nil {
 		printer.PrintError()
 		fmt.Println(err.Error())

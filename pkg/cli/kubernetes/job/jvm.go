@@ -14,9 +14,15 @@ import (
 
 type jvmCreator struct{}
 
-func (c *jvmCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
+func (c *jvmCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
 	id := string(uuid.NewUUID())
-	imageName := c.getAgentImage(cfg.Target)
+	imageName := c.getImageName(cfg.Target)
+
+	var imagePullSecret []apiv1.LocalObjectReference
+	if cfg.Target.ImagePullSecret != "" {
+		imagePullSecret = []apiv1.LocalObjectReference{{Name: cfg.Target.ImagePullSecret}}
+	}
+
 	args := []string{
 		id,
 		string(targetPod.UID),
@@ -33,22 +39,8 @@ func (c *jvmCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 		args = append(args, cfg.Target.Pgrep)
 	}
 
-	var imagePullSecret []apiv1.LocalObjectReference
-	if cfg.Target.ImagePullSecret != "" {
-		imagePullSecret = []apiv1.LocalObjectReference{{Name: cfg.Target.ImagePullSecret}}
-	}
+	commonMeta := c.getObjectMeta(id, cfg)
 
-	commonMeta := metav1.ObjectMeta{
-		Name:      fmt.Sprintf("%s-jvm-%s", ContainerName, id),
-		Namespace: cfg.Job.Namespace,
-		Labels: map[string]string{
-			LabelID: id,
-		},
-		Annotations: map[string]string{
-			"sidecar.istio.io/inject": "false",
-			"linkerd.io/inject":       "disabled",
-		},
-	}
 	resources, err := cfg.Job.ToResourceRequirements()
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to generate resource requirements: %w", err)
@@ -95,7 +87,7 @@ func (c *jvmCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 								},
 							},
 							SecurityContext: &apiv1.SecurityContext{
-								Privileged: &cfg.Privileged,
+								Privileged: &cfg.Job.Privileged,
 								Capabilities: &apiv1.Capabilities{
 									Add: []apiv1.Capability{"SYS_ADMIN"},
 								},
@@ -117,7 +109,7 @@ func (c *jvmCreator) create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 	return id, job, nil
 }
 
-func (c *jvmCreator) getAgentImage(t *config.TargetConfig) string {
+func (c *jvmCreator) getImageName(t *config.TargetConfig) string {
 	if t.Image != "" {
 		return t.Image
 	}
@@ -128,4 +120,18 @@ func (c *jvmCreator) getAgentImage(t *config.TargetConfig) string {
 	}
 
 	return fmt.Sprintf("%s:%s", baseImageName, tag)
+}
+
+func (c *jvmCreator) getObjectMeta(id string, cfg *config.ProfilerConfig) metav1.ObjectMeta {
+	return metav1.ObjectMeta{
+		Name:      fmt.Sprintf("%s-jvm-%s", ContainerName, id),
+		Namespace: cfg.Job.Namespace,
+		Labels: map[string]string{
+			LabelID: id,
+		},
+		Annotations: map[string]string{
+			"sidecar.istio.io/inject": "false",
+			"linkerd.io/inject":       "disabled",
+		},
+	}
 }

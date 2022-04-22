@@ -19,6 +19,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/pkg/cli/config"
 	"github.com/josepdcs/kubectl-prof/pkg/cli/kubernetes/job"
 	"io"
+	"k8s.io/client-go/kubernetes"
 	"time"
 
 	apiv1 "k8s.io/api/core/v1"
@@ -31,15 +32,18 @@ type EventHandler interface {
 }
 
 type getter struct {
+	clientSet kubernetes.Interface
 }
 
 //NewGetter returns new implementation of Getter
-func NewGetter() *getter {
-	return &getter{}
+func NewGetter(clientSet kubernetes.Interface) *getter {
+	return &getter{
+		clientSet: clientSet,
+	}
 }
 
 func (g getter) GetPod(podName, namespace string, ctx context.Context) (*apiv1.Pod, error) {
-	podObject, err := clientSet.
+	podObject, err := g.clientSet.
 		CoreV1().
 		Pods(namespace).
 		Get(ctx, podName, metav1.GetOptions{})
@@ -54,7 +58,7 @@ func (g getter) GetProfilingPod(cfg *config.ProfilerConfig, ctx context.Context)
 	var pod *apiv1.Pod
 	err := wait.Poll(1*time.Second, 5*time.Minute,
 		func() (bool, error) {
-			podList, err := clientSet.
+			podList, err := g.clientSet.
 				CoreV1().
 				Pods(cfg.Job.Namespace).
 				List(ctx, metav1.ListOptions{
@@ -89,9 +93,9 @@ func (g getter) GetProfilingPod(cfg *config.ProfilerConfig, ctx context.Context)
 	return pod, nil
 }
 
-func GetPodLogs(pod *apiv1.Pod, handler EventHandler, ctx context.Context) (chan bool, error) {
+func (g getter) GetPodLogs(pod *apiv1.Pod, handler EventHandler, ctx context.Context) (chan bool, error) {
 	done := make(chan bool)
-	req := clientSet.CoreV1().
+	req := g.clientSet.CoreV1().
 		Pods(pod.Namespace).
 		GetLogs(pod.Name, &apiv1.PodLogOptions{
 			Follow:    true,

@@ -2,32 +2,21 @@ package config
 
 import (
 	"github.com/josepdcs/kubectl-prof/api"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 type ProfilerConfig struct {
-	Target      *TargetConfig
-	Job         *JobConfig
-	ConfigFlags *genericclioptions.ConfigFlags
-	Privileged  bool
-	LogLevel    api.LogLevel
+	Target   *TargetConfig
+	Job      *JobConfig
+	LogLevel api.LogLevel
 }
 
 //NewProfilerConfig instance new ProfilerConfig with given parameters and default values for the rest
-func NewProfilerConfig(Target *TargetConfig, Job *JobConfig, ConfigFlags *genericclioptions.ConfigFlags) *ProfilerConfig {
+func NewProfilerConfig(Target *TargetConfig, Job *JobConfig) *ProfilerConfig {
 	return &ProfilerConfig{
-		Target:      Target,
-		Job:         Job,
-		ConfigFlags: ConfigFlags,
-		Privileged:  false,
-		LogLevel:    api.InfoLevel,
+		Target:   Target,
+		Job:      Job,
+		LogLevel: api.InfoLevel,
 	}
-}
-
-//WithPrivileged set privileged flag for running container in privileged mode
-func (p *ProfilerConfig) WithPrivileged(privileged bool) *ProfilerConfig {
-	p.Privileged = privileged
-	return p
 }
 
 //WithLogLevel set log level

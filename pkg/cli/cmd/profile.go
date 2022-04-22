@@ -64,7 +64,6 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 		chosenLang     string
 		chosenEvent    string
 		chosenLogLevel string
-		privileged     bool
 		compressor     string
 	)
 
@@ -105,15 +104,23 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 			}
 
 			// Prepare profiler
-			cfg := config.NewProfilerConfig(&target, &job, options.configFlags).
-				WithPrivileged(privileged).
-				WithLogLevel(api.LogLevel(chosenLogLevel))
+			cfg := config.NewProfilerConfig(&target, &job).WithLogLevel(api.LogLevel(chosenLogLevel))
 
 			connector := kubernetes.NewConnector()
-			getter := kubernetes.NewGetter()
-			creator := kubernetes.NewCreator()
-			deleter := kubernetes.NewDeleter()
-			profiler.NewProfiler(connector, getter, creator, deleter).Profile(cfg)
+			connectionContext, err := connector.Connect(options.configFlags)
+			if err != nil {
+				log.Fatalf("Failed connecting to kubernetes cluster: %v\n", err)
+			}
+
+			if cfg.Target.Namespace == "" {
+				cfg.Target.Namespace = connectionContext.Namespace
+			}
+			cfg.Job.Namespace = connectionContext.Namespace
+
+			getter := kubernetes.NewGetter(connectionContext.ClientSet)
+			creator := kubernetes.NewCreator(connectionContext.ClientSet)
+			deleter := kubernetes.NewDeleter(connectionContext.ClientSet)
+			profiler.NewProfiler(getter, creator, deleter).Profile(cfg)
 		},
 	}
 
@@ -144,7 +151,7 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.Flags().StringVar(&target.ImagePullSecret, "imagePullSecret", "", "imagePullSecret for agent docker image")
 	cmd.Flags().StringVar(&target.ServiceAccountName, "serviceAccountName", "", "serviceAccountName to be used for profiling container")
 
-	cmd.Flags().BoolVar(&privileged, "privileged", false, "run agent container in privileged mode")
+	cmd.Flags().BoolVar(&job.Privileged, "privileged", false, "run agent container in privileged mode")
 	cmd.Flags().StringVar(&chosenLogLevel, "log-level", defaultLogLevel,
 		fmt.Sprintf("Log level, choose one of %v", api.AvailableLogLevels()))
 	cmd.Flags().StringVarP(&compressor, "compressor", "c", defaultCompressor,

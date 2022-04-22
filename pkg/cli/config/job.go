@@ -18,6 +18,9 @@ type JobConfig struct {
 
 	// Namespace specifies the namespace for job execution.
 	Namespace string
+
+	// Privileged indicates if Job has to be run in privileged mode
+	Privileged bool
 }
 
 // ResourceConfig holds resource configuration for either requests or limits.

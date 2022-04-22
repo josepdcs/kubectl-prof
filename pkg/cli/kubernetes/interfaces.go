@@ -7,15 +7,17 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/kubernetes"
 )
 
 type Connector interface {
-	Connect(clientGetter genericclioptions.RESTClientGetter) (string, error)
+	Connect(clientGetter genericclioptions.RESTClientGetter) (kubernetes.Interface, string, error)
 }
 
 type Getter interface {
 	GetPod(podName, namespace string, ctx context.Context) (*apiv1.Pod, error)
 	GetProfilingPod(cfg *config.ProfilerConfig, ctx context.Context) (*apiv1.Pod, error)
+	GetPodLogs(pod *apiv1.Pod, handler EventHandler, ctx context.Context) (chan bool, error)
 }
 
 type Creator interface {
