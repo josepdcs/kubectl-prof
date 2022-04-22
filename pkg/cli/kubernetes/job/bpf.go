@@ -113,7 +113,7 @@ func (b *bpfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 							SecurityContext: &apiv1.SecurityContext{
 								Privileged: &cfg.Job.Privileged,
 								Capabilities: &apiv1.Capabilities{
-									Add: []apiv1.Capability{"SYS_ADMIN", "PERFMON", "SYS_PTRACE", "SYSLOG"},
+									Add: []apiv1.Capability{"SYS_ADMIN"},
 								},
 							},
 							Resources: resources,

@@ -10,15 +10,19 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
+	"k8s.io/client-go/kubernetes"
 	"os"
 )
 
 type creator struct {
+	clientSet kubernetes.Interface
 }
 
 //NewCreator returns new implementation of Creator
-func NewCreator() *creator {
-	return &creator{}
+func NewCreator(clientSet kubernetes.Interface) *creator {
+	return &creator{
+		clientSet: clientSet,
+	}
 }
 
 var jobType = func(language api.ProgrammingLanguage) (job.Creator, error) {
@@ -39,7 +43,7 @@ func (c creator) CreateProfilingJob(targetPod *v1.Pod, cfg *config.ProfilerConfi
 		err := printJob(profilingJob)
 		return "", nil, err
 	}
-	createJob, err := clientSet.
+	createJob, err := c.clientSet.
 		BatchV1().
 		Jobs(cfg.Job.Namespace).
 		Create(ctx, profilingJob, metav1.CreateOptions{})

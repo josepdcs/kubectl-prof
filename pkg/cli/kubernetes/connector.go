@@ -26,43 +26,29 @@ func NewConnector() *connector {
 	return &connector{}
 }
 
-var clientSet *kubernetes.Clientset
+type ConnectionContext struct {
+	ClientSet kubernetes.Interface
+	Namespace string
+}
 
-func (c connector) Connect(clientGetter genericclioptions.RESTClientGetter) (string, error) {
+func (c connector) Connect(clientGetter genericclioptions.RESTClientGetter) (ConnectionContext, error) {
 	restConfig, err := clientGetter.ToRESTConfig()
 	if err != nil {
-		return "", err
+		return ConnectionContext{}, err
 	}
 
 	clientset, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
-		return "", err
+		return ConnectionContext{}, err
 	}
 
-	clientSet = clientset
 	ns, _, err := clientGetter.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
-		return "", err
+		return ConnectionContext{}, err
 	}
 
-	return ns, nil
-
-	// homeDirectory, err := homedir.Dir()
-	// if err != nil {
-	// 	return err
-	// }
-	// kubeconfig := filepath.Join(homeDirectory, ".kube", "config")
-	// config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// // create the clientset
-	// clientset, err := kubernetes.NewForConfig(config)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// clientSet = clientset
-	// return nil
+	return ConnectionContext{
+		ClientSet: clientset,
+		Namespace: ns,
+	}, nil
 }

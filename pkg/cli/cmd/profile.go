@@ -104,14 +104,23 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 			}
 
 			// Prepare profiler
-			cfg := config.NewProfilerConfig(&target, &job, options.configFlags).
-				WithLogLevel(api.LogLevel(chosenLogLevel))
+			cfg := config.NewProfilerConfig(&target, &job).WithLogLevel(api.LogLevel(chosenLogLevel))
 
 			connector := kubernetes.NewConnector()
-			getter := kubernetes.NewGetter()
-			creator := kubernetes.NewCreator()
-			deleter := kubernetes.NewDeleter()
-			profiler.NewProfiler(connector, getter, creator, deleter).Profile(cfg)
+			connectionContext, err := connector.Connect(options.configFlags)
+			if err != nil {
+				log.Fatalf("Failed connecting to kubernetes cluster: %v\n", err)
+			}
+
+			if cfg.Target.Namespace == "" {
+				cfg.Target.Namespace = connectionContext.Namespace
+			}
+			cfg.Job.Namespace = connectionContext.Namespace
+
+			getter := kubernetes.NewGetter(connectionContext.ClientSet)
+			creator := kubernetes.NewCreator(connectionContext.ClientSet)
+			deleter := kubernetes.NewDeleter(connectionContext.ClientSet)
+			profiler.NewProfiler(getter, creator, deleter).Profile(cfg)
 		},
 	}
 
