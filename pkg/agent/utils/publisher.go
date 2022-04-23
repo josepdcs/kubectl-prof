@@ -9,13 +9,13 @@ import (
 	"os"
 )
 
-func PublishFlameGraph(c api.Compressor, flameFile string) error {
-	file, err := os.Open(flameFile)
+func Publish(c api.Compressor, file string, eventType api.EventType) error {
+	f, err := os.Open(file)
 	if err != nil {
 		return err
 	}
 
-	reader := bufio.NewReader(file)
+	reader := bufio.NewReader(f)
 	content, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return err
@@ -31,7 +31,13 @@ func PublishFlameGraph(c api.Compressor, flameFile string) error {
 	}
 
 	encoded := base64.StdEncoding.EncodeToString(compressed)
-	fgData := api.FlameGraphData{EncodedFile: encoded}
+	var encodedFile interface{}
+	switch eventType {
+	case api.Jfr:
+		encodedFile = api.JfrData{EncodedFile: encoded}
+	default:
+		encodedFile = api.FlameGraphData{EncodedFile: encoded}
+	}
 
-	return api.PublishEvent(api.FlameGraph, fgData)
+	return api.PublishEvent(eventType, encodedFile)
 }

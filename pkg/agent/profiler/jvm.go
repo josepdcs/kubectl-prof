@@ -25,7 +25,6 @@ import (
 
 const (
 	profilerDir = "/tmp/async-profiler"
-	fileName    = "/tmp/flamegraph.html"
 	profilerSh  = profilerDir + "/profiler.sh"
 )
 
@@ -60,7 +59,12 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 
 	duration := strconv.Itoa(int(job.Duration.Seconds()))
 	event := string(job.Event)
-	cmd := utils.Command(profilerSh, "-d", duration, "-f", fileName, "-e", event, "--fdtransfer", pid)
+	fileName := "/tmp/flamegraph.html"
+	if job.OutputType == api.Jfr {
+		fileName = "/tmp/flight.jfr"
+	}
+	output := string(job.OutputType)
+	cmd := utils.Command(profilerSh, "-o", output, "-d", duration, "-f", fileName, "-e", event, "--fdtransfer", pid)
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &out
@@ -73,7 +77,7 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 	}
 	api.PublishLogEvent(api.InfoLevel, out.String())
 
-	return utils.PublishFlameGraph(job.Compressor, fileName)
+	return utils.Publish(job.Compressor, fileName, api.FlameGraph)
 }
 
 func (j *JvmProfiler) copyProfilerToTempDir() error {

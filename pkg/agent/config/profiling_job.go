@@ -17,6 +17,7 @@ type ProfilingJob struct {
 	TargetProcessName string
 	Event             api.ProfilingEvent
 	Compressor        api.Compressor
+	OutputType        api.EventType
 }
 
 func (p *ProfilingJob) String() string {

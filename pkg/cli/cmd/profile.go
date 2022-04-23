@@ -31,10 +31,13 @@ These commands help you identify application performance issues.
 	# Profile an alpine based container for java language
 	%[1]s prof mypod -f flame.html -l java --alpine 
 
+	# Profile a pod for 5 minutes and save the output as flight.jfr file with JFR format for java language  
+	%[1]s prof mypod -f flight.jfr -t 5m -l java --jfr 
+
 	# Profile specific container container1 from pod mypod in namespace test for go language
 	%[1]s prof mypod -f /tmp/flame.svg -n test container1 -l go
 
-	# Set custom resource requests and limits for the cli pod (default: neither requests nor limits are set) for python language
+	# Set custom resource requests and limits for the agent pod (default: neither requests nor limits are set) for python language
 	%[1]s prof mypod -f flame.svg -cpu.requests 100m -cpu.limits 200m -mem.requests 100Mi -mem.limits 200Mi -l python
 `
 )
@@ -65,6 +68,7 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 		chosenEvent    string
 		chosenLogLevel string
 		compressor     string
+		jfrOutput      bool
 	)
 
 	options := NewProfileOptions(streams)
@@ -92,6 +96,11 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 			if err := validateFlags(chosenRuntime, chosenLang, chosenEvent, chosenLogLevel, compressor, &target, &job); err != nil {
 				_, _ = fmt.Fprintln(streams.Out, err)
 				os.Exit(1)
+			}
+
+			target.OutputType = api.FlameGraph
+			if jfrOutput && target.Language == api.Java {
+				target.OutputType = api.Jfr
 			}
 
 			// set log level
@@ -151,11 +160,12 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.Flags().StringVar(&target.ImagePullSecret, "imagePullSecret", "", "imagePullSecret for agent docker image")
 	cmd.Flags().StringVar(&target.ServiceAccountName, "serviceAccountName", "", "serviceAccountName to be used for profiling container")
 
-	cmd.Flags().BoolVar(&job.Privileged, "privileged", false, "run agent container in privileged mode")
+	cmd.Flags().BoolVar(&job.Privileged, "privileged", false, "Run agent container in privileged mode")
 	cmd.Flags().StringVar(&chosenLogLevel, "log-level", defaultLogLevel,
 		fmt.Sprintf("Log level, choose one of %v", api.AvailableLogLevels()))
 	cmd.Flags().StringVarP(&compressor, "compressor", "c", defaultCompressor,
 		fmt.Sprintf("Compressor for compressing generated profiling result, choose one of %v", api.AvailableCompressors()))
+	cmd.Flags().BoolVar(&jfrOutput, "jfr", false, "Generate jfr output instead of flame graph in case of java language")
 
 	options.configFlags.AddFlags(cmd.Flags())
 

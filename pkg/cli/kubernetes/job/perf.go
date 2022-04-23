@@ -28,6 +28,7 @@ func (p *perfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (
 		string(cfg.Target.Event),
 		string(cfg.Target.ContainerRuntime),
 		string(cfg.Target.Compressor),
+		string(cfg.Target.OutputType),
 	}
 
 	if cfg.Target.Pgrep != "" {

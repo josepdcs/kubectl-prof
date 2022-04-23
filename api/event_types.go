@@ -23,6 +23,7 @@ type ProgressStage string
 const (
 	Error      EventType = "error"
 	FlameGraph EventType = "flamegraph"
+	Jfr        EventType = "jfr"
 	Progress   EventType = "progress"
 	Log        EventType = "log"
 
@@ -43,6 +44,10 @@ type FlameGraphData struct {
 	EncodedFile string `json:"encoded_file"`
 }
 
+type JfrData struct {
+	EncodedFile string `json:"encoded_file"`
+}
+
 type ProgressData struct {
 	Time  time.Time     `json:"time"`
 	Stage ProgressStage `json:"stage"`
@@ -57,6 +62,7 @@ type LogData struct {
 var typeToData = map[EventType]interface{}{
 	Error:      &ErrorData{},
 	FlameGraph: &FlameGraphData{},
+	Jfr:        &JfrData{},
 	Progress:   &ProgressData{},
 	Log:        &LogData{},
 }
