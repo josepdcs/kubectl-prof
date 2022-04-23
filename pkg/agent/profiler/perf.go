@@ -47,7 +47,7 @@ func (p *PerfProfiler) Invoke(job *config.ProfilingJob) error {
 		return fmt.Errorf("flamegraph generation failed: %s", err)
 	}
 
-	return utils.PublishFlameGraph(job.Compressor, flameGraphPerfOutputFile)
+	return utils.Publish(job.Compressor, flameGraphPerfOutputFile, api.FlameGraph)
 }
 
 func (p *PerfProfiler) runPerfRecord(job *config.ProfilingJob) error {

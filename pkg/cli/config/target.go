@@ -25,4 +25,5 @@ type TargetConfig struct {
 	Pgrep                string
 	ImagePullSecret      string
 	ServiceAccountName   string
+	OutputType           api.EventType
 }

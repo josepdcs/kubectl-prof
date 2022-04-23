@@ -39,5 +39,5 @@ func (r *RubyProfiler) Invoke(job *config.ProfilingJob) error {
 		return fmt.Errorf("could not launch profiler: %w", err)
 	}
 
-	return utils.PublishFlameGraph(job.Compressor, rbspyOutputFileName)
+	return utils.Publish(job.Compressor, rbspyOutputFileName, api.FlameGraph)
 }
