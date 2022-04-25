@@ -49,7 +49,7 @@ func (b *BpfProfiler) Invoke(job *config.ProfilingJob) error {
 		return fmt.Errorf("flamegraph generation failed: %s", err)
 	}
 
-	return utils.Publish(job.Compressor, flameGraphOutputLocation, api.FlameGraph)
+	return utils.Publish(job.Compressor, flameGraphOutputLocation, job.OutputType)
 }
 
 func (b *BpfProfiler) runProfiler(job *config.ProfilingJob) error {

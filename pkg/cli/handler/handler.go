@@ -40,7 +40,9 @@ func (h *EventHandler) Handle(events chan string, done chan bool, ctx context.Co
 			case *api.ErrorData:
 				fmt.Printf("Error: %s\n", eventType.Reason)
 			case *api.FlameGraphData:
-				h.createFlameGraph(eventType)
+				h.writeEncodedFile(eventType.EncodedFile)
+			case *api.JfrData:
+				h.writeEncodedFile(eventType.EncodedFile)
 			case *api.ProgressData:
 				h.reportProgress(eventType, done, ctx)
 			case *api.LogData:
@@ -52,8 +54,8 @@ func (h *EventHandler) Handle(events chan string, done chan bool, ctx context.Co
 	}
 }
 
-func (h *EventHandler) createFlameGraph(data *api.FlameGraphData) {
-	decoded, err := base64.StdEncoding.DecodeString(data.EncodedFile)
+func (h *EventHandler) writeEncodedFile(encoded string) {
+	decoded, err := base64.StdEncoding.DecodeString(encoded)
 	if err != nil {
 		fmt.Printf("Failed to decode result data: %v\n", err)
 		return
