@@ -26,6 +26,8 @@ import (
 const (
 	profilerDir = "/tmp/async-profiler"
 	profilerSh  = profilerDir + "/profiler.sh"
+
+	jcmd = "/opt/jdk-17/bin/jcmd"
 )
 
 type JvmProfiler struct{}

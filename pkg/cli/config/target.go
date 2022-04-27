@@ -25,5 +25,6 @@ type TargetConfig struct {
 	Pgrep                string
 	ImagePullSecret      string
 	ServiceAccountName   string
+	ProfilingTool        api.ProfilingTool
 	OutputType           api.EventType
 }

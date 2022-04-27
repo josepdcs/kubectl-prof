@@ -20,6 +20,7 @@ const (
 	defaultEvent      = string(api.Cpu)
 	defaultLogLevel   = string(api.InfoLevel)
 	defaultCompressor = string(api.Snappy)
+	defaultOutputType = string(api.FlameGraph)
 	longDescription   = `Profiling on existing applications with low-overhead.
 
 These commands help you identify application performance issues.
@@ -32,7 +33,7 @@ These commands help you identify application performance issues.
 	%[1]s prof mypod -f flame.html -l java --alpine 
 
 	# Profile a pod for 5 minutes and save the output as flight.jfr file with JFR format for java language  
-	%[1]s prof mypod -f flight.jfr -t 5m -l java --jfr 
+	%[1]s prof mypod -f flight.jfr -t 5m -l java -o jfr
 
 	# Profile specific container container1 from pod mypod in namespace test for go language
 	%[1]s prof mypod -f /tmp/flame.svg -n test container1 -l go
@@ -60,15 +61,17 @@ func NewProfileOptions(streams genericclioptions.IOStreams) *ProfileOptions {
 
 func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	var (
-		target         config.TargetConfig
-		job            config.JobConfig
-		showVersion    bool
-		chosenRuntime  string
-		chosenLang     string
-		chosenEvent    string
-		chosenLogLevel string
-		compressor     string
-		jfrOutput      bool
+		target        config.TargetConfig
+		job           config.JobConfig
+		showVersion   bool
+		runtime       string
+		lang          string
+		event         string
+		logLevel      string
+		compressor    string
+		profilingTool string
+		outputType    string
+		jfrOutput     bool
 	)
 
 	options := NewProfileOptions(streams)
@@ -93,18 +96,18 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 				return
 			}
 
-			if err := validateFlags(chosenRuntime, chosenLang, chosenEvent, chosenLogLevel, compressor, &target, &job); err != nil {
+			if err := validateFlags(runtime, lang, event, logLevel, compressor, profilingTool, outputType, &target, &job); err != nil {
 				_, _ = fmt.Fprintln(streams.Out, err)
 				os.Exit(1)
 			}
 
-			target.OutputType = api.FlameGraph
+			/*target.OutputType = api.FlameGraph
 			if jfrOutput && target.Language == api.Java {
 				target.OutputType = api.Jfr
-			}
+			}*/
 
 			// set log level
-			level, _ := log.ParseLevel(chosenLogLevel)
+			level, _ := log.ParseLevel(logLevel)
 			log.SetLevel(level)
 
 			target.PodName = args[0]
@@ -113,7 +116,7 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 			}
 
 			// Prepare profiler
-			cfg := config.NewProfilerConfig(&target, &job).WithLogLevel(api.LogLevel(chosenLogLevel))
+			cfg := config.NewProfilerConfig(&target, &job).WithLogLevel(api.LogLevel(logLevel))
 
 			connector := kubernetes.NewConnector()
 			connectionContext, err := connector.Connect(options.configFlags)
@@ -135,7 +138,7 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 
 	cmd.Flags().BoolVar(&showVersion, "version", false, "Print version info")
 
-	cmd.Flags().StringVarP(&chosenRuntime, "runtime", "r", "crio",
+	cmd.Flags().StringVarP(&runtime, "runtime", "r", "crio",
 		fmt.Sprintf("The container runtime used for kubernetes, choose one of %v", api.AvailableContainerRuntimes()))
 	cmd.Flags().StringVar(&target.ContainerRuntimePath, "runtime-path", api.GetContainerRuntimeRootPath[api.Crio],
 		"Use a different container runtime install path")
@@ -148,9 +151,9 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.Flags().StringVar(&target.Namespace, "target-namespace", "", "namespace of target pod if different from job namespace")
 	cmd.Flags().StringVarP(&target.Pgrep, "pgrep", "p", "", "name of the target process")
 
-	cmd.Flags().StringVarP(&chosenLang, "lang", "l", "",
+	cmd.Flags().StringVarP(&lang, "lang", "l", "",
 		fmt.Sprintf("Programming language of the target application, choose one of %v", api.AvailableLanguages()))
-	cmd.Flags().StringVarP(&chosenEvent, "event", "e", defaultEvent,
+	cmd.Flags().StringVarP(&event, "event", "e", defaultEvent,
 		fmt.Sprintf("Profiling event, choose one of %v", api.AvailableEvents()))
 
 	cmd.Flags().StringVar(&job.RequestConfig.CPU, "cpu.requests", "", "CPU requests of the started profiling container")
@@ -161,10 +164,13 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.Flags().StringVar(&target.ServiceAccountName, "serviceAccountName", "", "serviceAccountName to be used for profiling container")
 
 	cmd.Flags().BoolVar(&job.Privileged, "privileged", false, "Run agent container in privileged mode")
-	cmd.Flags().StringVar(&chosenLogLevel, "log-level", defaultLogLevel,
+	cmd.Flags().StringVar(&logLevel, "log-level", defaultLogLevel,
 		fmt.Sprintf("Log level, choose one of %v", api.AvailableLogLevels()))
 	cmd.Flags().StringVarP(&compressor, "compressor", "c", defaultCompressor,
 		fmt.Sprintf("Compressor for compressing generated profiling result, choose one of %v", api.AvailableCompressors()))
+	cmd.Flags().StringVar(&profilingTool, "tool", "", fmt.Sprintf("Profiling tool, choose one accorfing language %v", api.AvailableProfilingToolsString()))
+	cmd.Flags().StringVarP(&outputType, "output", "o", defaultOutputType,
+		fmt.Sprintf("Output type, choose one of %v", api.AvailableOutputTypes()))
 	cmd.Flags().BoolVar(&jfrOutput, "jfr", false, "Generate jfr output instead of flame graph in case of java language")
 
 	options.configFlags.AddFlags(cmd.Flags())
@@ -172,37 +178,40 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	return cmd
 }
 
-func validateFlags(runtimeString string, langString string, eventString string, logLevelString string, compressorString string,
-	target *config.TargetConfig, job *config.JobConfig) error {
-	if langString == "" {
+func validateFlags(runtime string, lang string, event string, logLevel string, compressor string, profilingTool string,
+	outputType string, target *config.TargetConfig, job *config.JobConfig) error {
+	if lang == "" {
 		return fmt.Errorf("use -l flag to select one of the supported languages %s", api.AvailableLanguages())
 	}
 
-	if !api.IsSupportedLanguage(langString) {
+	if !api.IsSupportedLanguage(lang) {
 		return fmt.Errorf("unsupported language, choose one of %s", api.AvailableLanguages())
 	}
 
-	if runtimeString != "" && !api.IsSupportedContainerRuntime(runtimeString) {
+	if runtime != "" && !api.IsSupportedContainerRuntime(runtime) {
 		return fmt.Errorf("unsupported container runtime, choose one of %s", api.AvailableContainerRuntimes())
 	}
 
-	if eventString != "" && !api.IsSupportedEvent(eventString) {
+	if event != "" && !api.IsSupportedEvent(event) {
 		return fmt.Errorf("unsupported event, choose one of %s", api.AvailableEvents())
 	}
 
-	if logLevelString != "" && !api.IsSupportedLogLevel(logLevelString) {
+	if logLevel != "" && !api.IsSupportedLogLevel(logLevel) {
 		return fmt.Errorf("unsupported log level, choose one of %s", api.AvailableLogLevels())
 	}
 
-	if compressorString != "" && !api.IsSupportedCompressor(compressorString) {
+	if compressor != "" && !api.IsSupportedCompressor(compressor) {
 		return fmt.Errorf("unsupported compressor, choose one of %s", api.AvailableCompressors())
 	}
 
-	target.Language = api.ProgrammingLanguage(langString)
-	target.ContainerRuntime = api.ContainerRuntime(runtimeString)
+	target.Language = api.ProgrammingLanguage(lang)
+	target.ContainerRuntime = api.ContainerRuntime(runtime)
 	target.ContainerRuntimePath = api.GetContainerRuntimeRootPath[target.ContainerRuntime]
-	target.Event = api.ProfilingEvent(eventString)
-	target.Compressor = api.Compressor(compressorString)
+	target.Event = api.ProfilingEvent(event)
+	target.Compressor = api.Compressor(compressor)
+
+	validateProfilingTool(profilingTool, target)
+	validateOutputType(outputType, target)
 
 	if _, err := job.RequestConfig.ParseResources(); err != nil {
 		return fmt.Errorf("unable to parse resource requests: %w", err)
@@ -213,4 +222,52 @@ func validateFlags(runtimeString string, langString string, eventString string, 
 	}
 
 	return nil
+}
+
+func validateProfilingTool(profilingTool string, target *config.TargetConfig) {
+	defaultTool := api.GetProfilingToolsByProgrammingLanguage[target.Language][0]
+	if profilingTool == "" {
+		fmt.Printf("Default profiling tool %s will be used ... ✔\n", defaultTool)
+		target.ProfilingTool = defaultTool
+		return
+	}
+
+	if !api.IsSupportedProfilingTool(profilingTool) {
+		fmt.Printf("Unsupported profiling tool %s, default %s will be used ... ✔\n", profilingTool, defaultTool)
+		target.ProfilingTool = defaultTool
+		return
+	}
+
+	if !api.IsValidProfilingTool(api.ProfilingTool(profilingTool), target.Language) {
+		fmt.Printf("Unsupported profiling tool %s for language %s, default %s will be used ... ✔\n",
+			profilingTool, target.Language, defaultTool)
+		target.ProfilingTool = defaultTool
+		return
+	}
+
+	target.ProfilingTool = api.ProfilingTool(profilingTool)
+}
+
+func validateOutputType(outputType string, target *config.TargetConfig) {
+	defaultOutputType := api.GetOutputTypesByProfilingTool[target.ProfilingTool][0]
+	if outputType == "" {
+		fmt.Printf("Default output type %s will be used ... ✔\n", defaultOutputType)
+		target.OutputType = defaultOutputType
+		return
+	}
+
+	if !api.IsSupportedOutputType(outputType) {
+		fmt.Printf("Unsupported output type %s, default %s will be used ... ✔\n", outputType, defaultOutputType)
+		target.OutputType = defaultOutputType
+		return
+	}
+
+	if !api.IsValidOutputType(api.EventType(outputType), target.ProfilingTool) {
+		fmt.Printf("Unsupported output type %s for profiling tool %s, default %s will be used ... ✔\n",
+			outputType, target.ProfilingTool, defaultOutputType)
+		target.OutputType = defaultOutputType
+		return
+	}
+
+	target.OutputType = api.EventType(outputType)
 }

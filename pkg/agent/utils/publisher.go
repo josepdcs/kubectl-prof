@@ -31,13 +31,6 @@ func Publish(c api.Compressor, file string, eventType api.EventType) error {
 	}
 
 	encoded := base64.StdEncoding.EncodeToString(compressed)
-	var encodedFile interface{}
-	switch eventType {
-	case api.Jfr:
-		encodedFile = api.JfrData{EncodedFile: encoded}
-	default:
-		encodedFile = api.FlameGraphData{EncodedFile: encoded}
-	}
 
-	return api.PublishEvent(eventType, encodedFile)
+	return api.PublishEvent(eventType, api.OutputData{EncodedData: encoded})
 }

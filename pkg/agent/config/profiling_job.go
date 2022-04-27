@@ -17,6 +17,7 @@ type ProfilingJob struct {
 	TargetProcessName string
 	Event             api.ProfilingEvent
 	Compressor        api.Compressor
+	ProfilingTool     api.ProfilingTool
 	OutputType        api.EventType
 }
 
