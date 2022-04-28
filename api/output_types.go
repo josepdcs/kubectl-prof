@@ -3,12 +3,12 @@ package api
 //GetOutputTypesByProfilingTool Gets the list of EventType related to the ProfilingTool that they will be considered as output types.
 //The first one is considered the default
 var GetOutputTypesByProfilingTool = map[ProfilingTool][]EventType{
-	asyncProfiler: {FlameGraph, Jfr},
-	jcmd:          {Jfr},
-	pyspy:         {FlameGraph, Raw},
-	bpf:           {FlameGraph},
-	perf:          {FlameGraph},
-	rbspy:         {FlameGraph},
+	AsyncProfiler: {FlameGraph, Jfr},
+	Jcmd:          {Jfr},
+	Pyspy:         {FlameGraph, Raw},
+	Bpf:           {FlameGraph},
+	Perf:          {FlameGraph},
+	Rbspy:         {FlameGraph},
 }
 
 var (

@@ -71,7 +71,6 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 		compressor    string
 		profilingTool string
 		outputType    string
-		jfrOutput     bool
 	)
 
 	options := NewProfileOptions(streams)
@@ -100,11 +99,6 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 				_, _ = fmt.Fprintln(streams.Out, err)
 				os.Exit(1)
 			}
-
-			/*target.OutputType = api.FlameGraph
-			if jfrOutput && target.Language == api.Java {
-				target.OutputType = api.Jfr
-			}*/
 
 			// set log level
 			level, _ := log.ParseLevel(logLevel)
@@ -171,7 +165,6 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.Flags().StringVar(&profilingTool, "tool", "", fmt.Sprintf("Profiling tool, choose one accorfing language %v", api.AvailableProfilingToolsString()))
 	cmd.Flags().StringVarP(&outputType, "output", "o", defaultOutputType,
 		fmt.Sprintf("Output type, choose one of %v", api.AvailableOutputTypes()))
-	cmd.Flags().BoolVar(&jfrOutput, "jfr", false, "Generate jfr output instead of flame graph in case of java language")
 
 	options.configFlags.AddFlags(cmd.Flags())
 

@@ -15,10 +15,13 @@ package profiler
 import (
 	"bytes"
 	"fmt"
+	"github.com/fsnotify/fsnotify"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/config"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/utils"
+	log "github.com/sirupsen/logrus"
 	"os"
+	"os/exec"
 	"path"
 	"strconv"
 )
@@ -60,13 +63,22 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 	api.PublishLogEvent(api.DebugLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
 
 	duration := strconv.Itoa(int(job.Duration.Seconds()))
-	event := string(job.Event)
-	fileName := "/tmp/flamegraph.html"
-	if job.OutputType == api.Jfr {
+
+	var cmd *exec.Cmd
+	var fileName string
+	switch job.ProfilingTool {
+	case api.Jcmd:
 		fileName = "/tmp/flight.jfr"
+		cmd = utils.Command(jcmd, pid, "JFR.start", "duration="+duration+"s", "filename="+fileName)
+	default:
+		event := string(job.Event)
+		fileName = "/tmp/flamegraph.html"
+		if job.OutputType == api.Jfr {
+			fileName = "/tmp/flight.jfr"
+		}
+		output := string(job.OutputType)
+		cmd = utils.Command(profilerSh, "-o", output, "-d", duration, "-f", fileName, "-e", event, "--fdtransfer", pid)
 	}
-	output := string(job.OutputType)
-	cmd := utils.Command(profilerSh, "-o", output, "-d", duration, "-f", fileName, "-e", event, "--fdtransfer", pid)
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &out
@@ -77,7 +89,11 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 		api.PublishLogEvent(api.ErrorLevel, stderr.String())
 		return fmt.Errorf("could not launch profiler: %w", err)
 	}
-	api.PublishLogEvent(api.InfoLevel, out.String())
+	api.PublishLogEvent(api.DebugLevel, out.String())
+
+	if job.ProfilingTool == api.Jcmd {
+		j.handleJcmdRecording(fileName)
+	}
 
 	return utils.Publish(job.Compressor, fileName, job.OutputType)
 }
@@ -85,4 +101,59 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 func (j *JvmProfiler) copyProfilerToTempDir() error {
 	cmd := utils.Command("cp", "-r", "/app/async-profiler", "/tmp")
 	return cmd.Run()
+}
+
+func (j *JvmProfiler) handleJcmdRecording(fileName string) {
+	done := make(chan bool)
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		api.PublishError(err)
+		log.Error(err)
+	}
+	defer func(watcher *fsnotify.Watcher) {
+		err := watcher.Close()
+		if err != nil {
+			return
+		}
+	}(watcher)
+
+	go func() {
+		for {
+			select {
+			case event, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
+				if event.Op&fsnotify.Write == fsnotify.Write {
+					api.PublishLogEvent(api.DebugLevel, fmt.Sprintf("modified file: %s", event.Name))
+					f, err := os.Stat(event.Name)
+					if err != nil {
+						api.PublishError(err)
+						api.PublishLogEvent(api.ErrorLevel, err.Error())
+						return
+					}
+					if f.Size() > 100 {
+						done <- true
+					}
+				}
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
+				api.PublishError(err)
+				api.PublishLogEvent(api.ErrorLevel, err.Error())
+			}
+		}
+	}()
+
+	//err = watcher.Add(j.targetTmpDir + "/flight.jfr")
+	err = watcher.Add(fileName)
+	api.PublishLogEvent(api.DebugLevel, fmt.Sprintf("add watcher to file: %s", fileName))
+
+	if err != nil {
+		api.PublishError(err)
+		api.PublishLogEvent(api.ErrorLevel, err.Error())
+	}
+
+	<-done
 }

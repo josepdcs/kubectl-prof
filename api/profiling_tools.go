@@ -5,16 +5,16 @@ import jsoniter "github.com/json-iterator/go"
 type ProfilingTool string
 
 const (
-	asyncProfiler ProfilingTool = "async-profiler"
-	jcmd          ProfilingTool = "jcmd"
-	pyspy         ProfilingTool = "pyspy"
-	bpf           ProfilingTool = "bpf"
-	perf          ProfilingTool = "perf"
-	rbspy         ProfilingTool = "rbspy"
+	AsyncProfiler ProfilingTool = "async-profiler"
+	Jcmd          ProfilingTool = "jcmd"
+	Pyspy         ProfilingTool = "pyspy"
+	Bpf           ProfilingTool = "bpf"
+	Perf          ProfilingTool = "perf"
+	Rbspy         ProfilingTool = "rbspy"
 )
 
 var (
-	ProfilingTools = []ProfilingTool{asyncProfiler, jcmd, pyspy, bpf, perf, rbspy}
+	ProfilingTools = []ProfilingTool{AsyncProfiler, Jcmd, Pyspy, Bpf, Perf, Rbspy}
 )
 
 func AvailableProfilingTools() []ProfilingTool {
@@ -37,11 +37,11 @@ func containsProfilingTool(profilingTool ProfilingTool, profilingTools []Profili
 //GetProfilingToolsByProgrammingLanguage Gets profiling tool related to the programming language.
 //The first one is considered the default
 var GetProfilingToolsByProgrammingLanguage = map[ProgrammingLanguage][]ProfilingTool{
-	Java:   {asyncProfiler, jcmd},
-	Python: {pyspy},
-	Go:     {bpf},
-	Node:   {bpf, perf},
-	Ruby:   {rbspy},
+	Java:   {AsyncProfiler, Jcmd},
+	Python: {Pyspy},
+	Go:     {Bpf},
+	Node:   {Bpf, Perf},
+	Ruby:   {Rbspy},
 }
 
 func AvailableProfilingToolsString() string {
