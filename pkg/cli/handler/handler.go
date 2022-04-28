@@ -39,10 +39,8 @@ func (h *EventHandler) Handle(events chan string, done chan bool, ctx context.Co
 			switch eventType := event.(type) {
 			case *api.ErrorData:
 				fmt.Printf("Error: %s\n", eventType.Reason)
-			case *api.FlameGraphData:
-				h.writeEncodedFile(eventType.EncodedFile)
-			case *api.JfrData:
-				h.writeEncodedFile(eventType.EncodedFile)
+			case *api.OutputData:
+				h.writeEncodedFile(eventType.EncodedData)
 			case *api.ProgressData:
 				h.reportProgress(eventType, done, ctx)
 			case *api.LogData:

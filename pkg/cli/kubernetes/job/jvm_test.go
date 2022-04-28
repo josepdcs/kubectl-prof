@@ -77,6 +77,7 @@ func Test_jvmCreate_create(t *testing.T) {
 		string(cfg.Target.Event),
 		string(cfg.Target.ContainerRuntime),
 		string(cfg.Target.Compressor),
+		string(cfg.Target.ProfilingTool),
 		string(cfg.Target.OutputType),
 	}
 	args = append(args, cfg.Target.Pgrep)

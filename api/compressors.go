@@ -18,13 +18,13 @@ func AvailableCompressors() []Compressor {
 	return compressors
 }
 
-func IsSupportedCompressor(event string) bool {
-	return containsCompressor(Compressor(event), AvailableCompressors())
+func IsSupportedCompressor(compressor string) bool {
+	return containsCompressor(Compressor(compressor), AvailableCompressors())
 }
 
-func containsCompressor(e Compressor, events []Compressor) bool {
-	for _, current := range events {
-		if e == current {
+func containsCompressor(compressor Compressor, compressors []Compressor) bool {
+	for _, current := range compressors {
+		if compressor == current {
 			return true
 		}
 	}

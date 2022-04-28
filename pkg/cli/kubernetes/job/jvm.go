@@ -33,6 +33,7 @@ func (c *jvmCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 		string(cfg.Target.Event),
 		string(cfg.Target.ContainerRuntime),
 		string(cfg.Target.Compressor),
+		string(cfg.Target.ProfilingTool),
 		string(cfg.Target.OutputType),
 	}
 

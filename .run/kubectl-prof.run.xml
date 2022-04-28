@@ -2,8 +2,8 @@
   <configuration default="false" name="kubectl-prof" type="GoApplicationRunConfiguration" factoryName="Go Application">
     <module name="kubectl-prof" />
     <working_directory value="$PROJECT_DIR$" />
-    <go_parameters value="-ldflags=&quot;-X 'github.com/josepdcs/kubectl-prof/pkg/cli/version.semver=0.4.0-dev-jfr'&quot;" />
-    <parameters value="poc-golang-app-deployment-6ddcd5c85d-qnmrt -f bin/flamegraph-go.svg -t 30s -l go -e cpu -c gzip --serviceAccountName=profiler -r crio --privileged=true" />
+    <go_parameters value="-ldflags=&quot;-X 'github.com/josepdcs/kubectl-prof/pkg/cli/version.semver=0.5.0-dev'&quot;" />
+    <parameters value="poc-java-app-deployment-6c695748dd-7dgrh -f bin/flamegraph-java.jfr -t 60s -l java -e cpu -c gzip --serviceAccountName=profiler --jfr" />
     <kind value="PACKAGE" />
     <package value="github.com/josepdcs/kubectl-prof/cmd/cli" />
     <directory value="$PROJECT_DIR$" />

@@ -21,11 +21,13 @@ type EventType string
 type ProgressStage string
 
 const (
-	Error      EventType = "error"
-	FlameGraph EventType = "flamegraph"
-	Jfr        EventType = "jfr"
-	Progress   EventType = "progress"
-	Log        EventType = "log"
+	Error       EventType = "error"
+	FlameGraph  EventType = "flamegraph"
+	Jfr         EventType = "jfr"
+	Raw         EventType = "raw"
+	StackThread EventType = "stackthread"
+	Progress    EventType = "progress"
+	Log         EventType = "log"
 
 	Started ProgressStage = "started"
 	Ended   ProgressStage = "ended"
@@ -40,12 +42,8 @@ type ErrorData struct {
 	Reason string `json:"reason"`
 }
 
-type FlameGraphData struct {
-	EncodedFile string `json:"encoded_file"`
-}
-
-type JfrData struct {
-	EncodedFile string `json:"encoded_file"`
+type OutputData struct {
+	EncodedData string `json:"encoded_data"`
 }
 
 type ProgressData struct {
@@ -60,11 +58,13 @@ type LogData struct {
 }
 
 var typeToData = map[EventType]interface{}{
-	Error:      &ErrorData{},
-	FlameGraph: &FlameGraphData{},
-	Jfr:        &JfrData{},
-	Progress:   &ProgressData{},
-	Log:        &LogData{},
+	Error:       &ErrorData{},
+	FlameGraph:  &OutputData{},
+	Jfr:         &OutputData{},
+	Raw:         &OutputData{},
+	StackThread: &OutputData{},
+	Progress:    &ProgressData{},
+	Log:         &LogData{},
 }
 
 func GetDataStructByType(t EventType) interface{} {
