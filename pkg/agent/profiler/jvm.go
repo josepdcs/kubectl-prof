@@ -30,7 +30,8 @@ const (
 	profilerDir = "/tmp/async-profiler"
 	profilerSh  = profilerDir + "/profiler.sh"
 
-	jcmd = "/opt/jdk-17/bin/jcmd"
+	jcmd        = "/opt/jdk-17/bin/jcmd"
+	jcmdMaxSize = "maxsize=100M"
 )
 
 type JvmProfiler struct{}
@@ -52,7 +53,7 @@ func (j *JvmProfiler) SetUp(job *config.ProfilingJob) error {
 		return err
 	}
 
-	return j.copyProfilerToTempDir()
+	return j.copyProfilerToTempDirIfNeeded(job.ProfilingTool)
 }
 
 func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
@@ -69,7 +70,7 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 	switch job.ProfilingTool {
 	case api.Jcmd:
 		fileName = "/tmp/flight.jfr"
-		cmd = utils.Command(jcmd, pid, "JFR.start", "duration="+duration+"s", "filename="+fileName)
+		cmd = utils.Command(jcmd, pid, "JFR.start", jcmdMaxSize, "duration="+duration+"s", "filename="+fileName)
 	default:
 		event := string(job.Event)
 		fileName = "/tmp/flamegraph.html"
@@ -98,7 +99,10 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 	return utils.Publish(job.Compressor, fileName, job.OutputType)
 }
 
-func (j *JvmProfiler) copyProfilerToTempDir() error {
+func (j *JvmProfiler) copyProfilerToTempDirIfNeeded(tool api.ProfilingTool) error {
+	if tool == api.Jcmd {
+		return nil
+	}
 	cmd := utils.Command("cp", "-r", "/app/async-profiler", "/tmp")
 	return cmd.Run()
 }
@@ -132,7 +136,7 @@ func (j *JvmProfiler) handleJcmdRecording(fileName string) {
 						api.PublishLogEvent(api.ErrorLevel, err.Error())
 						return
 					}
-					if f.Size() > 100 {
+					if f.Size() > 0 {
 						done <- true
 					}
 				}
