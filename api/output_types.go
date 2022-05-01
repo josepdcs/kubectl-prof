@@ -3,16 +3,26 @@ package api
 //GetOutputTypesByProfilingTool Gets the list of EventType related to the ProfilingTool that they will be considered as output types.
 //The first one is considered the default
 var GetOutputTypesByProfilingTool = map[ProfilingTool][]EventType{
-	AsyncProfiler: {FlameGraph, Jfr},
-	Jcmd:          {Jfr},
-	Pyspy:         {FlameGraph, Raw},
+	AsyncProfiler: {FlameGraph, Jfr, Flat, Traces, Collapsed, Tree},
+	Jcmd:          {Jfr, ThreadDump, HeapDump, HeapHistogram},
+	Pyspy:         {FlameGraph, ThreadDump},
 	Bpf:           {FlameGraph},
 	Perf:          {FlameGraph},
 	Rbspy:         {FlameGraph},
 }
 
 var (
-	supportedOutputTypes = []EventType{FlameGraph, Jfr, Raw, StackThread}
+	supportedOutputTypes = []EventType{
+		FlameGraph,
+		Jfr,
+		ThreadDump,
+		HeapDump,
+		HeapHistogram,
+		Flat,
+		Traces,
+		Collapsed,
+		Tree,
+	}
 )
 
 func AvailableOutputTypes() []EventType {
