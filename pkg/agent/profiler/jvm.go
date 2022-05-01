@@ -91,6 +91,9 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 		case api.HeapDump:
 			fileName = "/tmp/heapdump.hprof"
 			cmd = utils.Command(jcmd, pid, "GC.heap_dump", fileName)
+		case api.HeapHistogram:
+			fileName = "/tmp/heaphistogram.txt"
+			cmd = utils.Command(jcmd, pid, "GC.class_histogram")
 		}
 	default: // async-profiler
 		event := string(job.Event)
@@ -124,10 +127,10 @@ func (j *JvmProfiler) handleProfilingResult(job *config.ProfilingJob, fileName s
 		switch job.OutputType {
 		case api.Jfr:
 			j.handleJcmdRecording(fileName)
-		case api.ThreadDump:
+		case api.ThreadDump, api.HeapHistogram:
 			err := ioutil.WriteFile(fileName, out.Bytes(), 0644)
 			if err != nil {
-				return fmt.Errorf("could not save thread dump: %w", err)
+				return fmt.Errorf("could not save dump to file: %w", err)
 			}
 		default:
 			api.PublishLogEvent(api.DebugLevel, out.String())
