@@ -6,12 +6,13 @@ import (
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/config"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/utils"
+	"io/ioutil"
+	"os/exec"
 	"strconv"
 )
 
 const (
-	pySpyLocation        = "/app/py-spy"
-	pythonOutputFileName = "/tmp/python.svg"
+	pySpyLocation = "/app/py-spy"
 )
 
 type PythonProfiler struct{}
@@ -28,9 +29,20 @@ func (p *PythonProfiler) Invoke(job *config.ProfilingJob) error {
 	api.PublishLogEvent(api.DebugLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
 
 	duration := strconv.Itoa(int(job.Duration.Seconds()))
-	cmd := utils.Command(pySpyLocation, "record", "-p", pid, "-o", pythonOutputFileName, "-d", duration, "-s", "-t")
+	var cmd *exec.Cmd
 	var out bytes.Buffer
 	var stderr bytes.Buffer
+	var fileName string
+
+	switch job.OutputType {
+	case api.FlameGraph:
+		fileName = "/tmp/python.svg"
+		cmd = utils.Command(pySpyLocation, "record", "-p", pid, "-o", fileName, "-d", duration, "-s", "-t")
+	case api.ThreadDump:
+		fileName = "/tmp/threaddump.txt"
+		cmd = utils.Command(pySpyLocation, "dump", "-p", pid)
+	}
+
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 	err = cmd.Run()
@@ -39,5 +51,12 @@ func (p *PythonProfiler) Invoke(job *config.ProfilingJob) error {
 		return fmt.Errorf("could not launch profiler: %w", err)
 	}
 
-	return utils.Publish(job.Compressor, pythonOutputFileName, job.OutputType)
+	if job.OutputType == api.ThreadDump {
+		err := ioutil.WriteFile(fileName, out.Bytes(), 0644)
+		if err != nil {
+			return fmt.Errorf("could not save dump to file: %w", err)
+		}
+	}
+
+	return utils.Publish(job.Compressor, fileName, job.OutputType)
 }

@@ -21,13 +21,18 @@ type EventType string
 type ProgressStage string
 
 const (
-	Error       EventType = "error"
-	FlameGraph  EventType = "flamegraph"
-	Jfr         EventType = "jfr"
-	Raw         EventType = "raw"
-	StackThread EventType = "stackthread"
-	Progress    EventType = "progress"
-	Log         EventType = "log"
+	Error         EventType = "error"
+	FlameGraph    EventType = "flamegraph"
+	Jfr           EventType = "jfr"
+	ThreadDump    EventType = "threaddump"
+	HeapDump      EventType = "heapdump"
+	HeapHistogram EventType = "heaphistogram"
+	Flat          EventType = "flat"
+	Traces        EventType = "traces"
+	Collapsed     EventType = "collapsed"
+	Tree          EventType = "tree"
+	Progress      EventType = "progress"
+	Log           EventType = "log"
 
 	Started ProgressStage = "started"
 	Ended   ProgressStage = "ended"
@@ -58,13 +63,18 @@ type LogData struct {
 }
 
 var typeToData = map[EventType]interface{}{
-	Error:       &ErrorData{},
-	FlameGraph:  &OutputData{},
-	Jfr:         &OutputData{},
-	Raw:         &OutputData{},
-	StackThread: &OutputData{},
-	Progress:    &ProgressData{},
-	Log:         &LogData{},
+	Error:         &ErrorData{},
+	FlameGraph:    &OutputData{},
+	Jfr:           &OutputData{},
+	ThreadDump:    &OutputData{},
+	HeapDump:      &OutputData{},
+	HeapHistogram: &OutputData{},
+	Flat:          &OutputData{},
+	Traces:        &OutputData{},
+	Collapsed:     &OutputData{},
+	Tree:          &OutputData{},
+	Progress:      &ProgressData{},
+	Log:           &LogData{},
 }
 
 func GetDataStructByType(t EventType) interface{} {

@@ -20,6 +20,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/pkg/agent/config"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/utils"
 	log "github.com/sirupsen/logrus"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -56,6 +57,14 @@ func (j *JvmProfiler) SetUp(job *config.ProfilingJob) error {
 	return j.copyProfilerToTempDirIfNeeded(job.ProfilingTool)
 }
 
+func (j *JvmProfiler) copyProfilerToTempDirIfNeeded(tool api.ProfilingTool) error {
+	if tool == api.Jcmd {
+		return nil
+	}
+	cmd := utils.Command("cp", "-r", "/app/async-profiler", "/tmp")
+	return cmd.Run()
+}
+
 func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 	pid, err := utils.ContainerPID(job, false)
 	if err != nil {
@@ -66,12 +75,27 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 	duration := strconv.Itoa(int(job.Duration.Seconds()))
 
 	var cmd *exec.Cmd
+	var out bytes.Buffer
+	var stderr bytes.Buffer
 	var fileName string
+
 	switch job.ProfilingTool {
 	case api.Jcmd:
-		fileName = "/tmp/flight.jfr"
-		cmd = utils.Command(jcmd, pid, "JFR.start", jcmdMaxSize, "duration="+duration+"s", "filename="+fileName)
-	default:
+		switch job.OutputType {
+		case api.Jfr:
+			fileName = "/tmp/flight.jfr"
+			cmd = utils.Command(jcmd, pid, "JFR.start", jcmdMaxSize, "duration="+duration+"s", "filename="+fileName)
+		case api.ThreadDump:
+			fileName = "/tmp/threaddump.txt"
+			cmd = utils.Command(jcmd, pid, "Thread.print")
+		case api.HeapDump:
+			fileName = "/tmp/heapdump.hprof"
+			cmd = utils.Command(jcmd, pid, "GC.heap_dump", fileName)
+		case api.HeapHistogram:
+			fileName = "/tmp/heaphistogram.txt"
+			cmd = utils.Command(jcmd, pid, "GC.class_histogram")
+		}
+	default: // async-profiler
 		event := string(job.Event)
 		fileName = "/tmp/flamegraph.html"
 		if job.OutputType == api.Jfr {
@@ -80,8 +104,7 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 		output := string(job.OutputType)
 		cmd = utils.Command(profilerSh, "-o", output, "-d", duration, "-f", fileName, "-e", event, "--fdtransfer", pid)
 	}
-	var out bytes.Buffer
-	var stderr bytes.Buffer
+
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 	err = cmd.Run()
@@ -90,21 +113,32 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 		api.PublishLogEvent(api.ErrorLevel, stderr.String())
 		return fmt.Errorf("could not launch profiler: %w", err)
 	}
-	api.PublishLogEvent(api.DebugLevel, out.String())
 
-	if job.ProfilingTool == api.Jcmd {
-		j.handleJcmdRecording(fileName)
+	err = j.handleProfilingResult(job, fileName, out)
+	if err != nil {
+		return err
 	}
 
 	return utils.Publish(job.Compressor, fileName, job.OutputType)
 }
 
-func (j *JvmProfiler) copyProfilerToTempDirIfNeeded(tool api.ProfilingTool) error {
-	if tool == api.Jcmd {
-		return nil
+func (j *JvmProfiler) handleProfilingResult(job *config.ProfilingJob, fileName string, out bytes.Buffer) error {
+	if job.ProfilingTool == api.Jcmd {
+		switch job.OutputType {
+		case api.Jfr:
+			j.handleJcmdRecording(fileName)
+		case api.ThreadDump, api.HeapHistogram:
+			err := ioutil.WriteFile(fileName, out.Bytes(), 0644)
+			if err != nil {
+				return fmt.Errorf("could not save dump to file: %w", err)
+			}
+		default:
+			api.PublishLogEvent(api.DebugLevel, out.String())
+		}
+	} else {
+		api.PublishLogEvent(api.DebugLevel, out.String())
 	}
-	cmd := utils.Command("cp", "-r", "/app/async-profiler", "/tmp")
-	return cmd.Run()
+	return nil
 }
 
 func (j *JvmProfiler) handleJcmdRecording(fileName string) {
@@ -150,7 +184,6 @@ func (j *JvmProfiler) handleJcmdRecording(fileName string) {
 		}
 	}()
 
-	//err = watcher.Add(j.targetTmpDir + "/flight.jfr")
 	err = watcher.Add(fileName)
 	api.PublishLogEvent(api.DebugLevel, fmt.Sprintf("add watcher to file: %s", fileName))
 
