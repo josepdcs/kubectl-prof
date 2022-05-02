@@ -5,7 +5,7 @@ package api
 var GetOutputTypesByProfilingTool = map[ProfilingTool][]EventType{
 	AsyncProfiler: {FlameGraph, Jfr, Flat, Traces, Collapsed, Tree},
 	Jcmd:          {Jfr, ThreadDump, HeapDump, HeapHistogram},
-	Pyspy:         {FlameGraph, ThreadDump},
+	Pyspy:         {FlameGraph, SpeedScope, ThreadDump},
 	Bpf:           {FlameGraph},
 	Perf:          {FlameGraph},
 	Rbspy:         {FlameGraph},
@@ -14,6 +14,7 @@ var GetOutputTypesByProfilingTool = map[ProfilingTool][]EventType{
 var (
 	supportedOutputTypes = []EventType{
 		FlameGraph,
+		SpeedScope,
 		Jfr,
 		ThreadDump,
 		HeapDump,

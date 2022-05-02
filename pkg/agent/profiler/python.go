@@ -34,10 +34,14 @@ func (p *PythonProfiler) Invoke(job *config.ProfilingJob) error {
 	var stderr bytes.Buffer
 	var fileName string
 
+	output := string(job.OutputType)
 	switch job.OutputType {
 	case api.FlameGraph:
 		fileName = "/tmp/python.svg"
-		cmd = utils.Command(pySpyLocation, "record", "-p", pid, "-o", fileName, "-d", duration, "-s", "-t")
+		cmd = utils.Command(pySpyLocation, "record", "-p", pid, "-o", fileName, "-d", duration, "-s", "-t", "-f", output)
+	case api.SpeedScope:
+		fileName = "/tmp/speedscope.json"
+		cmd = utils.Command(pySpyLocation, "record", "-p", pid, "-o", fileName, "-d", duration, "-s", "-t", "-f", output)
 	case api.ThreadDump:
 		fileName = "/tmp/threaddump.txt"
 		cmd = utils.Command(pySpyLocation, "dump", "-p", pid)

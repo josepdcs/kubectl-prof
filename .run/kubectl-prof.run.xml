@@ -2,8 +2,8 @@
   <configuration default="false" name="kubectl-prof" type="GoApplicationRunConfiguration" factoryName="Go Application">
     <module name="kubectl-prof" />
     <working_directory value="$PROJECT_DIR$" />
-    <go_parameters value="-ldflags=&quot;-X 'github.com/josepdcs/kubectl-prof/pkg/cli/version.semver=0.5.0-dev'&quot;" />
-    <parameters value="poc-java-app-deployment-6c695748dd-7dgrh -f bin/flamegraph-java.jfr -t 60s -l java -e cpu -c gzip --serviceAccountName=profiler --jfr" />
+    <go_parameters value="-ldflags=&quot;-X 'github.com/josepdcs/kubectl-prof/pkg/cli/version.semver=0.7.0-dev'&quot;" />
+    <parameters value="poc-java-app-deployment-6c695748dd-7dgrh -f bin/flamegraph-java.html -t 60s -l java -e cpu -c gzip --serviceAccountName=profiler -n profiler --target-namespace=default" />
     <kind value="PACKAGE" />
     <package value="github.com/josepdcs/kubectl-prof/cmd/cli" />
     <directory value="$PROJECT_DIR$" />

@@ -4,14 +4,10 @@ ADD . /go/src/github.com/josepdcs/kubectl-prof
 RUN go get -d -v ./...
 RUN cd cmd/agent && go build -o /go/bin/agent
 
-FROM python:3.8-alpine AS pyspybuild
-# only works with pip version 20.2.4
-# https://github.com/benfred/py-spy/issues/353
-RUN pip install pip==20.2.4
-RUN echo 'manylinux1_compatible = True' > /usr/local/lib/python3.8/site-packages/_manylinux.py
-RUN pip3 install py-spy==0.4.0.dev1
+FROM python:3.9-slim-buster AS pyspybuild
+RUN pip3 install py-spy==0.3.11
 
-FROM python:3.8-alpine
+FROM python:3.9-alpine
 RUN mkdir /app
 COPY --from=agentbuild /go/bin/agent /app/agent
 COPY --from=pyspybuild /usr/local/bin/py-spy /app/py-spy

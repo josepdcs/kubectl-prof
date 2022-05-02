@@ -23,6 +23,7 @@ type ProgressStage string
 const (
 	Error         EventType = "error"
 	FlameGraph    EventType = "flamegraph"
+	SpeedScope    EventType = "speedscope"
 	Jfr           EventType = "jfr"
 	ThreadDump    EventType = "threaddump"
 	HeapDump      EventType = "heapdump"
@@ -65,6 +66,7 @@ type LogData struct {
 var typeToData = map[EventType]interface{}{
 	Error:         &ErrorData{},
 	FlameGraph:    &OutputData{},
+	SpeedScope:    &OutputData{},
 	Jfr:           &OutputData{},
 	ThreadDump:    &OutputData{},
 	HeapDump:      &OutputData{},
