@@ -2,7 +2,7 @@
 
 This is a kubectl plugin that allows you to profile production applications with low-overhead by generating
 [FlameGraphs](http://www.brendangregg.com/flamegraphs.html) and many other outputs as [JFR](https://docs.oracle.com/javacomponents/jmc-5-4/jfr-runtime-guide/about.htm#),
-thread dump, heap dump and class histogram for Java applications by using [jcmd](https://download.java.net/java/early_access/panama/docs/specs/man/jcmd.html). For Python applications, thread dump output is also supported. See [Usage](#usage) section.
+thread dump, heap dump and class histogram for Java applications by using [jcmd](https://download.java.net/java/early_access/panama/docs/specs/man/jcmd.html). For Python applications, thread dump output and [speed scope](https://github.com/jlfwong/speedscope) format file are also supported. See [Usage](#usage) section.
 More functionalities will be added in the future.
 
 Running `kubectl-prof` does **not** require any modification to existing pods.
@@ -113,6 +113,14 @@ In this case, profiling Java Pod and generate the thread dump output require usi
 kubectl prof mypod -t 1m --lang python -f /tmp/threaddump.txt -o threaddump 
 ```
 
+### Profiling Python Pod and generate speed scope output format file
+
+In this case, profiling Java Pod and generate the thread dump output require using `-o/--output speedscope` option:
+
+```shell
+kubectl prof mypod -t 1m --lang python -f /tmp/speedscope.json -o speedscope 
+```
+
 ### Profiling Golang Pod
 
 In order to profile a Python application in pod `mypod` for 1 minute and save the flamegraph as `/tmp/flamegraph.svg` run:
@@ -212,6 +220,7 @@ $ make agents
 * For Golang: [ebpf profiling](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter). 
 * For Python: [py-spy](https://github.com/benfred/py-spy). 
   * For generating thread dumps use the option: `-o threaddump`.
+  * For generating speed scope use the option : `-o speedscope`.
 * For Ruby: [rbspy](https://rbspy.github.io/). 
 * For NodeJS: [ebpf profiling](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter) and [perf](https://perf.wiki.kernel.org/index.php/Main_Page) but last one is not recommended. 
   * In order for Javascript Symbols to be resolved, node process needs to be run with `--prof-basic-prof` flag.
