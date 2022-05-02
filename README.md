@@ -166,11 +166,11 @@ Use `--pgrep` flag if your process name is different.
 
 ### Pre-built binaries
 
-See the [release](https://github.com/josepdcs/kubectl-prof/releases/tag/v0.4.1) page for the full list of pre-built assets. And download the binary according yours architecture.
+See the [release](https://github.com/josepdcs/kubectl-prof/releases/tag/v0.6.0) page for the full list of pre-built assets. And download the binary according yours architecture.
 
 ### Installing for Linux x86_64
 ```shell
-curl -sL https://github.com/josepdcs/kubectl-prof/releases/download/v0.4.1/kubectl-prof_v0.4.1_linux_x86_64.tar.gz -o kubectl-prof.tar.gz
+curl -sL https://github.com/josepdcs/kubectl-prof/releases/download/v0.6.0/kubectl-prof_v0.6.0_linux_x86_64.tar.gz -o kubectl-prof.tar.gz
 tar xvfz kubectl-prof.tar.gz && sudo install kubectl-prof /usr/local/bin/
 ```
 
@@ -203,10 +203,15 @@ $ make agents
 `kubectl-prof` launch a Kubernetes Job on the same node as the target pod. Under the hood `kubectl-prof`can use the following tools according the programming language:
 * For Java: 
   * [async-profiler](https://github.com/jvm-profiling-tools/async-profiler) in order to generate flame graphs or JFR files.
-  * [jcmd](https://download.java.net/java/early_access/panama/docs/specs/man/jcmd.html) in order to generate only JFR files if this tool is chosen by passing the option `--tool jcmd`. 
-    * Default tool is [async-profiler](https://github.com/jvm-profiling-tools/async-profiler) if no option `--tool` is given.
+  * [jcmd](https://download.java.net/java/early_access/panama/docs/specs/man/jcmd.html) in order to generate: JFR files, thread dumps, heap dumps and heap histogram.
+    * For generating JFR files use the options: `--tool jcmd` and `-o jfr`. 
+    * For generating thread dumps use the options: `--tool jcmd` and `-o threaddump`.
+    * For generating heap dumps use the options: `--tool jcmd` and `-o heapdump`.
+    * For generating heap histogram use the options: `--tool jcmd` and `-o histogram`.
+  * Note: Default tool is [async-profiler](https://github.com/jvm-profiling-tools/async-profiler) if no option `--tool` is given and default output is flame graphs if no option `-o/--output` is also given.
 * For Golang: [ebpf profiling](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter). 
 * For Python: [py-spy](https://github.com/benfred/py-spy). 
+  * For generating thread dumps use the option: `-o threaddump`.
 * For Ruby: [rbspy](https://rbspy.github.io/). 
 * For NodeJS: [ebpf profiling](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter) and [perf](https://perf.wiki.kernel.org/index.php/Main_Page) but last one is not recommended. 
   * In order for Javascript Symbols to be resolved, node process needs to be run with `--prof-basic-prof` flag.
