@@ -131,7 +131,7 @@ kubectl prof mypod -t 1m --lang node -f /tmp/flamegraph.svg
 
 ### Profiling Ruby Pod
 
-In order to profile a Python application in pod `mypod` for 1 minute and save the flamegraph as `/tmp/flamegraph.svg` run:
+In order to profile a Ruby application in pod `mypod` for 1 minute and save the flamegraph as `/tmp/flamegraph.svg` run:
 
 ```shell
 kubectl prof mypod -t 1m --lang ruby -f /tmp/flamegraph.svg
