@@ -1,5 +1,7 @@
 package api
 
+import jsoniter "github.com/json-iterator/go"
+
 //GetOutputTypesByProfilingTool Gets the list of EventType related to the ProfilingTool that they will be considered as output types.
 //The first one is considered the default
 var GetOutputTypesByProfilingTool = map[ProfilingTool][]EventType{
@@ -9,6 +11,11 @@ var GetOutputTypesByProfilingTool = map[ProfilingTool][]EventType{
 	Bpf:           {FlameGraph},
 	Perf:          {FlameGraph},
 	Rbspy:         {FlameGraph},
+}
+
+func AvailableOutputTypesString() string {
+	out, _ := jsoniter.Marshal(GetOutputTypesByProfilingTool)
+	return string(out)
 }
 
 var (

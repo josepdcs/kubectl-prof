@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"context"
-	"github.com/josepdcs/kubectl-prof/pkg/cli/config"
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -19,11 +18,11 @@ func NewDeleter(clientSet kubernetes.Interface) *deleter {
 	}
 }
 
-func (d deleter) DeleteProfilingJob(job *batchv1.Job, targetDetails *config.TargetConfig, ctx context.Context) error {
+func (d deleter) DeleteProfilingJob(job *batchv1.Job, ctx context.Context) error {
 	deleteStrategy := metav1.DeletePropagationForeground
 	return d.clientSet.
 		BatchV1().
-		Jobs(targetDetails.Namespace).
+		Jobs(job.Namespace).
 		Delete(ctx, job.Name, metav1.DeleteOptions{
 			PropagationPolicy: &deleteStrategy,
 		})
