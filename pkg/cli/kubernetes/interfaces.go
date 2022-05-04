@@ -25,5 +25,5 @@ type Creator interface {
 }
 
 type Deleter interface {
-	DeleteProfilingJob(job *batchv1.Job, targetDetails *config.TargetConfig, ctx context.Context) error
+	DeleteProfilingJob(job *batchv1.Job, ctx context.Context) error
 }

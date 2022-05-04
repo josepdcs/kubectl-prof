@@ -164,7 +164,7 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 		fmt.Sprintf("Compressor for compressing generated profiling result, choose one of %v", api.AvailableCompressors()))
 	cmd.Flags().StringVar(&profilingTool, "tool", "", fmt.Sprintf("Profiling tool, choose one accorfing language %v", api.AvailableProfilingToolsString()))
 	cmd.Flags().StringVarP(&outputType, "output", "o", defaultOutputType,
-		fmt.Sprintf("Output type, choose one of %v", api.AvailableOutputTypes()))
+		fmt.Sprintf("Output type, choose one accorting tool %v", api.AvailableOutputTypesString()))
 
 	options.configFlags.AddFlags(cmd.Flags())
 

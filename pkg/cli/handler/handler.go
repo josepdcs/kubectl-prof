@@ -79,7 +79,7 @@ func (h *EventHandler) reportProgress(data *api.ProgressData, done chan bool, ct
 	if data.Stage == api.Started {
 		fmt.Printf("Profiling ...")
 	} else if data.Stage == api.Ended {
-		_ = h.Deleter.DeleteProfilingJob(h.Job, h.Target, ctx)
+		_ = h.Deleter.DeleteProfilingJob(h.Job, ctx)
 		fmt.Printf("✔\nResult profiling data saved to: %s 🔥\n", h.Target.FileName)
 		done <- true
 	}
