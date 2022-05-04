@@ -1,0 +1,26 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: profiler-role
+  namespace: profiler
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "watch", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: profiler-role-binding
+  namespace: profiler
+subjects:
+  - kind: ServiceAccount
+    name: profiler
+    namespace: profiler
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: profiler-role
+

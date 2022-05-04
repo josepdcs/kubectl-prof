@@ -1,4 +1,5 @@
-# Namespace for profiler with policy admissions
+# ./kubectl-prof poc-java-app-deployment-6c695748dd-7dgrh -f flamegraph-java.html -t 60s -l java --log-level=debug -n profiler --target-namespace=default --serviceAccountName=profiler
+
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -14,7 +15,6 @@ metadata:
     pod-security.kubernetes.io/enforce: baseline
   name: default
 
-# Profiling will be (only) enabled for this service account
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -22,26 +22,25 @@ metadata:
   name: profiler
   namespace: profiler
 
-# Default role allows all
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: default
-  namespace: default
+  namespace: profiler
 rules:
   - apiGroups:
       - ""
-    resources: ["*"]
-    verbs: ["*"]
+      - "batch"
+    resources: ["deployments", "replicasets", "pods", "services", "ingresses", "jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
 
-# Default role binding for above default role
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: default
-  namespace: default
+  namespace: profiler
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -50,3 +49,66 @@ subjects:
   - apiGroup: rbac.authorization.k8s.io
     kind: Group
     name: system:serviceaccounts
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: profiler
+  namespace: profiler
+rules:
+  - apiGroups:
+      - ""
+      - "batch"
+    resources: ["jobs", "cronjobs", "pods"]
+    verbs: ["*"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: profiler
+subjects:
+  - kind: ServiceAccount
+    name: profiler
+    namespace: profiler
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: profiler
+
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: roberto
+  namespace: profiler
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: roberto
+  namespace: profiler
+rules:
+  - apiGroups:
+      - ""
+      - "batch"
+    resources: ["deployments", "replicasets", "pods", "services", "ingresses", "jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: roberto
+  namespace: profiler
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: roberto
+subjects:
+  - kind: ServiceAccount
+    name: roberto
+    namespace: profiler
