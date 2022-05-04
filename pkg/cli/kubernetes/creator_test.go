@@ -58,7 +58,7 @@ func Test_creator_CreateProfilingJob(t *testing.T) {
 				ctx: context.TODO(),
 			},
 			mockJobType: func() {
-				jobType = func(language api.ProgrammingLanguage) (job.Creator, error) {
+				jobType = func(language api.ProgrammingLanguage, tool api.ProfilingTool) (job.Creator, error) {
 					m := mockCreator{}
 					m.On("Create", mock.Anything, mock.Anything).Return("ID", &batchv1.Job{}, nil)
 					return &m, nil

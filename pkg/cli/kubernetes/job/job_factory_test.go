@@ -9,6 +9,7 @@ import (
 func TestGet(t *testing.T) {
 	type args struct {
 		lang api.ProgrammingLanguage
+		tool api.ProfilingTool
 	}
 	tests := []struct {
 		name            string
@@ -54,7 +55,8 @@ func TestGet(t *testing.T) {
 		{
 			name: "node with perf creator is instanced",
 			args: args{
-				lang: api.NodeWithPerf,
+				lang: api.Node,
+				tool: api.Perf,
 			},
 			want: &perfCreator{},
 		},
@@ -68,7 +70,7 @@ func TestGet(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := Get(tt.args.lang)
+			got, err := Get(tt.args.lang, tt.args.tool)
 
 			if err != nil {
 				assert.Contains(t, err.Error(), tt.containedErrMsg)

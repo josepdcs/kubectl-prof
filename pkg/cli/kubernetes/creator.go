@@ -25,12 +25,12 @@ func NewCreator(clientSet kubernetes.Interface) *creator {
 	}
 }
 
-var jobType = func(language api.ProgrammingLanguage) (job.Creator, error) {
-	return job.Get(language)
+var jobType = func(language api.ProgrammingLanguage, tool api.ProfilingTool) (job.Creator, error) {
+	return job.Get(language, tool)
 }
 
 func (c creator) CreateProfilingJob(targetPod *v1.Pod, cfg *config.ProfilerConfig, ctx context.Context) (string, *batchv1.Job, error) {
-	j, err := jobType(cfg.Target.Language)
+	j, err := jobType(cfg.Target.Language, cfg.Target.ProfilingTool)
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to get type of job: %w", err)
 	}

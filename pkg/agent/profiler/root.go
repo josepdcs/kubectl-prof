@@ -7,7 +7,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/api"
 )
 
-type FlameGraphProfiler interface {
+type Profiler interface {
 	SetUp(job *config.ProfilingJob) error
 	Invoke(job *config.ProfilingJob) error
 }
@@ -20,7 +20,7 @@ var (
 	perf   = PerfProfiler{}
 )
 
-func ForLanguage(lang api.ProgrammingLanguage) (FlameGraphProfiler, error) {
+func Get(lang api.ProgrammingLanguage, tool api.ProfilingTool) (Profiler, error) {
 	switch lang {
 	case api.Java:
 		return &jvm, nil
@@ -31,9 +31,10 @@ func ForLanguage(lang api.ProgrammingLanguage) (FlameGraphProfiler, error) {
 	case api.Ruby:
 		return &ruby, nil
 	case api.Node:
+		if tool == api.Perf {
+			return &perf, nil
+		}
 		return &bpf, nil
-	case api.NodeWithPerf:
-		return &perf, nil
 	default:
 		return nil, fmt.Errorf("could not find profiler for language %s", lang)
 	}

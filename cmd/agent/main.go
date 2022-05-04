@@ -33,7 +33,7 @@ func main() {
 	err = api.PublishEvent(api.Progress, &api.ProgressData{Time: time.Now(), Stage: api.Started})
 	handleError(err)
 
-	p, err := profiler.ForLanguage(job.Language)
+	p, err := profiler.Get(job.Language, job.ProfilingTool)
 	handleError(err)
 
 	err = p.SetUp(job)

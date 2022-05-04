@@ -20,7 +20,7 @@ type Creator interface {
 	Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error)
 }
 
-func Get(lang api.ProgrammingLanguage) (Creator, error) {
+func Get(lang api.ProgrammingLanguage, tool api.ProfilingTool) (Creator, error) {
 	switch lang {
 	case api.Java:
 		return &jvmCreator{}, nil
@@ -31,9 +31,10 @@ func Get(lang api.ProgrammingLanguage) (Creator, error) {
 	case api.Ruby:
 		return &rubyCreator{}, nil
 	case api.Node:
+		if tool == api.Perf {
+			return &perfCreator{}, nil
+		}
 		return &bpfCreator{}, nil
-	case api.NodeWithPerf:
-		return &perfCreator{}, nil
 	}
 
 	// Should not happen
