@@ -88,14 +88,21 @@ func (p *Profiler) Profile(cfg *config.ProfilerConfig) {
 	}
 
 	printer.PrintSuccess()
-	eventHandler := handler.NewEventHandler(job, cfg.Target, p.Deleter, cfg.LogLevel)
+	eventHandler := handler.NewEventHandler(job, cfg.Target, cfg.LogLevel)
 	done, err := p.Getter.GetPodLogs(profilingPod, eventHandler, ctx)
 	if err != nil {
 		printer.PrintError()
 		fmt.Println(err.Error())
 	}
 
+	// wait for done
 	<-done
+
+	// retrieved result file
+	fmt.Printf("✔\nResult profiling data saved to: %s 🔥\n", cfg.Target.FileName)
+
+	// invoke delete profiling job
+	_ = p.Deleter.DeleteProfilingJob(job, ctx)
 }
 
 func validatePod(pod *v1.Pod, cfg *config.TargetConfig) (string, error) {

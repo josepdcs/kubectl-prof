@@ -28,7 +28,7 @@ import (
 )
 
 type EventHandler interface {
-	Handle(events chan string, done chan bool, ctx context.Context)
+	Handle(events chan string, done chan bool)
 }
 
 type getter struct {
@@ -108,7 +108,7 @@ func (g getter) GetPodLogs(pod *apiv1.Pod, handler EventHandler, ctx context.Con
 	}
 
 	eventsChan := make(chan string)
-	go handler.Handle(eventsChan, done, ctx)
+	go handler.Handle(eventsChan, done)
 	go func() {
 		defer func(readCloser io.ReadCloser) {
 			err := readCloser.Close()
@@ -129,4 +129,8 @@ func (g getter) GetPodLogs(pod *apiv1.Pod, handler EventHandler, ctx context.Con
 	}()
 
 	return done, nil
+}
+
+func (g getter) GetProfilerResult(podName string, ctx context.Context) error {
+	return nil
 }

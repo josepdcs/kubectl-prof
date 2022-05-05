@@ -18,12 +18,13 @@ type Getter interface {
 	GetPod(podName, namespace string, ctx context.Context) (*apiv1.Pod, error)
 	GetProfilingPod(cfg *config.ProfilerConfig, ctx context.Context) (*apiv1.Pod, error)
 	GetPodLogs(pod *apiv1.Pod, handler EventHandler, ctx context.Context) (chan bool, error)
+	GetProfilerResult(podName string, ctx context.Context) error
 }
 
 type Creator interface {
-	CreateProfilingJob(targetPod *v1.Pod, cfg *config.ProfilerConfig, ctx context.Context) (string, *batchv1.Job, error)
+	CreateProfilingJob(*v1.Pod, *config.ProfilerConfig, context.Context) (string, *batchv1.Job, error)
 }
 
 type Deleter interface {
-	DeleteProfilingJob(job *batchv1.Job, ctx context.Context) error
+	DeleteProfilingJob(*batchv1.Job, context.Context) error
 }

@@ -1,11 +1,9 @@
 package handler
 
 import (
-	"context"
 	"encoding/base64"
 	"fmt"
 	"github.com/josepdcs/kubectl-prof/pkg/cli/config"
-	"github.com/josepdcs/kubectl-prof/pkg/cli/kubernetes"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
@@ -17,20 +15,18 @@ import (
 type EventHandler struct {
 	Job      *batchv1.Job
 	Target   *config.TargetConfig
-	Deleter  kubernetes.Deleter
 	LogLevel api.LogLevel
 }
 
-func NewEventHandler(job *batchv1.Job, cfg *config.TargetConfig, del kubernetes.Deleter, level api.LogLevel) *EventHandler {
+func NewEventHandler(job *batchv1.Job, cfg *config.TargetConfig, level api.LogLevel) *EventHandler {
 	return &EventHandler{
 		Job:      job,
 		Target:   cfg,
-		Deleter:  del,
 		LogLevel: level,
 	}
 }
 
-func (h *EventHandler) Handle(events chan string, done chan bool, ctx context.Context) {
+func (h *EventHandler) Handle(events chan string, done chan bool) {
 	for eventString := range events {
 		event, err := api.ParseEvent(eventString)
 		if err != nil {
@@ -42,7 +38,7 @@ func (h *EventHandler) Handle(events chan string, done chan bool, ctx context.Co
 			case *api.OutputData:
 				h.writeEncodedFile(eventType.EncodedData)
 			case *api.ProgressData:
-				h.reportProgress(eventType, done, ctx)
+				h.reportProgress(eventType, done)
 			case *api.LogData:
 				h.logger(eventType)
 			default:
@@ -75,12 +71,10 @@ func (h *EventHandler) writeEncodedFile(encoded string) {
 	}
 }
 
-func (h *EventHandler) reportProgress(data *api.ProgressData, done chan bool, ctx context.Context) {
+func (h *EventHandler) reportProgress(data *api.ProgressData, done chan bool) {
 	if data.Stage == api.Started {
 		fmt.Printf("Profiling ...")
 	} else if data.Stage == api.Ended {
-		_ = h.Deleter.DeleteProfilingJob(h.Job, ctx)
-		fmt.Printf("✔\nResult profiling data saved to: %s 🔥\n", h.Target.FileName)
 		done <- true
 	}
 }
