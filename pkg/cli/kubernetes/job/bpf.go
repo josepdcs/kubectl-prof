@@ -5,7 +5,6 @@ import (
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/pkg/cli/config"
 	"github.com/josepdcs/kubectl-prof/pkg/cli/version"
-
 	batchv1 "k8s.io/api/batch/v1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,6 +34,7 @@ func (b *bpfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 		string(cfg.Target.Compressor),
 		string(cfg.Target.ProfilingTool),
 		string(cfg.Target.OutputType),
+		cfg.Target.FileName,
 	}
 
 	if cfg.Target.Pgrep != "" {

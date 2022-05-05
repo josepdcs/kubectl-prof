@@ -50,8 +50,8 @@ func main() {
 }
 
 func profilingJob() (*config.ProfilingJob, error) {
-	if len(os.Args) != 12 && len(os.Args) != 13 {
-		return nil, errors.New("expected 11 or 12 arguments")
+	if len(os.Args) != 13 && len(os.Args) != 14 {
+		return nil, errors.New("expected 12 or 13 arguments")
 	}
 
 	duration, err := time.ParseDuration(os.Args[5])
@@ -71,8 +71,9 @@ func profilingJob() (*config.ProfilingJob, error) {
 	job.Compressor = api.Compressor(os.Args[9])
 	job.ProfilingTool = api.ProfilingTool(os.Args[10])
 	job.OutputType = api.EventType(os.Args[11])
-	if len(os.Args) == 13 {
-		job.TargetProcessName = os.Args[12]
+	job.FileName = os.Args[12]
+	if len(os.Args) == 14 {
+		job.TargetProcessName = os.Args[13]
 	}
 
 	api.PublishLogEvent(api.DebugLevel, job.String())

@@ -19,6 +19,7 @@ type ProfilingJob struct {
 	Compressor        api.Compressor
 	ProfilingTool     api.ProfilingTool
 	OutputType        api.EventType
+	FileName          string
 }
 
 func (p *ProfilingJob) String() string {

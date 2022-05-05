@@ -79,6 +79,7 @@ func Test_bpfCreate_create(t *testing.T) {
 		string(cfg.Target.Compressor),
 		string(cfg.Target.ProfilingTool),
 		string(cfg.Target.OutputType),
+		cfg.Target.FileName,
 	}
 	args = append(args, cfg.Target.Pgrep)
 	resources, err := cfg.Job.ToResourceRequirements()

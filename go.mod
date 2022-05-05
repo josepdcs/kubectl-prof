@@ -1,8 +1,9 @@
 module github.com/josepdcs/kubectl-prof
 
-go 1.17
+go 1.18
 
 require (
+	github.com/agrison/go-commons-lang v0.0.0-20200208220349-58e9fcb95174
 	github.com/fntlnz/mountinfo v0.0.0-20171106231217-40cb42681fad
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/golang/snappy v0.0.4

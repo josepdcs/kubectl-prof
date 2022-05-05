@@ -35,6 +35,7 @@ func (c *jvmCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 		string(cfg.Target.Compressor),
 		string(cfg.Target.ProfilingTool),
 		string(cfg.Target.OutputType),
+		cfg.Target.FileName,
 	}
 
 	if cfg.Target.Pgrep != "" {
