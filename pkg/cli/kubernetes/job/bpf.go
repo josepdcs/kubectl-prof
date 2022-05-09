@@ -2,7 +2,6 @@ package job
 
 import (
 	"fmt"
-	"github.com/agrison/go-commons-lang/stringUtils"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/pkg/cli/config"
 	"github.com/josepdcs/kubectl-prof/pkg/cli/version"
@@ -10,7 +9,6 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
-	"path/filepath"
 )
 
 type bpfCreator struct{}
@@ -22,25 +20,6 @@ func (b *bpfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 	var imagePullSecret []apiv1.LocalObjectReference
 	if cfg.Target.ImagePullSecret != "" {
 		imagePullSecret = []apiv1.LocalObjectReference{{Name: cfg.Target.ImagePullSecret}}
-	}
-
-	args := []string{
-		id,
-		string(targetPod.UID),
-		cfg.Target.ContainerName,
-		cfg.Target.ContainerId,
-		cfg.Target.Duration.String(),
-		string(cfg.Target.Language),
-		string(cfg.Target.Event),
-		string(cfg.Target.ContainerRuntime),
-		string(cfg.Target.Compressor),
-		string(cfg.Target.ProfilingTool),
-		string(cfg.Target.OutputType),
-		stringUtils.SubstringAfterLast(cfg.Target.FileName, string(filepath.Separator)),
-	}
-
-	if cfg.Target.Pgrep != "" {
-		args = append(args, cfg.Target.Pgrep)
 	}
 
 	commonMeta := b.getObjectMeta(id, cfg)
@@ -99,7 +78,7 @@ func (b *bpfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 							Name:            ContainerName,
 							Image:           imageName,
 							Command:         []string{"/app/agent"},
-							Args:            args,
+							Args:            getArgs(targetPod, cfg, id),
 							VolumeMounts: []apiv1.VolumeMount{
 								{
 									Name:      "target-filesystem",

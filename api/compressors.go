@@ -4,10 +4,10 @@ type Compressor string
 
 const (
 	None   Compressor = "none"
-	Snappy Compressor = "snappy"
-	Gzip   Compressor = "gzip"
-	Lzo    Compressor = "lzo"
-	Zstd   Compressor = "zstd"
+	Snappy            = "snappy"
+	Gzip              = "gzip"
+	Lzo               = "lzo"
+	Zstd              = "zstd"
 )
 
 var (

@@ -77,7 +77,7 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:                   "prof [pod-name]",
 		DisableFlagsInUseLine: true,
-		Short:                 "Profile running applications by generating flame graphs at the moment.",
+		Short:                 "Profile running applications. Several output types are supported: flamegraphs, jfrs, threadump, heapdumps, etc.",
 		Long:                  longDescription,
 		Example:               fmt.Sprintf(profilingExamples, "kubectl"),
 		PersistentPreRun: func(c *cobra.Command, args []string) {
