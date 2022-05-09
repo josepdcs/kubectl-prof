@@ -3,6 +3,7 @@ package profiler
 import (
 	"bytes"
 	"fmt"
+	"github.com/agrison/go-commons-lang/stringUtils"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/config"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/utils"
@@ -18,8 +19,14 @@ const (
 	profilerLocation         = "/app/bcc-profiler/profile"
 	rawProfilerOutputFile    = "/tmp/raw_profile.txt"
 	flameGraphScriptLocation = "/app/FlameGraph/flamegraph.pl"
-	flameGraphOutputLocation = "/tmp/flamegraph.svg"
 )
+
+var bpfResultFile = func(job *config.ProfilingJob) string {
+	if stringUtils.IsBlank(job.FileName) {
+		return "/tmp/" + job.FileName
+	}
+	return "/tmp/flamegraph.svg"
+}
 
 type BpfProfiler struct{}
 
@@ -44,12 +51,13 @@ func (b *BpfProfiler) Invoke(job *config.ProfilingJob) error {
 		return fmt.Errorf("profiling failed: %s", err)
 	}
 
-	err = b.generateFlameGraph()
+	fileName := bpfResultFile(job)
+	err = b.generateFlameGraph(fileName)
 	if err != nil {
 		return fmt.Errorf("flamegraph generation failed: %s", err)
 	}
 
-	return utils.Publish(job.Compressor, flameGraphOutputLocation, job.OutputType)
+	return utils.Publish(job.Compressor, fileName, job.OutputType)
 }
 
 func (b *BpfProfiler) runProfiler(job *config.ProfilingJob) error {
@@ -85,7 +93,7 @@ func (b *BpfProfiler) runProfiler(job *config.ProfilingJob) error {
 	return err
 }
 
-func (b *BpfProfiler) generateFlameGraph() error {
+func (b *BpfProfiler) generateFlameGraph(fileName string) error {
 	inputFile, err := os.Open(rawProfilerOutputFile)
 	if err != nil {
 		return err
@@ -99,7 +107,7 @@ func (b *BpfProfiler) generateFlameGraph() error {
 		}
 	}(inputFile)
 
-	outputFile, err := os.Create(flameGraphOutputLocation)
+	outputFile, err := os.Create(fileName)
 	if err != nil {
 		return err
 	}

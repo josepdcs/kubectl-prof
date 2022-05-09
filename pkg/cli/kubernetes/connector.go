@@ -16,6 +16,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"k8s.io/client-go/rest"
 )
 
 type connector struct {
@@ -26,8 +27,13 @@ func NewConnector() *connector {
 	return &connector{}
 }
 
+type KubeContext struct {
+	ClientSet  kubernetes.Interface
+	RestConfig *rest.Config
+}
+
 type ConnectionContext struct {
-	ClientSet kubernetes.Interface
+	KubeContext
 	Namespace string
 }
 
@@ -48,7 +54,10 @@ func (c connector) Connect(clientGetter genericclioptions.RESTClientGetter) (Con
 	}
 
 	return ConnectionContext{
-		ClientSet: clientset,
+		KubeContext: KubeContext{
+			ClientSet:  clientset,
+			RestConfig: restConfig,
+		},
 		Namespace: ns,
 	}, nil
 }

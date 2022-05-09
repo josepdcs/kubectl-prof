@@ -2,6 +2,7 @@ package job
 
 import (
 	"fmt"
+	"github.com/agrison/go-commons-lang/stringUtils"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/pkg/cli/config"
 	"github.com/josepdcs/kubectl-prof/pkg/cli/version"
@@ -9,6 +10,7 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	"path/filepath"
 )
 
 type bpfCreator struct{}
@@ -34,7 +36,7 @@ func (b *bpfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 		string(cfg.Target.Compressor),
 		string(cfg.Target.ProfilingTool),
 		string(cfg.Target.OutputType),
-		cfg.Target.FileName,
+		stringUtils.SubstringAfterLast(cfg.Target.FileName, string(filepath.Separator)),
 	}
 
 	if cfg.Target.Pgrep != "" {

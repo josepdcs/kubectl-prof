@@ -15,6 +15,7 @@ package profiler
 import (
 	"bytes"
 	"fmt"
+	"github.com/agrison/go-commons-lang/stringUtils"
 	"github.com/fsnotify/fsnotify"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/config"
@@ -34,6 +35,32 @@ const (
 	jcmd        = "/opt/jdk-17/bin/jcmd"
 	jcmdMaxSize = "maxsize=100M"
 )
+
+var jvmResultFile = func(job *config.ProfilingJob) string {
+	if stringUtils.IsBlank(job.FileName) {
+		switch job.OutputType {
+		case api.Jfr:
+			return "/tmp/flight.jfr"
+		case api.ThreadDump:
+			return "/tmp/threaddump.txt"
+		case api.HeapDump:
+			return "/tmp/heapdump.hprof"
+		case api.HeapHistogram:
+			return "/tmp/heaphistogram.txt"
+		case api.Flat:
+			return "/tmp/flat.txt"
+		case api.Traces:
+			return "/tmp/traces.txt"
+		case api.Collapsed:
+			return "/tmp/collapsed.txt"
+		case api.Tree:
+			return "/tmp/tree.html"
+		default:
+			return "/tmp/flamegraph.html"
+		}
+	}
+	return "/tmp/" + job.FileName
+}
 
 type JvmProfiler struct{}
 
@@ -77,30 +104,22 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 	var cmd *exec.Cmd
 	var out bytes.Buffer
 	var stderr bytes.Buffer
-	var fileName string
+	fileName := jvmResultFile(job)
 
 	switch job.ProfilingTool {
 	case api.Jcmd:
 		switch job.OutputType {
 		case api.Jfr:
-			fileName = "/tmp/flight.jfr"
 			cmd = utils.Command(jcmd, pid, "JFR.start", jcmdMaxSize, "duration="+duration+"s", "filename="+fileName)
 		case api.ThreadDump:
-			fileName = "/tmp/threaddump.txt"
 			cmd = utils.Command(jcmd, pid, "Thread.print")
 		case api.HeapDump:
-			fileName = "/tmp/heapdump.hprof"
 			cmd = utils.Command(jcmd, pid, "GC.heap_dump", fileName)
 		case api.HeapHistogram:
-			fileName = "/tmp/heaphistogram.txt"
 			cmd = utils.Command(jcmd, pid, "GC.class_histogram")
 		}
 	default: // async-profiler
 		event := string(job.Event)
-		fileName = "/tmp/flamegraph.html"
-		if job.OutputType == api.Jfr {
-			fileName = "/tmp/flight.jfr"
-		}
 		output := string(job.OutputType)
 		cmd = utils.Command(profilerSh, "-o", output, "-d", duration, "-f", fileName, "-e", event, "--fdtransfer", pid)
 	}

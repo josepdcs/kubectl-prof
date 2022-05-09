@@ -21,7 +21,6 @@ import (
 	"github.com/josepdcs/kubectl-prof/pkg/cli/handler"
 	"github.com/josepdcs/kubectl-prof/pkg/cli/kubernetes"
 	log "github.com/sirupsen/logrus"
-
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -89,17 +88,30 @@ func (p *Profiler) Profile(cfg *config.ProfilerConfig) {
 
 	printer.PrintSuccess()
 	eventHandler := handler.NewEventHandler(job, cfg.Target, cfg.LogLevel)
-	done, err := p.Getter.GetPodLogs(profilingPod, eventHandler, ctx)
+	done, resultFileName, err := p.Getter.GetPodLogs(profilingPod, eventHandler, ctx)
 	if err != nil {
 		printer.PrintError()
 		fmt.Println(err.Error())
 	}
 
-	// wait for done
-	<-done
-
-	// retrieved result file
-	fmt.Printf("✔\nResult profiling data saved to: %s 🔥\n", cfg.Target.FileName)
+	var end bool
+	for {
+		select {
+		case f := <-resultFileName:
+			err = p.Getter.GetRemoteFile(profilingPod, f, cfg.Target.FileName, cfg.Target.Compressor)
+			if err != nil {
+				printer.PrintError()
+				fmt.Println(err.Error())
+			} else {
+				// retrieved result file
+				fmt.Printf("✔\nResult profiling data saved to: %s 🔥\n", cfg.Target.FileName)
+			}
+		case end = <-done:
+		}
+		if end {
+			break
+		}
+	}
 
 	// invoke delete profiling job
 	_ = p.Deleter.DeleteProfilingJob(job, ctx)

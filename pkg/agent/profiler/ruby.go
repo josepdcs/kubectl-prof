@@ -3,6 +3,7 @@ package profiler
 import (
 	"bytes"
 	"fmt"
+	"github.com/agrison/go-commons-lang/stringUtils"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/config"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/utils"
@@ -10,9 +11,15 @@ import (
 )
 
 const (
-	rbspyLocation       = "/app/rbspy"
-	rbspyOutputFileName = "/tmp/rbspy"
+	rbspyLocation = "/app/rbspy"
 )
+
+var rbResultFile = func(job *config.ProfilingJob) string {
+	if stringUtils.IsBlank(job.FileName) {
+		return "/tmp/" + job.FileName
+	}
+	return "/tmp/flamegraph.svg"
+}
 
 type RubyProfiler struct{}
 
@@ -27,8 +34,9 @@ func (r *RubyProfiler) Invoke(job *config.ProfilingJob) error {
 	}
 	api.PublishLogEvent(api.DebugLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
 
+	filName := rbResultFile(job)
 	duration := strconv.Itoa(int(job.Duration.Seconds()))
-	cmd := utils.Command(rbspyLocation, "record", "--pid", pid, "--file", rbspyOutputFileName, "--duration", duration, "--format", "flamegraph")
+	cmd := utils.Command(rbspyLocation, "record", "--pid", pid, "--file", filName, "--duration", duration, "--format", "flamegraph")
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &out
@@ -39,5 +47,5 @@ func (r *RubyProfiler) Invoke(job *config.ProfilingJob) error {
 		return fmt.Errorf("could not launch profiler: %w", err)
 	}
 
-	return utils.Publish(job.Compressor, rbspyOutputFileName, job.OutputType)
+	return utils.Publish(job.Compressor, filName, job.OutputType)
 }

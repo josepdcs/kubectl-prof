@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/pkg/cli/config"
 	batchv1 "k8s.io/api/batch/v1"
 	apiv1 "k8s.io/api/core/v1"
@@ -17,8 +18,8 @@ type Connector interface {
 type Getter interface {
 	GetPod(podName, namespace string, ctx context.Context) (*apiv1.Pod, error)
 	GetProfilingPod(cfg *config.ProfilerConfig, ctx context.Context) (*apiv1.Pod, error)
-	GetPodLogs(pod *apiv1.Pod, handler EventHandler, ctx context.Context) (chan bool, error)
-	GetProfilerResult(podName string, ctx context.Context) error
+	GetPodLogs(pod *apiv1.Pod, handler EventHandler, ctx context.Context) (chan bool, chan string, error)
+	GetRemoteFile(pod *apiv1.Pod, remoteFileName string, localFileName string, compressor api.Compressor) error
 }
 
 type Creator interface {

@@ -3,6 +3,7 @@ package profiler
 import (
 	"bytes"
 	"fmt"
+	"github.com/agrison/go-commons-lang/stringUtils"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/config"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/utils"
@@ -17,8 +18,14 @@ const (
 	flameGraphStackCollapseLocation = "/app/FlameGraph/stackcollapse-perf.pl"
 	perfScriptOutputFileName        = "/tmp/perf.out"
 	perfFoldedOutputFileName        = "/tmp/perf.folded"
-	flameGraphPerfOutputFile        = "/tmp/perf.svg"
 )
+
+var perfResultFile = func(job *config.ProfilingJob) string {
+	if stringUtils.IsBlank(job.FileName) {
+		return "/tmp/" + job.FileName
+	}
+	return "/tmp/flamegraph.svg"
+}
 
 type PerfProfiler struct{}
 
@@ -47,7 +54,7 @@ func (p *PerfProfiler) Invoke(job *config.ProfilingJob) error {
 		return fmt.Errorf("flamegraph generation failed: %s", err)
 	}
 
-	return utils.Publish(job.Compressor, flameGraphPerfOutputFile, job.OutputType)
+	return utils.Publish(job.Compressor, perfResultFile(job), job.OutputType)
 }
 
 func (p *PerfProfiler) runPerfRecord(job *config.ProfilingJob) error {
@@ -133,7 +140,7 @@ func (p *PerfProfiler) generateFlameGraph(job *config.ProfilingJob) error {
 		}
 	}(inputFile)
 
-	outputFile, err := os.Create(flameGraphPerfOutputFile)
+	outputFile, err := os.Create(perfResultFile(job))
 	if err != nil {
 		return err
 	}

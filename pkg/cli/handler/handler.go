@@ -1,14 +1,10 @@
 package handler
 
 import (
-	"encoding/base64"
 	"fmt"
-	"github.com/josepdcs/kubectl-prof/pkg/cli/config"
-	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
-	log "github.com/sirupsen/logrus"
-	"io/ioutil"
-
 	"github.com/josepdcs/kubectl-prof/api"
+	"github.com/josepdcs/kubectl-prof/pkg/cli/config"
+	log "github.com/sirupsen/logrus"
 	batchv1 "k8s.io/api/batch/v1"
 )
 
@@ -26,7 +22,7 @@ func NewEventHandler(job *batchv1.Job, cfg *config.TargetConfig, level api.LogLe
 	}
 }
 
-func (h *EventHandler) Handle(events chan string, done chan bool) {
+func (h *EventHandler) Handle(events chan string, done chan bool, resultFileName chan string) {
 	for eventString := range events {
 		event, err := api.ParseEvent(eventString)
 		if err != nil {
@@ -35,8 +31,8 @@ func (h *EventHandler) Handle(events chan string, done chan bool) {
 			switch eventType := event.(type) {
 			case *api.ErrorData:
 				fmt.Printf("Error: %s\n", eventType.Reason)
-			case *api.OutputData:
-				h.writeEncodedFile(eventType.EncodedData)
+			case *api.ResultData:
+				resultFileName <- eventType.File
 			case *api.ProgressData:
 				h.reportProgress(eventType, done)
 			case *api.LogData:
@@ -45,29 +41,6 @@ func (h *EventHandler) Handle(events chan string, done chan bool) {
 				fmt.Printf("Unrecognized event type: %T!\n", eventType)
 			}
 		}
-	}
-}
-
-func (h *EventHandler) writeEncodedFile(encoded string) {
-	decoded, err := base64.StdEncoding.DecodeString(encoded)
-	if err != nil {
-		fmt.Printf("Failed to decode result data: %v\n", err)
-		return
-	}
-
-	c, err := compressor.Get(h.Target.Compressor)
-	if err != nil {
-		fmt.Printf("Failed to get compressor: %v\n", err)
-	}
-
-	decoded, err = c.Decode(decoded)
-	if err != nil {
-		fmt.Printf("Failed to decode snappy result data: %v\n", err)
-	}
-
-	err = ioutil.WriteFile(h.Target.FileName, decoded, 0777)
-	if err != nil {
-		fmt.Printf("Failed to write result file: %v\n", err)
 	}
 }
 

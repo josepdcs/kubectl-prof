@@ -2,14 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/agrison/go-commons-lang/stringUtils"
 	"github.com/josepdcs/kubectl-prof/pkg/cli/config"
 	"github.com/josepdcs/kubectl-prof/pkg/cli/kubernetes"
 	"github.com/josepdcs/kubectl-prof/pkg/cli/profiler"
 	"github.com/josepdcs/kubectl-prof/pkg/cli/version"
 	log "github.com/sirupsen/logrus"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/josepdcs/kubectl-prof/api"
@@ -73,7 +71,6 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 		compressor    string
 		profilingTool string
 		outputType    string
-		fileName      string
 	)
 
 	options := NewProfileOptions(streams)
@@ -111,8 +108,6 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 			if len(args) > 1 {
 				target.ContainerName = args[1]
 			}
-			// the result file name
-			target.FileName = stringUtils.SubstringAfterLast(fileName, string(filepath.Separator))
 
 			// Prepare profiler
 			cfg := config.NewProfilerConfig(&target, &job).WithLogLevel(api.LogLevel(logLevel))
@@ -128,7 +123,7 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 			}
 			cfg.Job.Namespace = connectionContext.Namespace
 
-			getter := kubernetes.NewGetter(connectionContext.ClientSet)
+			getter := kubernetes.NewGetter(connectionContext.KubeContext)
 			creator := kubernetes.NewCreator(connectionContext.ClientSet)
 			deleter := kubernetes.NewDeleter(connectionContext.ClientSet)
 			profiler.NewProfiler(getter, creator, deleter).Profile(cfg)
@@ -143,7 +138,7 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 		"Use a different container runtime install path")
 
 	cmd.Flags().DurationVarP(&target.Duration, "time", "t", defaultDuration, "Max scan Duration")
-	cmd.Flags().StringVarP(&fileName, "file", "f", "flamegraph.svg", "Optional file location")
+	cmd.Flags().StringVarP(&target.FileName, "file", "f", "flamegraph.svg", "Optional file location")
 	cmd.Flags().BoolVar(&target.Alpine, "alpine", false, "TargetConfig image is based on Alpine")
 	cmd.Flags().BoolVar(&target.DryRun, "dry-run", false, "Simulate profiling")
 	cmd.Flags().StringVar(&target.Image, "image", "", "Manually choose agent docker image")
