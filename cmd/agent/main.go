@@ -13,11 +13,11 @@ limitations under the License.
 package main
 
 import (
-	"errors"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/config"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/profiler"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/utils"
 	log "github.com/sirupsen/logrus"
+	"github.com/urfave/cli/v2"
 	"os"
 	"os/signal"
 	"syscall"
@@ -27,57 +27,138 @@ import (
 )
 
 func main() {
-	job, err := profilingJob()
-	handleError(err)
-
-	err = api.PublishEvent(api.Progress, &api.ProgressData{Time: time.Now(), Stage: api.Started})
-	handleError(err)
-
-	p, err := profiler.Get(job.Language, job.ProfilingTool)
-	handleError(err)
-
-	err = p.SetUp(job)
-	handleError(err)
-
-	done := handleSignals()
-	err = p.Invoke(job)
-	handleError(err)
-
-	err = api.PublishEvent(api.Progress, &api.ProgressData{Time: time.Now(), Stage: api.Ended})
-	handleError(err)
-
-	<-done
+	handleError(runApp())
 }
 
-func profilingJob() (*config.ProfilingJob, error) {
-	if len(os.Args) != 12 && len(os.Args) != 13 {
-		return nil, errors.New("expected 11 or 12 arguments")
+func runApp() error {
+	app := &cli.App{
+		Name:        "agent",
+		UsageText:   "agent [global options]",
+		Usage:       "the agent profiler used by kubectl-prof",
+		Description: "An agent with capability for profiling containers inside pods",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:     "job-id",
+				Usage:    "job ID",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:     "pod-uid",
+				Usage:    "pod UID",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:     "container-name",
+				Usage:    "container name",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:     "container-id",
+				Usage:    "container ID",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:     "duration",
+				Usage:    "profiling duration",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:     "lang",
+				Usage:    "programming language",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:     "event-type",
+				Usage:    "profiling event type",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:     "container-runtime",
+				Usage:    "container runtime",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:     "compressor",
+				Usage:    "compressor algorithm type",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:     "tool",
+				Usage:    "tool for profiling or debugging",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:     "output-type",
+				Usage:    "output type",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:     "filename",
+				Usage:    "result file name",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:     "target-process",
+				Usage:    "target process name",
+				Required: false,
+			},
+		},
+		Action: func(c *cli.Context) error {
+			job := &config.ProfilingJob{}
+			duration, err := time.ParseDuration(c.String("duration"))
+			if err != nil {
+				return err
+			}
+
+			job.ID = c.String("job-id")
+			job.PodUID = c.String("pod-uid")
+			job.ContainerName = c.String("container-name")
+			job.ContainerID = utils.NormalizeContainerID(c.String("container-id"))
+			job.Duration = duration
+			job.Language = api.ProgrammingLanguage(c.String("lang"))
+			job.Event = api.ProfilingEvent(c.String("event-type"))
+			job.ContainerRuntime = api.ContainerRuntime(c.String("container-runtime"))
+			job.Compressor = api.Compressor(c.String("compressor"))
+			job.ProfilingTool = api.ProfilingTool(c.String("tool"))
+			job.OutputType = api.EventType(c.String("output-type"))
+			job.FileName = c.String("filename")
+			job.TargetProcessName = c.String("target-process")
+
+			api.PublishLogEvent(api.DebugLevel, job.String())
+
+			err = api.PublishEvent(api.Progress, &api.ProgressData{Time: time.Now(), Stage: api.Started})
+			if err != nil {
+				return err
+			}
+
+			p, err := profiler.Get(job.Language, job.ProfilingTool)
+			if err != nil {
+				return err
+			}
+
+			err = p.SetUp(job)
+			if err != nil {
+				return err
+			}
+
+			done := handleSignals()
+			err = p.Invoke(job)
+			if err != nil {
+				return err
+			}
+
+			err = api.PublishEvent(api.Progress, &api.ProgressData{Time: time.Now(), Stage: api.Ended})
+			if err != nil {
+				return err
+			}
+
+			<-done
+
+			return nil
+		},
 	}
 
-	duration, err := time.ParseDuration(os.Args[5])
-	if err != nil {
-		return nil, err
-	}
-
-	job := &config.ProfilingJob{}
-	job.ID = os.Args[1]
-	job.PodUID = os.Args[2]
-	job.ContainerName = os.Args[3]
-	job.ContainerID = utils.NormalizeContainerID(os.Args[4])
-	job.Duration = duration
-	job.Language = api.ProgrammingLanguage(os.Args[6])
-	job.Event = api.ProfilingEvent(os.Args[7])
-	job.ContainerRuntime = api.ContainerRuntime(os.Args[8])
-	job.Compressor = api.Compressor(os.Args[9])
-	job.ProfilingTool = api.ProfilingTool(os.Args[10])
-	job.OutputType = api.EventType(os.Args[11])
-	if len(os.Args) == 13 {
-		job.TargetProcessName = os.Args[12]
-	}
-
-	api.PublishLogEvent(api.DebugLevel, job.String())
-
-	return job, nil
+	return app.Run(os.Args)
 }
 
 func handleSignals() chan bool {
@@ -87,24 +168,24 @@ func handleSignals() chan bool {
 
 	go func() {
 		s := <-sigs
-		log.Infof("Recived signal: %s", s)
+		log.Debugf("Recived signal: %s", s)
 		err := os.RemoveAll("/tmp/async-profiler")
 		if err != nil {
 			log.Warnf("directory could no be removed: %s", err)
 		}
 		err = os.Remove("/tmp")
 		if err != nil {
-			// log.Warnf("directory could no be removed: %s", err)
+			return
 		}
+
 		done <- true
 	}()
 
 	return done
 }
 
-func handleError(err error, step ...string) {
+func handleError(err error) {
 	if err != nil {
-		log.Errorf("%s", step)
 		api.PublishError(err)
 		os.Exit(1)
 	}

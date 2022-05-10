@@ -16,10 +16,13 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/pkg/cli/config"
 	"github.com/josepdcs/kubectl-prof/pkg/cli/kubernetes/job"
+	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
+	podexec "github.com/josepdcs/kubectl-prof/pkg/util/pod"
 	"io"
-	"k8s.io/client-go/kubernetes"
+	"io/ioutil"
 	"time"
 
 	apiv1 "k8s.io/api/core/v1"
@@ -28,22 +31,22 @@ import (
 )
 
 type EventHandler interface {
-	Handle(events chan string, done chan bool, ctx context.Context)
+	Handle(events chan string, done chan bool, resultFileName chan string)
 }
 
 type getter struct {
-	clientSet kubernetes.Interface
+	KubeContext
 }
 
 //NewGetter returns new implementation of Getter
-func NewGetter(clientSet kubernetes.Interface) *getter {
+func NewGetter(kubeContext KubeContext) *getter {
 	return &getter{
-		clientSet: clientSet,
+		kubeContext,
 	}
 }
 
-func (g getter) GetPod(podName, namespace string, ctx context.Context) (*apiv1.Pod, error) {
-	podObject, err := g.clientSet.
+func (g *getter) GetPod(podName, namespace string, ctx context.Context) (*apiv1.Pod, error) {
+	podObject, err := g.ClientSet.
 		CoreV1().
 		Pods(namespace).
 		Get(ctx, podName, metav1.GetOptions{})
@@ -54,11 +57,11 @@ func (g getter) GetPod(podName, namespace string, ctx context.Context) (*apiv1.P
 	return podObject, nil
 }
 
-func (g getter) GetProfilingPod(cfg *config.ProfilerConfig, ctx context.Context) (*apiv1.Pod, error) {
+func (g *getter) GetProfilingPod(cfg *config.ProfilerConfig, ctx context.Context) (*apiv1.Pod, error) {
 	var pod *apiv1.Pod
 	err := wait.Poll(1*time.Second, 5*time.Minute,
 		func() (bool, error) {
-			podList, err := g.clientSet.
+			podList, err := g.ClientSet.
 				CoreV1().
 				Pods(cfg.Job.Namespace).
 				List(ctx, metav1.ListOptions{
@@ -93,9 +96,8 @@ func (g getter) GetProfilingPod(cfg *config.ProfilerConfig, ctx context.Context)
 	return pod, nil
 }
 
-func (g getter) GetPodLogs(pod *apiv1.Pod, handler EventHandler, ctx context.Context) (chan bool, error) {
-	done := make(chan bool)
-	req := g.clientSet.CoreV1().
+func (g *getter) GetPodLogs(pod *apiv1.Pod, handler EventHandler, ctx context.Context) (chan bool, chan string, error) {
+	req := g.ClientSet.CoreV1().
 		Pods(pod.Namespace).
 		GetLogs(pod.Name, &apiv1.PodLogOptions{
 			Follow:    true,
@@ -104,11 +106,13 @@ func (g getter) GetPodLogs(pod *apiv1.Pod, handler EventHandler, ctx context.Con
 
 	readCloser, err := req.Stream(ctx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	eventsChan := make(chan string)
-	go handler.Handle(eventsChan, done, ctx)
+	done := make(chan bool)
+	resultFileName := make(chan string)
+	go handler.Handle(eventsChan, done, resultFileName)
 	go func() {
 		defer func(readCloser io.ReadCloser) {
 			err := readCloser.Close()
@@ -128,5 +132,31 @@ func (g getter) GetPodLogs(pod *apiv1.Pod, handler EventHandler, ctx context.Con
 		}
 	}()
 
-	return done, nil
+	return done, resultFileName, nil
+}
+
+func (g *getter) GetRemoteFile(pod *apiv1.Pod, remoteFileName string, localFileName string, c api.Compressor) error {
+	podFile := podexec.NewExec(g.RestConfig, g.ClientSet, pod)
+
+	_, out, _, err := podFile.ExecCmd([]string{"/bin/cat", remoteFileName})
+	if err != nil {
+		return fmt.Errorf("could not download profiler result file from pod: %w", err)
+	}
+
+	comp, err := compressor.Get(c)
+	if err != nil {
+		return fmt.Errorf("could not get compressor: %v\n", err)
+	}
+
+	decoded, err := comp.Decode(out.Bytes())
+	if err != nil {
+		return fmt.Errorf("could not decode remote file: %v\n", err)
+	}
+
+	err = ioutil.WriteFile(localFileName, decoded, 0644)
+	if err != nil {
+		return fmt.Errorf("could not write result file: %w", err)
+	}
+
+	return nil
 }

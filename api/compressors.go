@@ -4,10 +4,10 @@ type Compressor string
 
 const (
 	None   Compressor = "none"
-	Snappy Compressor = "snappy"
-	Gzip   Compressor = "gzip"
-	Lzo    Compressor = "lzo"
-	Zstd   Compressor = "zstd"
+	Snappy            = "snappy"
+	Gzip              = "gzip"
+	Lzo               = "lzo"
+	Zstd              = "zstd"
 )
 
 var (
@@ -29,4 +29,12 @@ func containsCompressor(compressor Compressor, compressors []Compressor) bool {
 		}
 	}
 	return false
+}
+
+var GetExtensionFileByCompressor = map[Compressor]string{
+	None:   "",
+	Snappy: ".snappy",
+	Gzip:   ".gz",
+	Lzo:    ".lzo",
+	Zstd:   ".zst",
 }

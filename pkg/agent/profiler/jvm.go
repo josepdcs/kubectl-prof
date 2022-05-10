@@ -15,6 +15,7 @@ package profiler
 import (
 	"bytes"
 	"fmt"
+	"github.com/agrison/go-commons-lang/stringUtils"
 	"github.com/fsnotify/fsnotify"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/config"
@@ -35,7 +36,49 @@ const (
 	jcmdMaxSize = "maxsize=100M"
 )
 
-type JvmProfiler struct{}
+var jvmResultFile = func(job *config.ProfilingJob) string {
+	if stringUtils.IsBlank(job.FileName) {
+		switch job.OutputType {
+		case api.Jfr:
+			return "/tmp/flight.jfr"
+		case api.ThreadDump:
+			return "/tmp/threaddump.txt"
+		case api.HeapDump:
+			return "/tmp/heapdump.hprof"
+		case api.HeapHistogram:
+			return "/tmp/heaphistogram.txt"
+		case api.Flat:
+			return "/tmp/flat.txt"
+		case api.Traces:
+			return "/tmp/traces.txt"
+		case api.Collapsed:
+			return "/tmp/collapsed.txt"
+		case api.Tree:
+			return "/tmp/tree.html"
+		default:
+			return "/tmp/flamegraph.html"
+		}
+	}
+	return "/tmp/" + job.FileName
+}
+
+type JvmProfiler struct {
+	JvmUtil
+}
+
+type JvmUtil interface {
+	copyProfilerToTempDirIfNeeded(tool api.ProfilingTool) error
+	handleProfilingResult(job *config.ProfilingJob, fileName string, out bytes.Buffer) error
+	handleJcmdRecording(fileName string)
+	publishResult(compressor api.Compressor, fileName string, outputType api.EventType) error
+}
+
+type jvmUtil struct {
+}
+
+func NewJvmProfiler() *JvmProfiler {
+	return &JvmProfiler{&jvmUtil{}}
+}
 
 func (j *JvmProfiler) SetUp(job *config.ProfilingJob) error {
 	targetFs, err := utils.ContainerFileSystem(job.ContainerRuntime, job.ContainerID)
@@ -57,14 +100,6 @@ func (j *JvmProfiler) SetUp(job *config.ProfilingJob) error {
 	return j.copyProfilerToTempDirIfNeeded(job.ProfilingTool)
 }
 
-func (j *JvmProfiler) copyProfilerToTempDirIfNeeded(tool api.ProfilingTool) error {
-	if tool == api.Jcmd {
-		return nil
-	}
-	cmd := utils.Command("cp", "-r", "/app/async-profiler", "/tmp")
-	return cmd.Run()
-}
-
 func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 	pid, err := utils.ContainerPID(job, false)
 	if err != nil {
@@ -77,30 +112,22 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 	var cmd *exec.Cmd
 	var out bytes.Buffer
 	var stderr bytes.Buffer
-	var fileName string
+	fileName := jvmResultFile(job)
 
 	switch job.ProfilingTool {
 	case api.Jcmd:
 		switch job.OutputType {
 		case api.Jfr:
-			fileName = "/tmp/flight.jfr"
 			cmd = utils.Command(jcmd, pid, "JFR.start", jcmdMaxSize, "duration="+duration+"s", "filename="+fileName)
 		case api.ThreadDump:
-			fileName = "/tmp/threaddump.txt"
 			cmd = utils.Command(jcmd, pid, "Thread.print")
 		case api.HeapDump:
-			fileName = "/tmp/heapdump.hprof"
 			cmd = utils.Command(jcmd, pid, "GC.heap_dump", fileName)
 		case api.HeapHistogram:
-			fileName = "/tmp/heaphistogram.txt"
 			cmd = utils.Command(jcmd, pid, "GC.class_histogram")
 		}
 	default: // async-profiler
 		event := string(job.Event)
-		fileName = "/tmp/flamegraph.html"
-		if job.OutputType == api.Jfr {
-			fileName = "/tmp/flight.jfr"
-		}
 		output := string(job.OutputType)
 		cmd = utils.Command(profilerSh, "-o", output, "-d", duration, "-f", fileName, "-e", event, "--fdtransfer", pid)
 	}
@@ -119,10 +146,18 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 		return err
 	}
 
-	return utils.Publish(job.Compressor, fileName, job.OutputType)
+	return j.publishResult(job.Compressor, fileName, job.OutputType)
 }
 
-func (j *JvmProfiler) handleProfilingResult(job *config.ProfilingJob, fileName string, out bytes.Buffer) error {
+func (j *jvmUtil) copyProfilerToTempDirIfNeeded(tool api.ProfilingTool) error {
+	if tool == api.Jcmd {
+		return nil
+	}
+	cmd := utils.Command("cp", "-r", "/app/async-profiler", "/tmp")
+	return cmd.Run()
+}
+
+func (j *jvmUtil) handleProfilingResult(job *config.ProfilingJob, fileName string, out bytes.Buffer) error {
 	if job.ProfilingTool == api.Jcmd {
 		switch job.OutputType {
 		case api.Jfr:
@@ -141,7 +176,7 @@ func (j *JvmProfiler) handleProfilingResult(job *config.ProfilingJob, fileName s
 	return nil
 }
 
-func (j *JvmProfiler) handleJcmdRecording(fileName string) {
+func (j *jvmUtil) handleJcmdRecording(fileName string) {
 	done := make(chan bool)
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -193,4 +228,8 @@ func (j *JvmProfiler) handleJcmdRecording(fileName string) {
 	}
 
 	<-done
+}
+
+func (j *jvmUtil) publishResult(c api.Compressor, fileName string, outputType api.EventType) error {
+	return utils.Publish(c, fileName, outputType)
 }

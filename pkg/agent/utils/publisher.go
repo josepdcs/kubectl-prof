@@ -2,7 +2,7 @@ package utils
 
 import (
 	"bufio"
-	"encoding/base64"
+	"fmt"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"io/ioutil"
@@ -30,7 +30,18 @@ func Publish(c api.Compressor, file string, eventType api.EventType) error {
 		return err
 	}
 
-	encoded := base64.StdEncoding.EncodeToString(compressed)
+	resultFile := file + api.GetExtensionFileByCompressor[c]
+	err = ioutil.WriteFile(resultFile, compressed, 0644)
+	if err != nil {
+		return fmt.Errorf("could not save compressed file %s, error: %w", resultFile, err)
+	}
 
-	return api.PublishEvent(eventType, api.OutputData{EncodedData: encoded})
+	return api.PublishEvent(
+		api.Result,
+		api.ResultData{
+			ResultType:     eventType,
+			File:           resultFile,
+			CompressorType: string(c),
+		},
+	)
 }

@@ -23,3 +23,7 @@ func ContainerdTestDataDir() string {
 func DockerTestDataDir() string {
 	return RootDir() + "/test/data/docker"
 }
+
+func ResultTestDataDir() string {
+	return RootDir() + "/test/data/result"
+}

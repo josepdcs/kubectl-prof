@@ -12,29 +12,21 @@ type Profiler interface {
 	Invoke(job *config.ProfilingJob) error
 }
 
-var (
-	jvm    = JvmProfiler{}
-	bpf    = BpfProfiler{}
-	python = PythonProfiler{}
-	ruby   = RubyProfiler{}
-	perf   = PerfProfiler{}
-)
-
 func Get(lang api.ProgrammingLanguage, tool api.ProfilingTool) (Profiler, error) {
 	switch lang {
 	case api.Java:
-		return &jvm, nil
+		return NewJvmProfiler(), nil
 	case api.Go:
-		return &bpf, nil
+		return NewBpfProfiler(), nil
 	case api.Python:
-		return &python, nil
+		return NewPythonProfiler(), nil
 	case api.Ruby:
-		return &ruby, nil
+		return NewRubyProfiler(), nil
 	case api.Node:
 		if tool == api.Perf {
-			return &perf, nil
+			return NewPerfProfiler(), nil
 		}
-		return &bpf, nil
+		return NewBpfProfiler(), nil
 	default:
 		return nil, fmt.Errorf("could not find profiler for language %s", lang)
 	}

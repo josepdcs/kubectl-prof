@@ -33,6 +33,7 @@ const (
 	Collapsed     EventType = "collapsed"
 	Tree          EventType = "tree"
 	Progress      EventType = "progress"
+	Result        EventType = "result"
 	Log           EventType = "log"
 
 	Started ProgressStage = "started"
@@ -48,8 +49,12 @@ type ErrorData struct {
 	Reason string `json:"reason"`
 }
 
-type OutputData struct {
-	EncodedData string `json:"encoded_data"`
+type ResultData struct {
+	ResultType     EventType `json:"result-type"`
+	Data           string    `json:"data,omitempty"`
+	File           string    `json:"file,omitempty"`
+	CompressorType string    `json:"compressor-type,omitempty"`
+	EncoderType    string    `json:"encoder-type,omitempty"`
 }
 
 type ProgressData struct {
@@ -64,19 +69,10 @@ type LogData struct {
 }
 
 var typeToData = map[EventType]interface{}{
-	Error:         &ErrorData{},
-	FlameGraph:    &OutputData{},
-	SpeedScope:    &OutputData{},
-	Jfr:           &OutputData{},
-	ThreadDump:    &OutputData{},
-	HeapDump:      &OutputData{},
-	HeapHistogram: &OutputData{},
-	Flat:          &OutputData{},
-	Traces:        &OutputData{},
-	Collapsed:     &OutputData{},
-	Tree:          &OutputData{},
-	Progress:      &ProgressData{},
-	Log:           &LogData{},
+	Error:    &ErrorData{},
+	Result:   &ResultData{},
+	Progress: &ProgressData{},
+	Log:      &LogData{},
 }
 
 func GetDataStructByType(t EventType) interface{} {

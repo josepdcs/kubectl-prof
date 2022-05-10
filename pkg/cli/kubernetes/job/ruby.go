@@ -5,7 +5,6 @@ import (
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/pkg/cli/config"
 	"github.com/josepdcs/kubectl-prof/pkg/cli/version"
-
 	batchv1 "k8s.io/api/batch/v1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,24 +20,6 @@ func (r *rubyCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (
 	var imagePullSecret []apiv1.LocalObjectReference
 	if cfg.Target.ImagePullSecret != "" {
 		imagePullSecret = []apiv1.LocalObjectReference{{Name: cfg.Target.ImagePullSecret}}
-	}
-
-	args := []string{
-		id,
-		string(targetPod.UID),
-		cfg.Target.ContainerName,
-		cfg.Target.ContainerId,
-		cfg.Target.Duration.String(),
-		string(cfg.Target.Language),
-		string(cfg.Target.Event),
-		string(cfg.Target.ContainerRuntime),
-		string(cfg.Target.Compressor),
-		string(cfg.Target.ProfilingTool),
-		string(cfg.Target.OutputType),
-	}
-
-	if cfg.Target.Pgrep != "" {
-		args = append(args, cfg.Target.Pgrep)
 	}
 
 	commonMeta := r.getObjectMeta(id, cfg)
@@ -80,7 +61,7 @@ func (r *rubyCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (
 							Name:            ContainerName,
 							Image:           imageName,
 							Command:         []string{"/app/agent"},
-							Args:            args,
+							Args:            getArgs(targetPod, cfg, id),
 							VolumeMounts: []apiv1.VolumeMount{
 								{
 									Name:      "target-filesystem",

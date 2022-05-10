@@ -68,19 +68,6 @@ func Test_pythonCreate_create(t *testing.T) {
 	wantedObjectMeta := b.getObjectMeta(id, cfg)
 	assert.Equal(t, job.ObjectMeta, wantedObjectMeta)
 
-	args := []string{
-		id, string(targetPod.UID),
-		cfg.Target.ContainerName,
-		cfg.Target.ContainerId,
-		cfg.Target.Duration.String(),
-		string(cfg.Target.Language),
-		string(cfg.Target.Event),
-		string(cfg.Target.ContainerRuntime),
-		string(cfg.Target.Compressor),
-		string(cfg.Target.ProfilingTool),
-		string(cfg.Target.OutputType),
-	}
-	args = append(args, cfg.Target.Pgrep)
 	resources, err := cfg.Job.ToResourceRequirements()
 
 	wantedJob := &batchv1.Job{
@@ -116,7 +103,7 @@ func Test_pythonCreate_create(t *testing.T) {
 							Name:            ContainerName,
 							Image:           cfg.Target.Image,
 							Command:         []string{"/app/agent"},
-							Args:            args,
+							Args:            getArgs(targetPod, cfg, id),
 							VolumeMounts: []apiv1.VolumeMount{
 								{
 									Name:      "target-filesystem",

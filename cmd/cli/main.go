@@ -4,10 +4,9 @@ import (
 	"github.com/josepdcs/kubectl-prof/pkg/cli/cmd"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"os"
-
 	"github.com/spf13/pflag"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"os"
 )
 
 func main() {
