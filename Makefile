@@ -1,6 +1,8 @@
 VERSION ?= 0.7.0-dev
 CLI_NAME ?= kubectl-prof
 CLI_DIR ?= ./cmd/cli/
+AGENT_NAME ?= agent
+AGENT_DIR ?= ./cmd/agent/
 BUILD_DIR ?= bin
 REGISTRY ?= docker.io
 DOCKER_BASE_IMAGE ?= josepdcs/kubectl-prof
@@ -33,6 +35,10 @@ install-deps: ## Get the dependencies
 .PHONY: build-cli
 build-cli: install-deps ## Build the binary file
 	@go build -ldflags="-X 'github.com/josepdcs/kubectl-prof/pkg/cli/version.semver=$(VERSION)'" -o $(BUILD_DIR)/$(CLI_NAME) -v $(CLI_DIR)
+
+.PHONY: build-agent
+build-agent: install-deps ## Build the binary file
+	@go build -o $(BUILD_DIR)/$(AGENT_NAME) -v $(AGENT_DIR)
 
 .PHONY: build-docker-jvm
 build-docker-jvm:

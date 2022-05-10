@@ -27,7 +27,24 @@ var perfResultFile = func(job *config.ProfilingJob) string {
 	return "/tmp/flamegraph.svg"
 }
 
-type PerfProfiler struct{}
+type PerfProfiler struct {
+	PerfUtil
+}
+
+type PerfUtil interface {
+	runPerfRecord(job *config.ProfilingJob) error
+	runPerfScript(job *config.ProfilingJob) error
+	foldPerfOutput(job *config.ProfilingJob) error
+	generateFlameGraph(job *config.ProfilingJob) error
+	publishResult(compressor api.Compressor, fileName string, outputType api.EventType) error
+}
+
+type perfUtil struct {
+}
+
+func NewPerfProfiler() *PerfProfiler {
+	return &PerfProfiler{&perfUtil{}}
+}
 
 func (p *PerfProfiler) SetUp(job *config.ProfilingJob) error {
 	return nil
@@ -54,10 +71,10 @@ func (p *PerfProfiler) Invoke(job *config.ProfilingJob) error {
 		return fmt.Errorf("flamegraph generation failed: %s", err)
 	}
 
-	return utils.Publish(job.Compressor, perfResultFile(job), job.OutputType)
+	return p.publishResult(job.Compressor, perfResultFile(job), job.OutputType)
 }
 
-func (p *PerfProfiler) runPerfRecord(job *config.ProfilingJob) error {
+func (p *perfUtil) runPerfRecord(job *config.ProfilingJob) error {
 	pid, err := utils.ContainerPID(job, true)
 	if err != nil {
 		return err
@@ -77,7 +94,7 @@ func (p *PerfProfiler) runPerfRecord(job *config.ProfilingJob) error {
 	return err
 }
 
-func (p *PerfProfiler) runPerfScript(job *config.ProfilingJob) error {
+func (p *perfUtil) runPerfScript(job *config.ProfilingJob) error {
 	f, err := os.Create(perfScriptOutputFileName)
 	if err != nil {
 		return err
@@ -102,7 +119,7 @@ func (p *PerfProfiler) runPerfScript(job *config.ProfilingJob) error {
 	return err
 }
 
-func (p *PerfProfiler) foldPerfOutput(job *config.ProfilingJob) error {
+func (p *perfUtil) foldPerfOutput(job *config.ProfilingJob) error {
 	f, err := os.Create(perfFoldedOutputFileName)
 	if err != nil {
 		return err
@@ -127,7 +144,7 @@ func (p *PerfProfiler) foldPerfOutput(job *config.ProfilingJob) error {
 	return err
 }
 
-func (p *PerfProfiler) generateFlameGraph(job *config.ProfilingJob) error {
+func (p *perfUtil) generateFlameGraph(job *config.ProfilingJob) error {
 	inputFile, err := os.Open(perfFoldedOutputFileName)
 	if err != nil {
 		return err
@@ -163,6 +180,10 @@ func (p *PerfProfiler) generateFlameGraph(job *config.ProfilingJob) error {
 		api.PublishLogEvent(api.ErrorLevel, stderr.String())
 	}
 	return err
+}
+
+func (b *perfUtil) publishResult(c api.Compressor, fileName string, outputType api.EventType) error {
+	return utils.Publish(c, fileName, outputType)
 }
 
 func getColors(l api.ProgrammingLanguage) string {

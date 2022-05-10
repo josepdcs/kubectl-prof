@@ -32,6 +32,10 @@ var pyResultFile = func(job *config.ProfilingJob) string {
 
 type PythonProfiler struct{}
 
+func NewPythonProfiler() *PythonProfiler {
+	return &PythonProfiler{}
+}
+
 func (p *PythonProfiler) SetUp(job *config.ProfilingJob) error {
 	return nil
 }

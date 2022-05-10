@@ -62,7 +62,23 @@ var jvmResultFile = func(job *config.ProfilingJob) string {
 	return "/tmp/" + job.FileName
 }
 
-type JvmProfiler struct{}
+type JvmProfiler struct {
+	JvmUtil
+}
+
+type JvmUtil interface {
+	copyProfilerToTempDirIfNeeded(tool api.ProfilingTool) error
+	handleProfilingResult(job *config.ProfilingJob, fileName string, out bytes.Buffer) error
+	handleJcmdRecording(fileName string)
+	publishResult(compressor api.Compressor, fileName string, outputType api.EventType) error
+}
+
+type jvmUtil struct {
+}
+
+func NewJvmProfiler() *JvmProfiler {
+	return &JvmProfiler{&jvmUtil{}}
+}
 
 func (j *JvmProfiler) SetUp(job *config.ProfilingJob) error {
 	targetFs, err := utils.ContainerFileSystem(job.ContainerRuntime, job.ContainerID)
@@ -82,14 +98,6 @@ func (j *JvmProfiler) SetUp(job *config.ProfilingJob) error {
 	}
 
 	return j.copyProfilerToTempDirIfNeeded(job.ProfilingTool)
-}
-
-func (j *JvmProfiler) copyProfilerToTempDirIfNeeded(tool api.ProfilingTool) error {
-	if tool == api.Jcmd {
-		return nil
-	}
-	cmd := utils.Command("cp", "-r", "/app/async-profiler", "/tmp")
-	return cmd.Run()
 }
 
 func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
@@ -138,10 +146,18 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 		return err
 	}
 
-	return utils.Publish(job.Compressor, fileName, job.OutputType)
+	return j.publishResult(job.Compressor, fileName, job.OutputType)
 }
 
-func (j *JvmProfiler) handleProfilingResult(job *config.ProfilingJob, fileName string, out bytes.Buffer) error {
+func (j *jvmUtil) copyProfilerToTempDirIfNeeded(tool api.ProfilingTool) error {
+	if tool == api.Jcmd {
+		return nil
+	}
+	cmd := utils.Command("cp", "-r", "/app/async-profiler", "/tmp")
+	return cmd.Run()
+}
+
+func (j *jvmUtil) handleProfilingResult(job *config.ProfilingJob, fileName string, out bytes.Buffer) error {
 	if job.ProfilingTool == api.Jcmd {
 		switch job.OutputType {
 		case api.Jfr:
@@ -160,7 +176,7 @@ func (j *JvmProfiler) handleProfilingResult(job *config.ProfilingJob, fileName s
 	return nil
 }
 
-func (j *JvmProfiler) handleJcmdRecording(fileName string) {
+func (j *jvmUtil) handleJcmdRecording(fileName string) {
 	done := make(chan bool)
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -212,4 +228,8 @@ func (j *JvmProfiler) handleJcmdRecording(fileName string) {
 	}
 
 	<-done
+}
+
+func (j *jvmUtil) publishResult(c api.Compressor, fileName string, outputType api.EventType) error {
+	return utils.Publish(c, fileName, outputType)
 }

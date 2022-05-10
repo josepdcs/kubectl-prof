@@ -32,70 +32,74 @@ func main() {
 
 func runApp() error {
 	app := &cli.App{
+		Name:        "agent",
+		UsageText:   "agent [global options]",
+		Usage:       "the agent profiler used by kubectl-prof",
+		Description: "An agent with capability for profiling containers inside pods",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:     "job-id",
-				Usage:    "Job ID",
+				Usage:    "job ID",
 				Required: true,
 			},
 			&cli.StringFlag{
 				Name:     "pod-uid",
-				Usage:    "Pod UID",
+				Usage:    "pod UID",
 				Required: true,
 			},
 			&cli.StringFlag{
 				Name:     "container-name",
-				Usage:    "Container name",
+				Usage:    "container name",
 				Required: true,
 			},
 			&cli.StringFlag{
 				Name:     "container-id",
-				Usage:    "Container ID",
+				Usage:    "container ID",
 				Required: true,
 			},
 			&cli.StringFlag{
 				Name:     "duration",
-				Usage:    "Profiling duration",
+				Usage:    "profiling duration",
 				Required: true,
 			},
 			&cli.StringFlag{
 				Name:     "lang",
-				Usage:    "Programming language",
+				Usage:    "programming language",
 				Required: true,
 			},
 			&cli.StringFlag{
 				Name:     "event-type",
-				Usage:    "Profiling event type",
+				Usage:    "profiling event type",
 				Required: true,
 			},
 			&cli.StringFlag{
 				Name:     "container-runtime",
-				Usage:    "Container runtime",
+				Usage:    "container runtime",
 				Required: true,
 			},
 			&cli.StringFlag{
 				Name:     "compressor",
-				Usage:    "Compressor algorithm type",
+				Usage:    "compressor algorithm type",
 				Required: true,
 			},
 			&cli.StringFlag{
 				Name:     "tool",
-				Usage:    "Tool for profiling or debugging",
+				Usage:    "tool for profiling or debugging",
 				Required: true,
 			},
 			&cli.StringFlag{
 				Name:     "output-type",
-				Usage:    "Output type",
+				Usage:    "output type",
 				Required: true,
 			},
 			&cli.StringFlag{
 				Name:     "filename",
-				Usage:    "Result file name",
+				Usage:    "result file name",
 				Required: true,
 			},
 			&cli.StringFlag{
 				Name:     "target-process",
-				Usage:    "Target process name",
+				Usage:    "target process name",
 				Required: false,
 			},
 		},
@@ -164,24 +168,24 @@ func handleSignals() chan bool {
 
 	go func() {
 		s := <-sigs
-		log.Infof("Recived signal: %s", s)
+		log.Debugf("Recived signal: %s", s)
 		err := os.RemoveAll("/tmp/async-profiler")
 		if err != nil {
 			log.Warnf("directory could no be removed: %s", err)
 		}
 		err = os.Remove("/tmp")
 		if err != nil {
-			// log.Warnf("directory could no be removed: %s", err)
+			return
 		}
+
 		done <- true
 	}()
 
 	return done
 }
 
-func handleError(err error, step ...string) {
+func handleError(err error) {
 	if err != nil {
-		log.Errorf("%s", step)
 		api.PublishError(err)
 		os.Exit(1)
 	}

@@ -2,7 +2,7 @@ ARG KERNEL_VERSION=5.15.15
 
 FROM linuxkit/kernel:$KERNEL_VERSION AS ksrc
 
-FROM golang:1.17.7-buster as agentbuild
+FROM golang:1.18.1-buster as agentbuild
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof
 ADD . /go/src/github.com/josepdcs/kubectl-prof
 RUN go get -d -v ./...

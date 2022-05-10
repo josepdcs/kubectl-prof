@@ -28,7 +28,23 @@ var bpfResultFile = func(job *config.ProfilingJob) string {
 	return "/tmp/flamegraph.svg"
 }
 
-type BpfProfiler struct{}
+type BpfProfiler struct {
+	BpfUtil
+}
+
+type BpfUtil interface {
+	runProfiler(job *config.ProfilingJob) error
+	generateFlameGraph(fileName string) error
+	moveSources(target string) error
+	publishResult(compressor api.Compressor, fileName string, outputType api.EventType) error
+}
+
+type bpfUtil struct {
+}
+
+func NewBpfProfiler() *BpfProfiler {
+	return &BpfProfiler{&bpfUtil{}}
+}
 
 func (b *BpfProfiler) SetUp(job *config.ProfilingJob) error {
 	exitCode, kernelVersion, err := utils.ExecuteCommand(utils.Command("uname", "-r"))
@@ -57,10 +73,25 @@ func (b *BpfProfiler) Invoke(job *config.ProfilingJob) error {
 		return fmt.Errorf("flamegraph generation failed: %s", err)
 	}
 
-	return utils.Publish(job.Compressor, fileName, job.OutputType)
+	return b.publishResult(job.Compressor, fileName, job.OutputType)
 }
 
-func (b *BpfProfiler) runProfiler(job *config.ProfilingJob) error {
+func (b *bpfUtil) moveSources(target string) error {
+	parent, _ := filepath.Split(target)
+	err := os.MkdirAll(parent, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	_, _, err = utils.ExecuteCommand(utils.Command("mv", kernelSourcesDir, target))
+	if err != nil {
+		return fmt.Errorf("failed moving source files, error: %s, tried to move to: %s", err, target)
+	}
+
+	return nil
+}
+
+func (b *bpfUtil) runProfiler(job *config.ProfilingJob) error {
 	pid, err := utils.ContainerPID(job, false)
 	if err != nil {
 		return err
@@ -93,7 +124,7 @@ func (b *BpfProfiler) runProfiler(job *config.ProfilingJob) error {
 	return err
 }
 
-func (b *BpfProfiler) generateFlameGraph(fileName string) error {
+func (b *bpfUtil) generateFlameGraph(fileName string) error {
 	inputFile, err := os.Open(rawProfilerOutputFile)
 	if err != nil {
 		return err
@@ -127,17 +158,6 @@ func (b *BpfProfiler) generateFlameGraph(fileName string) error {
 	return flameGraphCmd.Run()
 }
 
-func (b *BpfProfiler) moveSources(target string) error {
-	parent, _ := filepath.Split(target)
-	err := os.MkdirAll(parent, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	_, _, err = utils.ExecuteCommand(utils.Command("mv", kernelSourcesDir, target))
-	if err != nil {
-		return fmt.Errorf("failed moving source files, error: %s, tried to move to: %s", err, target)
-	}
-
-	return nil
+func (b *bpfUtil) publishResult(c api.Compressor, fileName string, outputType api.EventType) error {
+	return utils.Publish(c, fileName, outputType)
 }

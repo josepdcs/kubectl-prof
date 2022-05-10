@@ -23,6 +23,10 @@ var rbResultFile = func(job *config.ProfilingJob) string {
 
 type RubyProfiler struct{}
 
+func NewRubyProfiler() *RubyProfiler {
+	return &RubyProfiler{}
+}
+
 func (r *RubyProfiler) SetUp(job *config.ProfilingJob) error {
 	return nil
 }
