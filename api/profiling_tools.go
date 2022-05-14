@@ -37,11 +37,13 @@ func containsProfilingTool(profilingTool ProfilingTool, profilingTools []Profili
 //GetProfilingToolsByProgrammingLanguage Gets profiling tool related to the programming language.
 //The first one is considered the default
 var GetProfilingToolsByProgrammingLanguage = map[ProgrammingLanguage][]ProfilingTool{
-	Java:   {AsyncProfiler, Jcmd},
-	Python: {Pyspy},
-	Go:     {Bpf},
-	Node:   {Bpf, Perf},
-	Ruby:   {Rbspy},
+	Java:          {AsyncProfiler, Jcmd},
+	Python:        {Pyspy},
+	Go:            {Bpf},
+	Node:          {Bpf, Perf},
+	Clang:         {Perf, Bpf},
+	ClangPlusPlus: {Perf, Bpf},
+	Ruby:          {Rbspy},
 }
 
 func AvailableProfilingToolsString() string {

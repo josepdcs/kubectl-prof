@@ -145,6 +145,30 @@ In order to profile a Ruby application in pod `mypod` for 1 minute and save the 
 kubectl prof mypod -t 1m --lang ruby -f /tmp/flamegraph.svg
 ```
 
+### Profiling Clang Pod
+
+In order to profile a Clang application in pod `mypod` for 1 minute and save the flamegraph as `/tmp/flamegraph.svg` run:
+
+```shell
+kubectl prof mypod -t 1m --lang clang -f /tmp/flamegraph.svg
+```
+
+### Profiling Clang Pod
+
+In order to profile a Clang application in pod `mypod` for 1 minute and save the flamegraph as `/tmp/flamegraph.svg` run:
+
+```shell
+kubectl prof mypod -t 1m --lang clang -f /tmp/flamegraph.svg
+```
+
+### Profiling Clang++ Pod
+
+In order to profile a Clang++ application in pod `mypod` for 1 minute and save the flamegraph as `/tmp/flamegraph.svg` run:
+
+```shell
+kubectl prof mypod -t 1m --lang clang++ -f /tmp/flamegraph.svg
+```
+
 ### Profiling sidecar container
 
 Pods that contains more than one container require specifying the target container as an argument:
@@ -174,11 +198,11 @@ Use `--pgrep` flag if your process name is different.
 
 ### Pre-built binaries
 
-See the [release](https://github.com/josepdcs/kubectl-prof/releases/tag/v0.7.0) page for the full list of pre-built assets. And download the binary according yours architecture.
+See the [release](https://github.com/josepdcs/kubectl-prof/releases/tag/v0.7.1) page for the full list of pre-built assets. And download the binary according yours architecture.
 
 ### Installing for Linux x86_64
 ```shell
-curl -sL https://github.com/josepdcs/kubectl-prof/releases/download/v0.7.0/kubectl-prof_v0.7.0_linux_x86_64.tar.gz -o kubectl-prof.tar.gz
+curl -sL https://github.com/josepdcs/kubectl-prof/releases/download/v0.7.1/kubectl-prof_v0.7.1_linux_x86_64.tar.gz -o kubectl-prof.tar.gz
 tar xvfz kubectl-prof.tar.gz && sudo install kubectl-prof /usr/local/bin/
 ```
 
@@ -224,6 +248,7 @@ $ make agents
 * For Ruby: [rbspy](https://rbspy.github.io/). 
 * For NodeJS: [ebpf profiling](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter) and [perf](https://perf.wiki.kernel.org/index.php/Main_Page) but last one is not recommended. 
   * In order for Javascript Symbols to be resolved, node process needs to be run with `--prof-basic-prof` flag.
+* For Clang and Clang++: [perf](https://perf.wiki.kernel.org/index.php/Main_Page) is the default profiler but [ebpf profiling](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter) is also supported.
 
 ## Contribute
 

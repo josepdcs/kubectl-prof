@@ -24,17 +24,15 @@ func Get(lang api.ProgrammingLanguage, tool api.ProfilingTool) (Creator, error) 
 	switch lang {
 	case api.Java:
 		return &jvmCreator{}, nil
-	case api.Go:
+	case api.Go, api.Clang, api.ClangPlusPlus, api.Node:
+		if tool == api.Perf {
+			return &perfCreator{}, nil
+		}
 		return &bpfCreator{}, nil
 	case api.Python:
 		return &pythonCreator{}, nil
 	case api.Ruby:
 		return &rubyCreator{}, nil
-	case api.Node:
-		if tool == api.Perf {
-			return &perfCreator{}, nil
-		}
-		return &bpfCreator{}, nil
 	}
 
 	// Should not happen

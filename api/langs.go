@@ -3,15 +3,17 @@ package api
 type ProgrammingLanguage string
 
 const (
-	Java   ProgrammingLanguage = "java"
-	Go     ProgrammingLanguage = "go"
-	Python ProgrammingLanguage = "python"
-	Ruby   ProgrammingLanguage = "ruby"
-	Node   ProgrammingLanguage = "node"
+	Java          ProgrammingLanguage = "java"
+	Go            ProgrammingLanguage = "go"
+	Python        ProgrammingLanguage = "python"
+	Ruby          ProgrammingLanguage = "ruby"
+	Node          ProgrammingLanguage = "node"
+	Clang         ProgrammingLanguage = "clang"
+	ClangPlusPlus ProgrammingLanguage = "clang++"
 )
 
 var (
-	supportedLangs = []ProgrammingLanguage{Java, Go, Python, Ruby, Node}
+	supportedLangs = []ProgrammingLanguage{Java, Go, Python, Ruby, Node, Clang, ClangPlusPlus}
 )
 
 func AvailableLanguages() []ProgrammingLanguage {

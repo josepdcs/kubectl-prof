@@ -16,17 +16,15 @@ func Get(lang api.ProgrammingLanguage, tool api.ProfilingTool) (Profiler, error)
 	switch lang {
 	case api.Java:
 		return NewJvmProfiler(), nil
-	case api.Go:
+	case api.Go, api.Node, api.Clang, api.ClangPlusPlus:
+		if tool == api.Perf {
+			return NewPerfProfiler(), nil
+		}
 		return NewBpfProfiler(), nil
 	case api.Python:
 		return NewPythonProfiler(), nil
 	case api.Ruby:
 		return NewRubyProfiler(), nil
-	case api.Node:
-		if tool == api.Perf {
-			return NewPerfProfiler(), nil
-		}
-		return NewBpfProfiler(), nil
 	default:
 		return nil, fmt.Errorf("could not find profiler for language %s", lang)
 	}

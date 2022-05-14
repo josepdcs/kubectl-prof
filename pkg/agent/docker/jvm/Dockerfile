@@ -20,7 +20,7 @@ RUN mkdir -p /app/async-profiler/build
 COPY --from=agentbuild /go/bin/agent /app
 COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/tools/jvm/profiler.sh /app/async-profiler
 COPY --from=tools /async-profiler/build /app/async-profiler/build
-RUN chmod +x /app/async-profiler
+RUN chmod +x /app/async-profiler/profiler.sh
 COPY --from=tools /jdk-17 /opt/jdk-17
 
 CMD [ "/app/agent" ]
