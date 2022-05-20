@@ -10,6 +10,7 @@ import (
 type Profiler interface {
 	SetUp(job *config.ProfilingJob) error
 	Invoke(job *config.ProfilingJob) error
+	CleanUp(job *config.ProfilingJob) error
 }
 
 func Get(lang api.ProgrammingLanguage, tool api.ProfilingTool) (Profiler, error) {

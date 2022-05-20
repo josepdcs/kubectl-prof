@@ -78,3 +78,15 @@ var typeToData = map[EventType]interface{}{
 func GetDataStructByType(t EventType) interface{} {
 	return typeToData[t]
 }
+
+func ParseEvent(eventString string) (interface{}, error) {
+	event := &Event{}
+	err := jsoniter.Unmarshal([]byte(eventString), event)
+	if err != nil {
+		return nil, err
+	}
+
+	eventData := GetDataStructByType(event.Type)
+	err = jsoniter.Unmarshal(*event.Data, eventData)
+	return eventData, err
+}

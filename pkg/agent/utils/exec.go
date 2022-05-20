@@ -14,7 +14,7 @@ func Command(name string, arg ...string) *exec.Cmd {
 		builder.WriteString(str)
 		builder.WriteString(" ")
 	}
-	api.PublishLogEvent(api.DebugLevel, strings.TrimSpace(builder.String()))
+	PublishLogEvent(api.DebugLevel, strings.TrimSpace(builder.String()))
 
 	return exec.Command(name, arg...)
 }

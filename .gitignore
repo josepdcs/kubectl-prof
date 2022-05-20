@@ -1,3 +1,4 @@
 .idea/
 .run/
 bin/
+coverage.out
