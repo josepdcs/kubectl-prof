@@ -13,10 +13,10 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/config"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/profiler"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/utils"
-	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	"os"
 	"os/signal"
@@ -141,7 +141,7 @@ func runApp() error {
 				return err
 			}
 
-			done := handleSignals()
+			done := handleSignals(p, job)
 			err = p.Invoke(job)
 			if err != nil {
 				return err
@@ -161,19 +161,15 @@ func runApp() error {
 	return app.Run(os.Args)
 }
 
-func handleSignals() chan bool {
+func handleSignals(p profiler.Profiler, job *config.ProfilingJob) chan bool {
 	sigs := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
 	signal.Notify(sigs, syscall.SIGTERM)
 
 	go func() {
 		s := <-sigs
-		log.Debugf("Recived signal: %s", s)
-		err := os.RemoveAll("/tmp/async-profiler")
-		if err != nil {
-			log.Warnf("directory could no be removed: %s", err)
-		}
-		err = os.Remove("/tmp")
+		api.PublishLogEvent(api.DebugLevel, fmt.Sprintf("Recived signal: %s", s))
+		err := p.CleanUp(job)
 		if err != nil {
 			return
 		}

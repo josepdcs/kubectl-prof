@@ -8,6 +8,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/pkg/agent/config"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/utils"
 	"io/ioutil"
+	"os"
 	"os/exec"
 	"strconv"
 )
@@ -77,4 +78,13 @@ func (p *PythonProfiler) Invoke(job *config.ProfilingJob) error {
 	}
 
 	return utils.Publish(job.Compressor, fileName, job.OutputType)
+}
+
+func (p *PythonProfiler) CleanUp(job *config.ProfilingJob) error {
+	fileName := pyResultFile(job)
+	err := os.Remove(fileName + api.GetExtensionFileByCompressor[job.Compressor])
+	if err != nil {
+		api.PublishLogEvent(api.WarnLevel, fmt.Sprintf("file could no be removed: %s", err))
+	}
+	return os.Remove(fileName)
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/config"
 	"github.com/josepdcs/kubectl-prof/pkg/agent/utils"
+	"os"
 	"strconv"
 )
 
@@ -52,4 +53,13 @@ func (r *RubyProfiler) Invoke(job *config.ProfilingJob) error {
 	}
 
 	return utils.Publish(job.Compressor, filName, job.OutputType)
+}
+
+func (r *RubyProfiler) CleanUp(job *config.ProfilingJob) error {
+	fileName := rbResultFile(job)
+	err := os.Remove(fileName + api.GetExtensionFileByCompressor[job.Compressor])
+	if err != nil {
+		api.PublishLogEvent(api.WarnLevel, fmt.Sprintf("file could no be removed: %s", err))
+	}
+	return os.Remove(fileName)
 }
