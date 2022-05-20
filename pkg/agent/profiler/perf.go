@@ -78,7 +78,7 @@ func (p *PerfProfiler) CleanUp(job *config.ProfilingJob) error {
 	fileName := perfResultFile(job)
 	err := os.Remove(fileName + api.GetExtensionFileByCompressor[job.Compressor])
 	if err != nil {
-		api.PublishLogEvent(api.WarnLevel, fmt.Sprintf("file could no be removed: %s", err))
+		utils.PublishLogEvent(api.WarnLevel, fmt.Sprintf("file could no be removed: %s", err))
 	}
 	return os.Remove(fileName)
 }
@@ -88,7 +88,7 @@ func (p *perfUtil) runPerfRecord(job *config.ProfilingJob) error {
 	if err != nil {
 		return err
 	}
-	api.PublishLogEvent(api.DebugLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
+	utils.PublishLogEvent(api.DebugLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
 
 	duration := strconv.Itoa(int(job.Duration.Seconds()))
 
@@ -98,7 +98,7 @@ func (p *perfUtil) runPerfRecord(job *config.ProfilingJob) error {
 
 	err = cmd.Run()
 	if err != nil {
-		api.PublishLogEvent(api.ErrorLevel, stderr.String())
+		utils.PublishLogEvent(api.ErrorLevel, stderr.String())
 	}
 	return err
 }
@@ -123,7 +123,7 @@ func (p *perfUtil) runPerfScript(job *config.ProfilingJob) error {
 
 	err = cmd.Run()
 	if err != nil {
-		api.PublishLogEvent(api.ErrorLevel, stderr.String())
+		utils.PublishLogEvent(api.ErrorLevel, stderr.String())
 	}
 	return err
 }
@@ -148,7 +148,7 @@ func (p *perfUtil) foldPerfOutput(job *config.ProfilingJob) error {
 
 	err = cmd.Run()
 	if err != nil {
-		api.PublishLogEvent(api.ErrorLevel, stderr.String())
+		utils.PublishLogEvent(api.ErrorLevel, stderr.String())
 	}
 	return err
 }
@@ -186,7 +186,7 @@ func (p *perfUtil) generateFlameGraph(job *config.ProfilingJob) error {
 
 	err = cmd.Run()
 	if err != nil {
-		api.PublishLogEvent(api.ErrorLevel, stderr.String())
+		utils.PublishLogEvent(api.ErrorLevel, stderr.String())
 	}
 	return err
 }

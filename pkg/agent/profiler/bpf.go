@@ -80,7 +80,7 @@ func (b *BpfProfiler) CleanUp(job *config.ProfilingJob) error {
 	fileName := bpfResultFile(job)
 	err := os.Remove(fileName + api.GetExtensionFileByCompressor[job.Compressor])
 	if err != nil {
-		api.PublishLogEvent(api.WarnLevel, fmt.Sprintf("file could no be removed: %s", err))
+		utils.PublishLogEvent(api.WarnLevel, fmt.Sprintf("file could no be removed: %s", err))
 	}
 	return os.Remove(fileName)
 }
@@ -105,7 +105,7 @@ func (b *bpfUtil) runProfiler(job *config.ProfilingJob) error {
 	if err != nil {
 		return err
 	}
-	api.PublishLogEvent(api.DebugLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
+	utils.PublishLogEvent(api.DebugLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
 
 	f, err := os.Create(rawProfilerOutputFile)
 	if err != nil {
@@ -128,7 +128,7 @@ func (b *bpfUtil) runProfiler(job *config.ProfilingJob) error {
 
 	err = cmd.Run()
 	if err != nil {
-		api.PublishLogEvent(api.ErrorLevel, stderr.String())
+		utils.PublishLogEvent(api.ErrorLevel, stderr.String())
 	}
 	return err
 }

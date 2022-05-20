@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
+	jsoniter "github.com/json-iterator/go"
 	"io/ioutil"
 	"os"
+	"time"
 )
 
 func Publish(c api.Compressor, file string, eventType api.EventType) error {
@@ -36,7 +38,7 @@ func Publish(c api.Compressor, file string, eventType api.EventType) error {
 		return fmt.Errorf("could not save compressed file %s, error: %w", resultFile, err)
 	}
 
-	return api.PublishEvent(
+	return PublishEvent(
 		api.Result,
 		api.ResultData{
 			ResultType:     eventType,
@@ -44,4 +46,39 @@ func Publish(c api.Compressor, file string, eventType api.EventType) error {
 			CompressorType: string(c),
 		},
 	)
+}
+
+func PublishError(err error) {
+	data := &api.ErrorData{Reason: err.Error()}
+	_ = PublishEvent(api.Error, data)
+}
+
+func PublishEvent(eventType api.EventType, data interface{}) error {
+	eventData, err := jsoniter.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	rawEventData := jsoniter.RawMessage(eventData)
+	event := api.Event{Type: eventType, Data: &rawEventData}
+
+	bytes, err := jsoniter.Marshal(event)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(string(bytes))
+	return nil
+}
+
+func PublishLogEvent(level api.LogLevel, msg string) {
+	if len(msg) > 0 {
+		_ = PublishEvent(
+			api.Log,
+			&api.LogData{
+				Time:  time.Now(),
+				Level: string(level),
+				Msg:   fmt.Sprint(msg)},
+		)
+	}
 }

@@ -124,9 +124,9 @@ func runApp() error {
 			job.FileName = c.String("filename")
 			job.TargetProcessName = c.String("target-process")
 
-			api.PublishLogEvent(api.DebugLevel, job.String())
+			utils.PublishLogEvent(api.DebugLevel, job.String())
 
-			err = api.PublishEvent(api.Progress, &api.ProgressData{Time: time.Now(), Stage: api.Started})
+			err = utils.PublishEvent(api.Progress, &api.ProgressData{Time: time.Now(), Stage: api.Started})
 			if err != nil {
 				return err
 			}
@@ -147,7 +147,7 @@ func runApp() error {
 				return err
 			}
 
-			err = api.PublishEvent(api.Progress, &api.ProgressData{Time: time.Now(), Stage: api.Ended})
+			err = utils.PublishEvent(api.Progress, &api.ProgressData{Time: time.Now(), Stage: api.Ended})
 			if err != nil {
 				return err
 			}
@@ -168,7 +168,7 @@ func handleSignals(p profiler.Profiler, job *config.ProfilingJob) chan bool {
 
 	go func() {
 		s := <-sigs
-		api.PublishLogEvent(api.DebugLevel, fmt.Sprintf("Recived signal: %s", s))
+		utils.PublishLogEvent(api.DebugLevel, fmt.Sprintf("Recived signal: %s", s))
 		err := p.CleanUp(job)
 		if err != nil {
 			return
@@ -182,7 +182,7 @@ func handleSignals(p profiler.Profiler, job *config.ProfilingJob) chan bool {
 
 func handleError(err error) {
 	if err != nil {
-		api.PublishError(err)
+		utils.PublishError(err)
 		os.Exit(1)
 	}
 }

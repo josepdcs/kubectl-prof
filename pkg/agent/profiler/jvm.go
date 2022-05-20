@@ -105,7 +105,7 @@ func (j *JvmProfiler) SetUp(job *config.ProfilingJob) error {
 	if err != nil {
 		return err
 	}
-	api.PublishLogEvent(api.DebugLevel, fmt.Sprintf("The target filesystem is: %s", targetFs))
+	utils.PublishLogEvent(api.DebugLevel, fmt.Sprintf("The target filesystem is: %s", targetFs))
 
 	err = os.RemoveAll("/tmp")
 	if err != nil {
@@ -125,7 +125,7 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 	if err != nil {
 		return err
 	}
-	api.PublishLogEvent(api.DebugLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
+	utils.PublishLogEvent(api.DebugLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
 
 	var out bytes.Buffer
 	var stderr bytes.Buffer
@@ -136,8 +136,8 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 	cmd.Stderr = &stderr
 	err = cmd.Run()
 	if err != nil {
-		api.PublishLogEvent(api.ErrorLevel, out.String())
-		api.PublishLogEvent(api.ErrorLevel, stderr.String())
+		utils.PublishLogEvent(api.ErrorLevel, out.String())
+		utils.PublishLogEvent(api.ErrorLevel, stderr.String())
 		return fmt.Errorf("could not launch profiler: %w", err)
 	}
 
@@ -152,13 +152,13 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 func (j *JvmProfiler) CleanUp(job *config.ProfilingJob) error {
 	err := os.RemoveAll("/tmp/async-profiler")
 	if err != nil {
-		api.PublishLogEvent(api.WarnLevel, fmt.Sprintf("directory could no be removed: %s", err))
+		utils.PublishLogEvent(api.WarnLevel, fmt.Sprintf("directory could no be removed: %s", err))
 	}
 
 	fileName := jvmResultFile(job)
 	err = os.Remove(fileName + api.GetExtensionFileByCompressor[job.Compressor])
 	if err != nil {
-		api.PublishLogEvent(api.WarnLevel, fmt.Sprintf("file could no be removed: %s", err))
+		utils.PublishLogEvent(api.WarnLevel, fmt.Sprintf("file could no be removed: %s", err))
 	}
 
 	return os.Remove(fileName)
@@ -183,10 +183,10 @@ func (j *jvmUtil) handleProfilingResult(job *config.ProfilingJob, fileName strin
 				return fmt.Errorf("could not save dump to file: %w", err)
 			}
 		default:
-			api.PublishLogEvent(api.DebugLevel, out.String())
+			utils.PublishLogEvent(api.DebugLevel, out.String())
 		}
 	} else {
-		api.PublishLogEvent(api.DebugLevel, out.String())
+		utils.PublishLogEvent(api.DebugLevel, out.String())
 	}
 	return nil
 }
@@ -195,7 +195,7 @@ func (j *jvmUtil) handleJcmdRecording(fileName string) {
 	done := make(chan bool)
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		api.PublishError(err)
+		utils.PublishError(err)
 		log.Error(err)
 	}
 	defer func(watcher *fsnotify.Watcher) {
@@ -213,11 +213,11 @@ func (j *jvmUtil) handleJcmdRecording(fileName string) {
 					return
 				}
 				if event.Op&fsnotify.Write == fsnotify.Write {
-					api.PublishLogEvent(api.DebugLevel, fmt.Sprintf("modified file: %s", event.Name))
+					utils.PublishLogEvent(api.DebugLevel, fmt.Sprintf("modified file: %s", event.Name))
 					f, err := os.Stat(event.Name)
 					if err != nil {
-						api.PublishError(err)
-						api.PublishLogEvent(api.ErrorLevel, err.Error())
+						utils.PublishError(err)
+						utils.PublishLogEvent(api.ErrorLevel, err.Error())
 						return
 					}
 					if f.Size() > 0 {
@@ -228,18 +228,18 @@ func (j *jvmUtil) handleJcmdRecording(fileName string) {
 				if !ok {
 					return
 				}
-				api.PublishError(err)
-				api.PublishLogEvent(api.ErrorLevel, err.Error())
+				utils.PublishError(err)
+				utils.PublishLogEvent(api.ErrorLevel, err.Error())
 			}
 		}
 	}()
 
 	err = watcher.Add(fileName)
-	api.PublishLogEvent(api.DebugLevel, fmt.Sprintf("add watcher to file: %s", fileName))
+	utils.PublishLogEvent(api.DebugLevel, fmt.Sprintf("add watcher to file: %s", fileName))
 
 	if err != nil {
-		api.PublishError(err)
-		api.PublishLogEvent(api.ErrorLevel, err.Error())
+		utils.PublishError(err)
+		utils.PublishLogEvent(api.ErrorLevel, err.Error())
 	}
 
 	<-done

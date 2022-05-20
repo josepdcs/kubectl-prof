@@ -46,7 +46,7 @@ func (p *PythonProfiler) Invoke(job *config.ProfilingJob) error {
 	if err != nil {
 		return err
 	}
-	api.PublishLogEvent(api.DebugLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
+	utils.PublishLogEvent(api.DebugLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
 
 	duration := strconv.Itoa(int(job.Duration.Seconds()))
 	var cmd *exec.Cmd
@@ -66,7 +66,7 @@ func (p *PythonProfiler) Invoke(job *config.ProfilingJob) error {
 	cmd.Stderr = &stderr
 	err = cmd.Run()
 	if err != nil {
-		api.PublishLogEvent(api.ErrorLevel, stderr.String())
+		utils.PublishLogEvent(api.ErrorLevel, stderr.String())
 		return fmt.Errorf("could not launch profiler: %w", err)
 	}
 
@@ -84,7 +84,7 @@ func (p *PythonProfiler) CleanUp(job *config.ProfilingJob) error {
 	fileName := pyResultFile(job)
 	err := os.Remove(fileName + api.GetExtensionFileByCompressor[job.Compressor])
 	if err != nil {
-		api.PublishLogEvent(api.WarnLevel, fmt.Sprintf("file could no be removed: %s", err))
+		utils.PublishLogEvent(api.WarnLevel, fmt.Sprintf("file could no be removed: %s", err))
 	}
 	return os.Remove(fileName)
 }
