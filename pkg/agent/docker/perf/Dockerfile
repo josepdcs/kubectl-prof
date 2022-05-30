@@ -9,7 +9,7 @@ RUN apk add --update git
 RUN git clone https://github.com/brendangregg/FlameGraph
 
 FROM alpine
-RUN apk add --update perf perl
+RUN apk add --update perf perl procps
 RUN mkdir -p /app/FlameGraph
 COPY --from=agentbuild /go/bin/agent /app/agent
 RUN mv /usr/bin/perf /app/perf

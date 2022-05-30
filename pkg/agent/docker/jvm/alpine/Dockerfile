@@ -17,6 +17,7 @@ RUN tar -xvf jdk-17.0.3+7.tar.gz && mv jdk-17.0.3+7 jdk-17
 
 FROM alpine
 RUN mkdir -p /app/async-profiler/build
+RUN apk add procps
 COPY --from=agentbuild /go/bin/agent /app
 COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/tools/jvm/profiler.sh /app/async-profiler
 COPY --from=tools /async-profiler/build /app/async-profiler/build

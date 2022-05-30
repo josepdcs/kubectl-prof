@@ -23,6 +23,13 @@ type ProfilingJob struct {
 }
 
 func (p *ProfilingJob) String() string {
-	out, _ := jsoniter.Marshal(p)
-	return string(out)
+	out, _ := jsoniter.MarshalToString(p)
+	return out
+}
+
+func (p *ProfilingJob) ToMap() map[string]interface{} {
+	out := make(map[string]interface{})
+	bytes, _ := jsoniter.Marshal(p)
+	_ = jsoniter.Unmarshal(bytes, &out)
+	return out
 }

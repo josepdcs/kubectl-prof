@@ -8,6 +8,7 @@ FROM python:3.9-slim-buster AS pyspybuild
 RUN pip3 install py-spy==0.3.11
 
 FROM python:3.9-alpine
+RUN apk add --update procps
 RUN mkdir /app
 COPY --from=agentbuild /go/bin/agent /app/agent
 COPY --from=pyspybuild /usr/local/bin/py-spy /app/py-spy

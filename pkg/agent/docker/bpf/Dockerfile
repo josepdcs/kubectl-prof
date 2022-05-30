@@ -17,7 +17,7 @@ RUN git clone https://github.com/brendangregg/FlameGraph
 
 FROM alpine
 COPY --from=builder /usr/src /usr/src
-RUN apk add bcc-tools perl
+RUN apk add bcc-tools perl procps strace
 RUN ln -s $(which python3) /usr/bin/python
 RUN mkdir -p /app/FlameGraph
 COPY --from=builder /FlameGraph /app/FlameGraph

@@ -62,12 +62,12 @@ func PublishEvent(eventType api.EventType, data interface{}) error {
 	rawEventData := jsoniter.RawMessage(eventData)
 	event := api.Event{Type: eventType, Data: &rawEventData}
 
-	bytes, err := jsoniter.Marshal(event)
+	str, err := jsoniter.MarshalToString(event)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(string(bytes))
+	fmt.Println(str)
 	return nil
 }
 

@@ -16,6 +16,7 @@ RUN curl -o jdk-17.0.3+7.tar.gz -L \
 RUN tar -xvf jdk-17.0.3+7.tar.gz && mv jdk-17.0.3+7 jdk-17
 
 FROM bitnami/minideb:stretch
+RUN apt-get update && apt-get install -y procps strace
 RUN mkdir -p /app/async-profiler/build
 COPY --from=agentbuild /go/bin/agent /app
 COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/tools/jvm/profiler.sh /app/async-profiler
