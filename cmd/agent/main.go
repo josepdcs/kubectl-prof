@@ -26,6 +26,9 @@ import (
 	"github.com/josepdcs/kubectl-prof/api"
 )
 
+//gracePeriod grace period so that the cli will be able to retrieve the result file during this one
+const gracePeriod = 5 * time.Minute
+
 func main() {
 	handleError(runApp())
 }
@@ -152,15 +155,36 @@ func runApp() error {
 				return err
 			}
 
-			<-done
-
-			return nil
+			return handleForHappyEnding(p, job, done)
 		},
 	}
 
 	return app.Run(os.Args)
 }
 
+// handleForHappyEnding handles the ending up of the app.
+// A grace of period is defined so that the client profiler have time to retrieve the result of the profiling.
+// Passed this time, the agent will be auto-deleted.
+func handleForHappyEnding(p profiler.Profiler, job *config.ProfilingJob, done chan bool) error {
+	timer := time.NewTimer(gracePeriod)
+	fired := make(chan bool, 1)
+	go func() {
+		<-timer.C
+		fired <- true
+	}()
+
+	for {
+		select {
+		case <-fired:
+			utils.PublishLogEvent(api.WarnLevel, "Maximum allowed time surpassed. Cleaning up and auto-deleting the agent...")
+			return p.CleanUp(job)
+		case <-done:
+			return nil
+		}
+	}
+}
+
+// handleSignals handles SIGTERM for ending up the app
 func handleSignals(p profiler.Profiler, job *config.ProfilingJob) chan bool {
 	sigs := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
@@ -180,6 +204,7 @@ func handleSignals(p profiler.Profiler, job *config.ProfilingJob) chan bool {
 	return done
 }
 
+// handleError simple func helper for logging error and exit
 func handleError(err error) {
 	if err != nil {
 		utils.PublishError(err)
