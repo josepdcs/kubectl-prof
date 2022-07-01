@@ -268,3 +268,17 @@ issues, questions, and pull requests
 
 This project is licensed under the terms of the [Apache 2.0](LICENSE-Apache-2.0) open source license. Please refer
 to [LICENSE](LICENSE) for the full terms.
+
+## Project status
+
+| Service | Status |
+|-----|:---|
+| [Github Actions](https://github.com/actions/) |  ![Build Status][actions-image]  |
+| [GoReport](https://goreportcard.com/) |  [![Go Report Card][goreportcard-image]][goreportcard-url] |
+
+[actions-image]: https://github.com/josepdcs/kubectl-prof/actions
+
+[goreportcard-image]: https://goreportcard.com/badge/github.com/josepdcs/kubectl-prof
+[goreportcard-url]: https://goreportcard.com/report/github.com/josepdcs/kubectl-prof
+
+
