@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/josepdcs/kubectl-prof/pkg/cli/cmd"
+	"github.com/josepdcs/kubectl-prof/internal/cli/cmd"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"

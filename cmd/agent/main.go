@@ -14,9 +14,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/josepdcs/kubectl-prof/pkg/agent/config"
-	"github.com/josepdcs/kubectl-prof/pkg/agent/profiler"
-	"github.com/josepdcs/kubectl-prof/pkg/agent/utils"
+	"github.com/josepdcs/kubectl-prof/internal/agent/config"
+	"github.com/josepdcs/kubectl-prof/internal/agent/profiler"
+	utils2 "github.com/josepdcs/kubectl-prof/internal/agent/utils"
 	"github.com/urfave/cli/v2"
 	"os"
 	"os/signal"
@@ -116,7 +116,7 @@ func runApp() error {
 			job.ID = c.String("job-id")
 			job.PodUID = c.String("pod-uid")
 			job.ContainerName = c.String("container-name")
-			job.ContainerID = utils.NormalizeContainerID(c.String("container-id"))
+			job.ContainerID = utils2.NormalizeContainerID(c.String("container-id"))
 			job.Duration = duration
 			job.Language = api.ProgrammingLanguage(c.String("lang"))
 			job.Event = api.ProfilingEvent(c.String("event-type"))
@@ -127,9 +127,9 @@ func runApp() error {
 			job.FileName = c.String("filename")
 			job.TargetProcessName = c.String("target-process")
 
-			utils.PublishLogEvent(api.DebugLevel, job.String())
+			utils2.PublishLogEvent(api.DebugLevel, job.String())
 
-			err = utils.PublishEvent(api.Progress, &api.ProgressData{Time: time.Now(), Stage: api.Started})
+			err = utils2.PublishEvent(api.Progress, &api.ProgressData{Time: time.Now(), Stage: api.Started})
 			if err != nil {
 				return err
 			}
@@ -150,7 +150,7 @@ func runApp() error {
 				return err
 			}
 
-			err = utils.PublishEvent(api.Progress, &api.ProgressData{Time: time.Now(), Stage: api.Ended})
+			err = utils2.PublishEvent(api.Progress, &api.ProgressData{Time: time.Now(), Stage: api.Ended})
 			if err != nil {
 				return err
 			}
@@ -176,7 +176,7 @@ func handleForHappyEnding(p profiler.Profiler, job *config.ProfilingJob, done ch
 	for {
 		select {
 		case <-fired:
-			utils.PublishLogEvent(api.WarnLevel, "Maximum allowed time surpassed. Cleaning up and auto-deleting the agent...")
+			utils2.PublishLogEvent(api.WarnLevel, "Maximum allowed time surpassed. Cleaning up and auto-deleting the agent...")
 			return p.CleanUp(job)
 		case <-done:
 			return nil
@@ -192,7 +192,7 @@ func handleSignals(p profiler.Profiler, job *config.ProfilingJob) chan bool {
 
 	go func() {
 		s := <-sigs
-		utils.PublishLogEvent(api.DebugLevel, fmt.Sprintf("Recived signal: %s", s))
+		utils2.PublishLogEvent(api.DebugLevel, fmt.Sprintf("Recived signal: %s", s))
 		err := p.CleanUp(job)
 		if err != nil {
 			return
@@ -207,7 +207,7 @@ func handleSignals(p profiler.Profiler, job *config.ProfilingJob) chan bool {
 // handleError simple func helper for logging error and exit
 func handleError(err error) {
 	if err != nil {
-		utils.PublishError(err)
+		utils2.PublishError(err)
 		os.Exit(1)
 	}
 }
