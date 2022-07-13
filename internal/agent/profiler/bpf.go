@@ -6,7 +6,7 @@ import (
 	"github.com/agrison/go-commons-lang/stringUtils"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/config"
-	utils2 "github.com/josepdcs/kubectl-prof/internal/agent/utils"
+	"github.com/josepdcs/kubectl-prof/internal/agent/utils"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -37,17 +37,20 @@ type BpfUtil interface {
 	generateFlameGraph(fileName string) error
 	moveSources(target string) error
 	publishResult(compressor api.Compressor, fileName string, outputType api.EventType) error
+	cleanUp()
 }
 
 type bpfUtil struct {
+	profCmd  *exec.Cmd
+	flameCmd *exec.Cmd
 }
 
 func NewBpfProfiler() *BpfProfiler {
-	return &BpfProfiler{&bpfUtil{}}
+	return &BpfProfiler{BpfUtil: &bpfUtil{}}
 }
 
 func (b *BpfProfiler) SetUp(job *config.ProfilingJob) error {
-	exitCode, kernelVersion, err := utils2.ExecuteCommand(utils2.Command("uname", "-r"))
+	exitCode, kernelVersion, err := utils.ExecuteCommand(utils.Command("uname", "-r"))
 	if err != nil {
 		return fmt.Errorf("failed to get kernel version, exit code: %d, error: %s", exitCode, err)
 	}
@@ -77,10 +80,11 @@ func (b *BpfProfiler) Invoke(job *config.ProfilingJob) error {
 }
 
 func (b *BpfProfiler) CleanUp(job *config.ProfilingJob) error {
+	b.cleanUp()
 	fileName := bpfResultFile(job)
 	err := os.Remove(fileName + api.GetExtensionFileByCompressor[job.Compressor])
 	if err != nil {
-		utils2.PublishLogEvent(api.WarnLevel, fmt.Sprintf("file could no be removed: %s", err))
+		utils.PublishLogEvent(api.WarnLevel, fmt.Sprintf("file could no be removed: %s", err))
 	}
 	return os.Remove(fileName)
 }
@@ -92,7 +96,7 @@ func (b *bpfUtil) moveSources(target string) error {
 		return err
 	}
 
-	_, _, err = utils2.ExecuteCommand(utils2.Command("mv", kernelSourcesDir, target))
+	_, _, err = utils.ExecuteCommand(utils.Command("mv", kernelSourcesDir, target))
 	if err != nil {
 		return fmt.Errorf("failed moving source files, error: %s, tried to move to: %s", err, target)
 	}
@@ -101,11 +105,11 @@ func (b *bpfUtil) moveSources(target string) error {
 }
 
 func (b *bpfUtil) runProfiler(job *config.ProfilingJob) error {
-	pid, err := utils2.ContainerPID(job, false)
+	pid, err := utils.ContainerPID(job, false)
 	if err != nil {
 		return err
 	}
-	utils2.PublishLogEvent(api.DebugLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
+	utils.PublishLogEvent(api.DebugLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
 
 	f, err := os.Create(rawProfilerOutputFile)
 	if err != nil {
@@ -122,13 +126,13 @@ func (b *bpfUtil) runProfiler(job *config.ProfilingJob) error {
 
 	duration := strconv.Itoa(int(job.Duration.Seconds()))
 	var stderr bytes.Buffer
-	cmd := utils2.Command(profilerLocation, "-df", "-U", "-p", pid, duration)
-	cmd.Stdout = f
-	cmd.Stderr = &stderr
+	b.profCmd = utils.Command(profilerLocation, "-df", "-U", "-p", pid, duration)
+	b.profCmd.Stdout = f
+	b.profCmd.Stderr = &stderr
 
-	err = cmd.Run()
+	err = b.profCmd.Run()
 	if err != nil {
-		utils2.PublishLogEvent(api.ErrorLevel, stderr.String())
+		utils.PublishLogEvent(api.ErrorLevel, stderr.String())
 	}
 	return err
 }
@@ -160,13 +164,28 @@ func (b *bpfUtil) generateFlameGraph(fileName string) error {
 		}
 	}(outputFile)
 
-	flameGraphCmd := exec.Command(flameGraphScriptLocation)
-	flameGraphCmd.Stdin = inputFile
-	flameGraphCmd.Stdout = outputFile
+	b.flameCmd = exec.Command(flameGraphScriptLocation)
+	b.flameCmd.Stdin = inputFile
+	b.flameCmd.Stdout = outputFile
 
-	return flameGraphCmd.Run()
+	return b.flameCmd.Run()
 }
 
 func (b *bpfUtil) publishResult(c api.Compressor, fileName string, outputType api.EventType) error {
-	return utils2.Publish(c, fileName, outputType)
+	return utils.Publish(c, fileName, outputType)
+}
+
+func (b *bpfUtil) cleanUp() {
+	if b.profCmd != nil && b.profCmd.ProcessState == nil {
+		err := b.profCmd.Process.Kill()
+		if err != nil {
+			utils.PublishLogEvent(api.WarnLevel, fmt.Sprintf("unable kill process: %s", err))
+		}
+	}
+	if b.flameCmd != nil && b.flameCmd.ProcessState == nil {
+		err := b.flameCmd.Process.Kill()
+		if err != nil {
+			utils.PublishLogEvent(api.WarnLevel, fmt.Sprintf("unable kill process: %s", err))
+		}
+	}
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/agrison/go-commons-lang/stringUtils"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/config"
-	utils2 "github.com/josepdcs/kubectl-prof/internal/agent/utils"
+	"github.com/josepdcs/kubectl-prof/internal/agent/utils"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -31,7 +31,9 @@ var pyResultFile = func(job *config.ProfilingJob) string {
 	return "/tmp/" + job.FileName
 }
 
-type PythonProfiler struct{}
+type PythonProfiler struct {
+	cmd *exec.Cmd
+}
 
 func NewPythonProfiler() *PythonProfiler {
 	return &PythonProfiler{}
@@ -42,14 +44,13 @@ func (p *PythonProfiler) SetUp(job *config.ProfilingJob) error {
 }
 
 func (p *PythonProfiler) Invoke(job *config.ProfilingJob) error {
-	pid, err := utils2.ContainerPID(job, true)
+	pid, err := utils.ContainerPID(job, true)
 	if err != nil {
 		return err
 	}
-	utils2.PublishLogEvent(api.DebugLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
+	utils.PublishLogEvent(api.DebugLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
 
 	duration := strconv.Itoa(int(job.Duration.Seconds()))
-	var cmd *exec.Cmd
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 
@@ -57,16 +58,16 @@ func (p *PythonProfiler) Invoke(job *config.ProfilingJob) error {
 	output := string(job.OutputType)
 	switch job.OutputType {
 	case api.FlameGraph, api.SpeedScope:
-		cmd = utils2.Command(pySpyLocation, "record", "-p", pid, "-o", fileName, "-d", duration, "-s", "-t", "-f", output)
+		p.cmd = utils.Command(pySpyLocation, "record", "-p", pid, "-o", fileName, "-d", duration, "-s", "-t", "-f", output)
 	case api.ThreadDump:
-		cmd = utils2.Command(pySpyLocation, "dump", "-p", pid)
+		p.cmd = utils.Command(pySpyLocation, "dump", "-p", pid)
 	}
 
-	cmd.Stdout = &out
-	cmd.Stderr = &stderr
-	err = cmd.Run()
+	p.cmd.Stdout = &out
+	p.cmd.Stderr = &stderr
+	err = p.cmd.Run()
 	if err != nil {
-		utils2.PublishLogEvent(api.ErrorLevel, stderr.String())
+		utils.PublishLogEvent(api.ErrorLevel, stderr.String())
 		return fmt.Errorf("could not launch profiler: %w", err)
 	}
 
@@ -77,14 +78,20 @@ func (p *PythonProfiler) Invoke(job *config.ProfilingJob) error {
 		}
 	}
 
-	return utils2.Publish(job.Compressor, fileName, job.OutputType)
+	return utils.Publish(job.Compressor, fileName, job.OutputType)
 }
 
 func (p *PythonProfiler) CleanUp(job *config.ProfilingJob) error {
+	if p.cmd != nil && p.cmd.ProcessState == nil {
+		err := p.cmd.Process.Kill()
+		if err != nil {
+			utils.PublishLogEvent(api.WarnLevel, fmt.Sprintf("unable kill process: %s", err))
+		}
+	}
 	fileName := pyResultFile(job)
 	err := os.Remove(fileName + api.GetExtensionFileByCompressor[job.Compressor])
 	if err != nil {
-		utils2.PublishLogEvent(api.WarnLevel, fmt.Sprintf("file could no be removed: %s", err))
+		utils.PublishLogEvent(api.WarnLevel, fmt.Sprintf("file could no be removed: %s", err))
 	}
 	return os.Remove(fileName)
 }

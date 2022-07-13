@@ -19,8 +19,9 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/config"
-	utils2 "github.com/josepdcs/kubectl-prof/internal/agent/utils"
+	"github.com/josepdcs/kubectl-prof/internal/agent/utils"
 	log "github.com/sirupsen/logrus"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -67,19 +68,26 @@ var jvmCommand = func(job *config.ProfilingJob, pid string, fileName string) *ex
 	if job.ProfilingTool == api.Jcmd {
 		switch job.OutputType {
 		case api.Jfr:
-			return utils2.Command(jcmd, pid, "JFR.start", jcmdMaxSize, "duration="+duration+"s", "filename="+fileName)
+			return utils.Command(jcmd, pid, "JFR.start", jcmdMaxSize, "duration="+duration+"s", "filename="+fileName, "name=pid_"+pid)
 		case api.ThreadDump:
-			return utils2.Command(jcmd, pid, "Thread.print")
+			return utils.Command(jcmd, pid, "Thread.print")
 		case api.HeapDump:
-			return utils2.Command(jcmd, pid, "GC.heap_dump", fileName)
+			return utils.Command(jcmd, pid, "GC.heap_dump", fileName)
 		case api.HeapHistogram:
-			return utils2.Command(jcmd, pid, "GC.class_histogram")
+			return utils.Command(jcmd, pid, "GC.class_histogram")
 		}
 	}
 	// async-profiler
 	event := string(job.Event)
 	output := string(job.OutputType)
-	return utils2.Command(profilerSh, "-o", output, "-d", duration, "-f", fileName, "-e", event, "--fdtransfer", pid)
+	return utils.Command(profilerSh, "-o", output, "-d", duration, "-f", fileName, "-e", event, "--fdtransfer", pid)
+}
+
+var jvmStopCommand = func(job *config.ProfilingJob, pid string) *exec.Cmd {
+	if job.ProfilingTool == api.Jcmd {
+		return utils.Command(jcmd, pid, "JFR.stop", "name=pid_"+pid)
+	}
+	return utils.Command(profilerSh, "stop", pid)
 }
 
 type JvmProfiler struct {
@@ -101,11 +109,11 @@ func NewJvmProfiler() *JvmProfiler {
 }
 
 func (j *JvmProfiler) SetUp(job *config.ProfilingJob) error {
-	targetFs, err := utils2.ContainerFileSystem(job.ContainerRuntime, job.ContainerID)
+	targetFs, err := utils.ContainerFileSystem(job.ContainerRuntime, job.ContainerID)
 	if err != nil {
 		return err
 	}
-	utils2.PublishLogEvent(api.DebugLevel, fmt.Sprintf("The target filesystem is: %s", targetFs))
+	utils.PublishLogEvent(api.DebugLevel, fmt.Sprintf("The target filesystem is: %s", targetFs))
 
 	err = os.RemoveAll("/tmp")
 	if err != nil {
@@ -121,11 +129,11 @@ func (j *JvmProfiler) SetUp(job *config.ProfilingJob) error {
 }
 
 func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
-	pid, err := utils2.ContainerPID(job, false)
+	pid, err := utils.ContainerPID(job, false)
 	if err != nil {
 		return err
 	}
-	utils2.PublishLogEvent(api.DebugLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
+	utils.PublishLogEvent(api.DebugLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
 
 	var out bytes.Buffer
 	var stderr bytes.Buffer
@@ -136,8 +144,8 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 	cmd.Stderr = &stderr
 	err = cmd.Run()
 	if err != nil {
-		utils2.PublishLogEvent(api.ErrorLevel, out.String())
-		utils2.PublishLogEvent(api.ErrorLevel, stderr.String())
+		utils.PublishLogEvent(api.ErrorLevel, out.String())
+		utils.PublishLogEvent(api.ErrorLevel, stderr.String())
 		return fmt.Errorf("could not launch profiler: %w", err)
 	}
 
@@ -150,15 +158,27 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 }
 
 func (j *JvmProfiler) CleanUp(job *config.ProfilingJob) error {
-	err := os.RemoveAll("/tmp/async-profiler")
+	pid, _ := utils.ContainerPID(job, false)
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := jvmStopCommand(job, pid)
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Run()
 	if err != nil {
-		utils2.PublishLogEvent(api.WarnLevel, fmt.Sprintf("directory could no be removed: %s", err))
+		utils.PublishLogEvent(api.WarnLevel, stderr.String())
+	}
+	_, _ = fmt.Fprint(io.Discard, out.String())
+
+	err = os.RemoveAll("/tmp/async-profiler")
+	if err != nil {
+		utils.PublishLogEvent(api.WarnLevel, fmt.Sprintf("directory could no be removed: %s", err))
 	}
 
 	fileName := jvmResultFile(job)
 	err = os.Remove(fileName + api.GetExtensionFileByCompressor[job.Compressor])
 	if err != nil {
-		utils2.PublishLogEvent(api.WarnLevel, fmt.Sprintf("file could no be removed: %s", err))
+		utils.PublishLogEvent(api.WarnLevel, fmt.Sprintf("file could no be removed: %s", err))
 	}
 
 	return os.Remove(fileName)
@@ -168,7 +188,7 @@ func (j *jvmUtil) copyProfilerToTempDirIfNeeded(tool api.ProfilingTool) error {
 	if tool == api.Jcmd {
 		return nil
 	}
-	cmd := utils2.Command("cp", "-r", "/app/async-profiler", "/tmp")
+	cmd := utils.Command("cp", "-r", "/app/async-profiler", "/tmp")
 	return cmd.Run()
 }
 
@@ -183,10 +203,10 @@ func (j *jvmUtil) handleProfilingResult(job *config.ProfilingJob, fileName strin
 				return fmt.Errorf("could not save dump to file: %w", err)
 			}
 		default:
-			utils2.PublishLogEvent(api.DebugLevel, out.String())
+			utils.PublishLogEvent(api.DebugLevel, out.String())
 		}
 	} else {
-		utils2.PublishLogEvent(api.DebugLevel, out.String())
+		utils.PublishLogEvent(api.DebugLevel, out.String())
 	}
 	return nil
 }
@@ -195,7 +215,7 @@ func (j *jvmUtil) handleJcmdRecording(fileName string) {
 	done := make(chan bool)
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		utils2.PublishError(err)
+		utils.PublishError(err)
 		log.Error(err)
 	}
 	defer func(watcher *fsnotify.Watcher) {
@@ -213,11 +233,11 @@ func (j *jvmUtil) handleJcmdRecording(fileName string) {
 					return
 				}
 				if event.Op&fsnotify.Write == fsnotify.Write {
-					utils2.PublishLogEvent(api.DebugLevel, fmt.Sprintf("modified file: %s", event.Name))
+					utils.PublishLogEvent(api.DebugLevel, fmt.Sprintf("modified file: %s", event.Name))
 					f, err := os.Stat(event.Name)
 					if err != nil {
-						utils2.PublishError(err)
-						utils2.PublishLogEvent(api.ErrorLevel, err.Error())
+						utils.PublishError(err)
+						utils.PublishLogEvent(api.ErrorLevel, err.Error())
 						return
 					}
 					if f.Size() > 0 {
@@ -228,23 +248,23 @@ func (j *jvmUtil) handleJcmdRecording(fileName string) {
 				if !ok {
 					return
 				}
-				utils2.PublishError(err)
-				utils2.PublishLogEvent(api.ErrorLevel, err.Error())
+				utils.PublishError(err)
+				utils.PublishLogEvent(api.ErrorLevel, err.Error())
 			}
 		}
 	}()
 
 	err = watcher.Add(fileName)
-	utils2.PublishLogEvent(api.DebugLevel, fmt.Sprintf("add watcher to file: %s", fileName))
+	utils.PublishLogEvent(api.DebugLevel, fmt.Sprintf("add watcher to file: %s", fileName))
 
 	if err != nil {
-		utils2.PublishError(err)
-		utils2.PublishLogEvent(api.ErrorLevel, err.Error())
+		utils.PublishError(err)
+		utils.PublishLogEvent(api.ErrorLevel, err.Error())
 	}
 
 	<-done
 }
 
 func (j *jvmUtil) publishResult(c api.Compressor, fileName string, outputType api.EventType) error {
-	return utils2.Publish(c, fileName, outputType)
+	return utils.Publish(c, fileName, outputType)
 }
