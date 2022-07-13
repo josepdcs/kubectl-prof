@@ -34,6 +34,10 @@ func (m *mockBpfUtil) publishResult(c api.Compressor, fileName string, outputTyp
 	return args.Error(0)
 }
 
+func (m *mockBpfUtil) cleanUp() {
+
+}
+
 func TestNewBpfProfiler(t *testing.T) {
 	p := NewBpfProfiler()
 	assert.IsType(t, p, &BpfProfiler{})
@@ -68,7 +72,7 @@ func TestBpfProfiler_SetUp(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &mockBpfUtil{}
 			b := &BpfProfiler{
-				BpfUtil(m),
+				BpfUtil: BpfUtil(m),
 			}
 			tt.mock(m)
 
