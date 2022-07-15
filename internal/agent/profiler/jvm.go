@@ -16,17 +16,16 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/agrison/go-commons-lang/stringUtils"
-	"github.com/fsnotify/fsnotify"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/config"
 	"github.com/josepdcs/kubectl-prof/internal/agent/utils"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
 	"strconv"
+	"time"
 )
 
 const (
@@ -36,6 +35,8 @@ const (
 	jcmd        = "/opt/jdk-17/bin/jcmd"
 	jcmdMaxSize = "maxsize=100M"
 )
+
+var stopJcmdRecording chan bool
 
 var jvmResultFile = func(job *config.ProfilingJob) string {
 	if stringUtils.IsBlank(job.FileName) {
@@ -91,13 +92,14 @@ var jvmStopCommand = func(job *config.ProfilingJob, pid string) *exec.Cmd {
 }
 
 type JvmProfiler struct {
+	targetPID string
 	JvmUtil
 }
 
 type JvmUtil interface {
 	copyProfilerToTempDirIfNeeded(tool api.ProfilingTool) error
-	handleProfilingResult(job *config.ProfilingJob, fileName string, out bytes.Buffer) error
-	handleJcmdRecording(fileName string)
+	handleProfilingResult(job *config.ProfilingJob, fileName string, out bytes.Buffer, targetPID string) error
+	handleJcmdRecording(targetPID string)
 	publishResult(compressor api.Compressor, fileName string, outputType api.EventType) error
 }
 
@@ -105,7 +107,7 @@ type jvmUtil struct {
 }
 
 func NewJvmProfiler() *JvmProfiler {
-	return &JvmProfiler{&jvmUtil{}}
+	return &JvmProfiler{JvmUtil: &jvmUtil{}}
 }
 
 func (j *JvmProfiler) SetUp(job *config.ProfilingJob) error {
@@ -134,6 +136,7 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 		return err
 	}
 	utils.PublishLogEvent(api.DebugLevel, fmt.Sprintf("The PID to be profiled: %s", pid))
+	j.targetPID = pid
 
 	var out bytes.Buffer
 	var stderr bytes.Buffer
@@ -149,7 +152,7 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 		return fmt.Errorf("could not launch profiler: %w", err)
 	}
 
-	err = j.handleProfilingResult(job, fileName, out)
+	err = j.handleProfilingResult(job, fileName, out, j.targetPID)
 	if err != nil {
 		return err
 	}
@@ -158,10 +161,13 @@ func (j *JvmProfiler) Invoke(job *config.ProfilingJob) error {
 }
 
 func (j *JvmProfiler) CleanUp(job *config.ProfilingJob) error {
-	pid, _ := utils.ContainerPID(job, false)
+	if stopJcmdRecording != nil {
+		stopJcmdRecording <- true
+	}
+	time.Sleep(2 * time.Second)
 	var out bytes.Buffer
 	var stderr bytes.Buffer
-	cmd := jvmStopCommand(job, pid)
+	cmd := jvmStopCommand(job, j.targetPID)
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 	err := cmd.Run()
@@ -192,11 +198,11 @@ func (j *jvmUtil) copyProfilerToTempDirIfNeeded(tool api.ProfilingTool) error {
 	return cmd.Run()
 }
 
-func (j *jvmUtil) handleProfilingResult(job *config.ProfilingJob, fileName string, out bytes.Buffer) error {
+func (j *jvmUtil) handleProfilingResult(job *config.ProfilingJob, fileName string, out bytes.Buffer, targetPID string) error {
 	if job.ProfilingTool == api.Jcmd {
 		switch job.OutputType {
 		case api.Jfr:
-			j.handleJcmdRecording(fileName)
+			j.handleJcmdRecording(targetPID)
 		case api.ThreadDump, api.HeapHistogram:
 			err := ioutil.WriteFile(fileName, out.Bytes(), 0644)
 			if err != nil {
@@ -211,56 +217,36 @@ func (j *jvmUtil) handleProfilingResult(job *config.ProfilingJob, fileName strin
 	return nil
 }
 
-func (j *jvmUtil) handleJcmdRecording(fileName string) {
-	done := make(chan bool)
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		utils.PublishError(err)
-		log.Error(err)
-	}
-	defer func(watcher *fsnotify.Watcher) {
-		err := watcher.Close()
-		if err != nil {
-			return
-		}
-	}(watcher)
+func (j *jvmUtil) handleJcmdRecording(targetPID string) {
+	stopJcmdRecording = make(chan bool, 1)
+	done := make(chan bool, 1)
 
 	go func() {
+		utils.PublishLogEvent(api.DebugLevel, "Jcmd recording is running right now, be patient...")
 		for {
 			select {
-			case event, ok := <-watcher.Events:
-				if !ok {
+			case <-stopJcmdRecording:
+				utils.PublishLogEvent(api.WarnLevel, "Stopping is detected. Ignoring jcmd recording...")
+				return
+			default:
+				var out bytes.Buffer
+				var stderr bytes.Buffer
+				cmd := utils.SilentCommand(jcmd, targetPID, "JFR.check", "name=pid_"+targetPID)
+				cmd.Stdout = &out
+				cmd.Stderr = &stderr
+				err := cmd.Run()
+				if err != nil {
+					utils.PublishLogEvent(api.ErrorLevel, stderr.String())
+					done <- true
 					return
 				}
-				if event.Op&fsnotify.Write == fsnotify.Write {
-					utils.PublishLogEvent(api.DebugLevel, fmt.Sprintf("modified file: %s", event.Name))
-					f, err := os.Stat(event.Name)
-					if err != nil {
-						utils.PublishError(err)
-						utils.PublishLogEvent(api.ErrorLevel, err.Error())
-						return
-					}
-					if f.Size() > 0 {
-						done <- true
-					}
-				}
-			case err, ok := <-watcher.Errors:
-				if !ok {
+				if !stringUtils.Contains(out.String(), "running") {
+					done <- true
 					return
 				}
-				utils.PublishError(err)
-				utils.PublishLogEvent(api.ErrorLevel, err.Error())
 			}
 		}
 	}()
-
-	err = watcher.Add(fileName)
-	utils.PublishLogEvent(api.DebugLevel, fmt.Sprintf("add watcher to file: %s", fileName))
-
-	if err != nil {
-		utils.PublishError(err)
-		utils.PublishLogEvent(api.ErrorLevel, err.Error())
-	}
 
 	<-done
 }

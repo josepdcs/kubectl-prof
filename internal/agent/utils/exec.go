@@ -19,6 +19,18 @@ func Command(name string, arg ...string) *exec.Cmd {
 	return exec.Command(name, arg...)
 }
 
+func SilentCommand(name string, arg ...string) *exec.Cmd {
+	var builder strings.Builder
+	builder.WriteString(name)
+	builder.WriteString(" ")
+	for _, str := range arg {
+		builder.WriteString(str)
+		builder.WriteString(" ")
+	}
+
+	return exec.Command(name, arg...)
+}
+
 func ExecuteCommand(cmd *exec.Cmd) (int, string, error) {
 	exitCode := 0
 	output, err := cmd.CombinedOutput()

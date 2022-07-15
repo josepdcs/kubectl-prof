@@ -35,6 +35,7 @@ var p profiler.Profiler
 // profilingJob the running profiling job
 var profilingJob = &config.ProfilingJob{}
 
+// done global channel which will be used as a flag for marking the profiling as finished
 var done chan bool
 
 func main() {
