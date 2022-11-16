@@ -10,6 +10,9 @@ on:
         required: true
         default: ''
 
+env:
+  SCM_USERNAME: josepdcs
+
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
@@ -37,10 +40,6 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
-
-      - name: show tag
-        shell: bash
-        run: echo ${{ env.tag }}
 
 #      - name: Build and Push JVM Agent Image
 #        uses: docker/build-push-action@v3
@@ -117,3 +116,10 @@ jobs:
 
       #- name: Update new version in krew-index
       #  uses: rajatjindal/krew-release-bot@v0.0.40
+
+      - name: Set Git Tag
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "$SCM_USERNAME"
+          git tag -s ${{ env.tag }} -m "Release ${{ env.tag }}"
+          git push origin ${{ env.tag }}
