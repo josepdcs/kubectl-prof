@@ -34,7 +34,7 @@ jobs:
           push: true
           tags: |
             josepdcs/kubectl-prof:${{ env.tag }}-jvm
-            ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-jvm
+#            ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-jvm
 
       - name: Build and Push JVM Alpine Agent Image
         uses: docker/build-push-action@v3
@@ -44,7 +44,7 @@ jobs:
           push: true
           tags: |
             josepdcs/kubectl-prof:${{ env.tag }}-jvm-alpine
-            ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-jvm-alpine
+#            ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-jvm-alpine
 
       - name: Build and Push BPF Agent Image
         uses: docker/build-push-action@v3
@@ -54,7 +54,7 @@ jobs:
           push: true
           tags: |
             josepdcs/kubectl-prof:${{ env.tag }}-bpf
-            ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-bpf
+#            ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-bpf
 
       - name: Build and Push Python Agent Image
         uses: docker/build-push-action@v3
@@ -64,7 +64,7 @@ jobs:
           push: true
           tags: |
             josepdcs/kubectl-prof:${{ env.tag }}-python
-            ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-python
+#            ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-python
 
       - name: Build and Push Ruby Agent Image
         uses: docker/build-push-action@v3
@@ -74,7 +74,7 @@ jobs:
           push: true
           tags: |
             josepdcs/kubectl-prof:${{ env.tag }}-ruby
-            ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-ruby
+#            ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-ruby
 
       - name: Build and Push Perf Agent Image
         uses: docker/build-push-action@v3
@@ -84,7 +84,7 @@ jobs:
           push: true
           tags: |
             josepdcs/kubectl-prof:${{ env.tag }}-perf
-            ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-perf
+#            ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-perf
 
       - name: Setup Go
         uses: actions/setup-go@v3
