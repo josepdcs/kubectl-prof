@@ -1,4 +1,4 @@
-VERSION ?= 0.8.0-dev
+VERSION ?= 1.1.0-dev
 CLI_NAME ?= kubectl-prof
 CLI_DIR ?= ./cmd/cli/
 AGENT_NAME ?= agent
