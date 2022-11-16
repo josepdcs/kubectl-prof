@@ -4,10 +4,35 @@ on:
     tags:
       - 'v*.*.*'
   workflow_dispatch:
-    version:
-      description: release version to publish
-      required: true
-      default: ''
+    inputs:
+      SUPRAENVS:
+        description: 'Supra environments to generate manifest files'
+        required: true
+        default: ''
+      ENVS:
+        description: 'Environments to generate manifest files'
+        required: true
+        default: ''
+      PLATFORMS:
+        description: 'Platforms to generate manifest files'
+        required: true
+        default: ''
+      TENANTS:
+        description: 'Tenants to generate manifest files'
+        required: true
+        default: ''
+      SLOTS:
+        description: 'Slots to generate manifest files'
+        required: false
+        default: 'default'
+      PUBLICATION:
+        description: 'Subfolder into apigateway folder'
+        required: true
+        default: ''
+      ISSUE_NUMBER:
+        description: 'ID number (issue or pull request)'
+        required: true
+        default: ''
 
 jobs:
   goreleaser:
