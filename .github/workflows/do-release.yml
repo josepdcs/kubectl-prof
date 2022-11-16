@@ -38,78 +38,82 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
-      - name: Build and Push JVM Agent Image
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          file: 'docker/jvm/Dockerfile'
-          push: true
-          tags: |
-            josepdcs/kubectl-prof:${{ env.tag }}-jvm
-            ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-jvm
+      - name: show tag
+        shell: bash
+        run: echo ${{ env.tag }}
 
-      - name: Build and Push JVM Alpine Agent Image
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          file: 'docker/jvm/alpine/Dockerfile'
-          push: true
-          tags: |
-            josepdcs/kubectl-prof:${{ env.tag }}-jvm-alpine
-            ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-jvm-alpine
-
-      - name: Build and Push BPF Agent Image
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          file: 'docker/bpf/Dockerfile'
-          push: true
-          tags: |
-            josepdcs/kubectl-prof:${{ env.tag }}-bpf
-            ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-bpf
-
-      - name: Build and Push Python Agent Image
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          file: 'docker/python/Dockerfile'
-          push: true
-          tags: |
-            josepdcs/kubectl-prof:${{ env.tag }}-python
-            ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-python
-
-      - name: Build and Push Ruby Agent Image
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          file: 'docker/ruby/Dockerfile'
-          push: true
-          tags: |
-            josepdcs/kubectl-prof:${{ env.tag }}-ruby
-            ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-ruby
-
-      - name: Build and Push Perf Agent Image
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          file: 'docker/perf/Dockerfile'
-          push: true
-          tags: |
-            josepdcs/kubectl-prof:${{ env.tag }}-perf
-            ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-perf
-
-      - name: Setup Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: 1.19
-
-      - name: GoReleaser
-        uses: goreleaser/goreleaser-action@v3
-        with:
-          version: latest
-          args: release --rm-dist
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#      - name: Build and Push JVM Agent Image
+#        uses: docker/build-push-action@v3
+#        with:
+#          context: .
+#          file: 'docker/jvm/Dockerfile'
+#          push: true
+#          tags: |
+#            josepdcs/kubectl-prof:${{ env.tag }}-jvm
+#            ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-jvm
+#
+#      - name: Build and Push JVM Alpine Agent Image
+#        uses: docker/build-push-action@v3
+#        with:
+#          context: .
+#          file: 'docker/jvm/alpine/Dockerfile'
+#          push: true
+#          tags: |
+#            josepdcs/kubectl-prof:${{ env.tag }}-jvm-alpine
+#            ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-jvm-alpine
+#
+#      - name: Build and Push BPF Agent Image
+#        uses: docker/build-push-action@v3
+#        with:
+#          context: .
+#          file: 'docker/bpf/Dockerfile'
+#          push: true
+#          tags: |
+#            josepdcs/kubectl-prof:${{ env.tag }}-bpf
+#            ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-bpf
+#
+#      - name: Build and Push Python Agent Image
+#        uses: docker/build-push-action@v3
+#        with:
+#          context: .
+#          file: 'docker/python/Dockerfile'
+#          push: true
+#          tags: |
+#            josepdcs/kubectl-prof:${{ env.tag }}-python
+#            ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-python
+#
+#      - name: Build and Push Ruby Agent Image
+#        uses: docker/build-push-action@v3
+#        with:
+#          context: .
+#          file: 'docker/ruby/Dockerfile'
+#          push: true
+#          tags: |
+#            josepdcs/kubectl-prof:${{ env.tag }}-ruby
+#            ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-ruby
+#
+#      - name: Build and Push Perf Agent Image
+#        uses: docker/build-push-action@v3
+#        with:
+#          context: .
+#          file: 'docker/perf/Dockerfile'
+#          push: true
+#          tags: |
+#            josepdcs/kubectl-prof:${{ env.tag }}-perf
+#            ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-perf
+#
+#      - name: Setup Go
+#        uses: actions/setup-go@v3
+#        with:
+#          go-version: 1.19
+#
+#      - name: GoReleaser
+#        uses: goreleaser/goreleaser-action@v3
+#        with:
+#          version: latest
+#          args: release --rm-dist
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       #- name: Update new version in krew-index
       #  uses: rajatjindal/krew-release-bot@v0.0.40
