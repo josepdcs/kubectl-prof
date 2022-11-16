@@ -1,0 +1,58 @@
+apiVersion: krew.googlecontainertools.github.com/v1alpha2
+kind: Plugin
+metadata:
+  name: profile
+spec:
+  homepage: https://github.com/josepdcs/kubectl-prof
+  shortDescription: Generate CPU profiling graphs from pods (Docker, Cri-o are supported). This is a fork of flame plugin.
+  version: { { .TagName } }
+  description: |
+    Generate CPU profiling graphs without restarting pods and with low overhead. Docker, Cri-o are supported, Containerd support is coming soon. 
+    This is an open source fork of https://github.com/yahoo/kubectl-flame with several new features and bug fixes.
+  caveats: |
+    Currently supported languages: Go, Java (any JVM based language), Python, Ruby, and NodeJS.
+  platforms:
+    - {{addURIAndSha "https://github.com/josepdcs/kubectl-prof/releases/download/{{ .TagName }}/kubectl-prof_{{ .TagName }}_darwin_x86_64.tar.gz" .TagName | indent 6 }}
+      bin: kubectl-prof
+      files:
+        - from: kubectl-prof
+          to: .
+        - from: LICENSE
+          to: .
+      selector:
+        matchLabels:
+          os: darwin
+          arch: amd64
+    - {{addURIAndSha "https://github.com/josepdcs/kubectl-prof/releases/download/{{ .TagName }}/kubectl-prof_{{ .TagName }}_linux_x86_64.tar.gz" .TagName | indent 6 }}
+      bin: kubectl-prof
+      files:
+        - from: kubectl-prof
+          to: .
+        - from: LICENSE
+          to: .
+      selector:
+        matchLabels:
+          os: linux
+          arch: amd64
+    - {{addURIAndSha "https://github.com/josepdcs/kubectl-prof/releases/download/{{ .TagName }}/kubectl-prof_{{ .TagName }}_linux_arm64.tar.gz" .TagName | indent 6 }}
+      bin: kubectl-prof
+      files:
+        - from: kubectl-prof
+          to: .
+        - from: LICENSE
+          to: .
+      selector:
+        matchLabels:
+          os: linux
+          arch: arm64
+    - {{addURIAndSha "https://github.com/josepdcs/kubectl-prof/releases/download/{{ .TagName }}/kubectl-prof_{{ .TagName }}_windows_x86_64.zip" .TagName | indent 6 }}
+      bin: kubectl-prof.exe
+      files:
+        - from: kubectl-prof.exe
+          to: .
+        - from: LICENSE
+          to: .
+      selector:
+        matchLabels:
+          os: windows
+          arch: amd64
