@@ -7,6 +7,7 @@ on:
     version:
       description: release version to publish
       required: true
+      default: ''
 
 jobs:
   goreleaser:
