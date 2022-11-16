@@ -121,5 +121,5 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: |
           git config user.name "$SCM_USERNAME"
-          git tag -s ${{ env.tag }} -m "Release ${{ env.tag }}"
+          git tag ${{ env.tag }} -m "Release ${{ env.tag }}"
           git push origin ${{ env.tag }}
