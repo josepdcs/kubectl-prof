@@ -20,13 +20,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@main
 
-      - name: Get tag from push
+      - name: Read tag from pushed tag
         if: github.event_name == 'push'
         run: echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
 
-      - name: Get tag
+      - name: Read tag from version to publish
         if: github.event_name == 'workflow_dispatch'
         run: echo "tag=${{ github.event.inputs.VERSION }}" >> $GITHUB_ENV
+
+      - name: Set Git Tag for workflow dispatched
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "$SCM_USERNAME"
+          git tag ${{ env.tag }} -m "Release ${{ env.tag }}"
+          git push origin ${{ env.tag }}
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v2
@@ -116,10 +123,3 @@ jobs:
 
       #- name: Update new version in krew-index
       #  uses: rajatjindal/krew-release-bot@v0.0.40
-
-      - name: Set Git Tag
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          git config user.name "$SCM_USERNAME"
-          git tag ${{ env.tag }} -m "Release ${{ env.tag }}"
-          git push origin ${{ env.tag }}
