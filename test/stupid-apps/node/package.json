@@ -1,0 +1,13 @@
+{
+  "name": "poc-nodejs-ap",
+  "version": "1.0.0",
+  "description": "Node.js on Docker",
+  "author": "Yo mismo",
+  "main": "app.js",
+  "scripts": {
+    "start": "node --perf-basic-prof app.js"
+  },
+  "dependencies": {
+    "express": "^4.17.3"
+  }
+}
