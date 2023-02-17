@@ -29,8 +29,8 @@ fixes.
 
 * Supported languages: Go, Java (any JVM based language), Python, Ruby, NodeJS, Clang and Clang++.
 * Kubernetes that use some of the following container runtimes:
-    * CRI-O (default)
-    * Containerd
+    * Containerd (default)
+    * CRI-O
 
 ## Usage
 
@@ -181,7 +181,7 @@ kubectl prof mypod -l java -o flamegraph -t 5m --interval 60s --cpu-limits=1 -r 
 ### Profiling in contprof namespace a pod running in contprof-apps namespace by using the profiler service account for go language
 
 ```shell
-kubectl prof mypod -n contprof --service-account=profiler --target-namespace=contprof-apps -l go
+kubectl prof mypod -n contprof --service-account=profiler --target-namespace=contprof-stupid-apps -l go
 ```
 
 ### Profiling by setting custom resource requests and limits for the agent pod (default: neither requests nor limits are set) for python language

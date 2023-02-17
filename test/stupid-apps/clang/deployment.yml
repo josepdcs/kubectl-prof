@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clang-deployment
+  namespace: stupid-apps
+  labels:
+    app: clang
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: clang
+  template:
+    metadata:
+      labels:
+        app: clang
+    spec:
+      containers:
+      - name: clang
+        image: localhost/stupid-apps/clang:latest
+        imagePullPolicy: Never
+        resources:
+          limits:
+            cpu: 100m
+            memory: 200Mi
+          requests:
+            cpu: 20m
+            memory: 50Mi
+

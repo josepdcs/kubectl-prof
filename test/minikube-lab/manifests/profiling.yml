@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: profiling
+
+---
+kind: ResourceQuota
+apiVersion: v1
+metadata:
+  name: profiling-compute-resources
+  namespace: profiling
+spec:
+  hard:
+    limits.cpu: '3'
+    limits.memory: 2Gi
+    requests.cpu: '1'
+    requests.memory: 1Gi
+
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: profiler
+  namespace: profiling

@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jvm-deployment
+  namespace: stupid-apps
+  labels:
+    app: jvm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jvm
+  template:
+    metadata:
+      labels:
+        app: jvm
+    spec:
+      containers:
+      - name: jvm
+        image: localhost/stupid-apps/jvm:latest
+        imagePullPolicy: Never
+        resources:
+          limits:
+            cpu: 100m
+            memory: 200Mi
+          requests:
+            cpu: 20m
+            memory: 50Mi

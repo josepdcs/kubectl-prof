@@ -20,6 +20,7 @@ import (
 
 const (
 	defaultGracePeriodEnding = 5 * time.Minute
+	defaultContainerRuntime  = string(api.Containerd)
 	defaultEvent             = string(api.Itimer)
 	defaultLogLevel          = string(api.InfoLevel)
 	defaultCompressor        = string(compressor.Gzip)
@@ -38,8 +39,8 @@ These commands help you identify application performance issues.
 	# Profile a pod for 5 minutes in intervals of 60 seconds for java language by giving the cpu limits, the container runtime, the agent image and the image pull policy
 	%[1]s my-pod -l java -o flamegraph -t 5m --interval 60s --cpu-limits=1 -r containerd --image=localhost/my-agent-image-jvm:latest --image-pull-policy=IfNotPresent
 
-	# Profile in contprof namespace a pod running in contprof-apps namespace by using the profiler service account for go language 
-	%[1]s prof mypod -n contprof --service-account=profiler --target-namespace=contprof-apps -l go
+	# Profile in contprof namespace a pod running in contprof-stupid-apps namespace by using the profiler service account for go language 
+	%[1]s prof mypod -n contprof --service-account=profiler --target-namespace=contprof-stupid-apps -l go
 
 	# Set custom resource requests and limits for the agent pod (default: neither requests nor limits are set) for python language
 	%[1]s prof mypod --cpu-requests 100m --cpu-limits 200m --mem-requests 100Mi --mem-limits 200Mi -l python
@@ -138,9 +139,9 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 
 	cmd.Flags().BoolVar(&showVersion, "version", false, "Print version info")
 
-	cmd.Flags().StringVarP(&runtime, "runtime", "r", "crio",
+	cmd.Flags().StringVarP(&runtime, "runtime", "r", defaultContainerRuntime,
 		fmt.Sprintf("The container runtime used for kubernetes, choose one of %v", api.AvailableContainerRuntimes()))
-	cmd.Flags().StringVar(&target.ContainerRuntimePath, "runtime-path", api.GetContainerRuntimeRootPath[api.Crio],
+	cmd.Flags().StringVar(&target.ContainerRuntimePath, "runtime-path", api.GetContainerRuntimeRootPath[api.ContainerRuntime(defaultContainerRuntime)],
 		"Use a different container runtime install path")
 
 	cmd.Flags().DurationVarP(&target.Duration, "time", "t", 0, "Max scan Duration")
@@ -191,12 +192,19 @@ func validateFlags(runtime string, lang string, event string, logLevel string, c
 		return fmt.Errorf("unsupported language, choose one of %s", api.AvailableLanguages())
 	}
 
-	if runtime != "" && !api.IsSupportedContainerRuntime(runtime) {
+	if stringUtils.IsNotBlank(runtime) && !api.IsSupportedContainerRuntime(runtime) {
 		return fmt.Errorf("unsupported container runtime, choose one of %s", api.AvailableContainerRuntimes())
 	}
+	if stringUtils.IsBlank(runtime) {
+		runtime = defaultContainerRuntime
+		target.ContainerRuntimePath = api.GetContainerRuntimeRootPath[api.ContainerRuntime(defaultContainerRuntime)]
+	}
 
-	if event != "" && !api.IsSupportedEvent(event) {
+	if stringUtils.IsNotBlank(event) && !api.IsSupportedEvent(event) {
 		return fmt.Errorf("unsupported event, choose one of %s", api.AvailableEvents())
+	}
+	if stringUtils.IsBlank(event) {
+		event = defaultEvent
 	}
 
 	if logLevel != "" && !api.IsSupportedLogLevel(logLevel) {
