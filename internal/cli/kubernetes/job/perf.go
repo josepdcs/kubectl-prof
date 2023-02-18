@@ -3,7 +3,7 @@ package job
 import (
 	"fmt"
 	"github.com/josepdcs/kubectl-prof/api"
-	config2 "github.com/josepdcs/kubectl-prof/internal/cli/config"
+	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/version"
 	batchv1 "k8s.io/api/batch/v1"
 	apiv1 "k8s.io/api/core/v1"
@@ -13,7 +13,7 @@ import (
 
 type perfCreator struct{}
 
-func (p *perfCreator) Create(targetPod *apiv1.Pod, cfg *config2.ProfilerConfig) (string, *batchv1.Job, error) {
+func (p *perfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
 	id := string(uuid.NewUUID())
 	imageName := p.getImageName(cfg.Target)
 
@@ -95,7 +95,7 @@ func (p *perfCreator) Create(targetPod *apiv1.Pod, cfg *config2.ProfilerConfig) 
 }
 
 // getImageName if image name is provider from config.TargetConfig this one is returned otherwise a new one is built
-func (p *perfCreator) getImageName(t *config2.TargetConfig) string {
+func (p *perfCreator) getImageName(t *config.TargetConfig) string {
 	var imageName string
 	if t.Image != "" {
 		imageName = t.Image
@@ -105,7 +105,7 @@ func (p *perfCreator) getImageName(t *config2.TargetConfig) string {
 	return imageName
 }
 
-func (p *perfCreator) getObjectMeta(id string, cfg *config2.ProfilerConfig) metav1.ObjectMeta {
+func (p *perfCreator) getObjectMeta(id string, cfg *config.ProfilerConfig) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
 		Name:      fmt.Sprintf("%s-perf-%s", ContainerName, id),
 		Namespace: cfg.Job.Namespace,

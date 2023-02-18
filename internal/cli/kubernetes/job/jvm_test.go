@@ -2,7 +2,7 @@ package job
 
 import (
 	"github.com/josepdcs/kubectl-prof/api"
-	config2 "github.com/josepdcs/kubectl-prof/internal/cli/config"
+	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	batchv1 "k8s.io/api/batch/v1"
@@ -24,8 +24,8 @@ func Test_jvmCreate_create(t *testing.T) {
 			NodeName: "NodeName",
 		},
 	}
-	cfg := &config2.ProfilerConfig{
-		Target: &config2.TargetConfig{
+	cfg := &config.ProfilerConfig{
+		Target: &config.TargetConfig{
 			Namespace:            "Namespace",
 			PodName:              "PodName",
 			ContainerName:        "ContainerName",
@@ -45,17 +45,19 @@ func Test_jvmCreate_create(t *testing.T) {
 			ServiceAccountName:   "ServiceAccountName",
 			ImagePullPolicy:      apiv1.PullAlways,
 		},
-		Job: &config2.JobConfig{
-			RequestConfig: config2.ResourceConfig{
-				CPU:    "100m",
-				Memory: "100Mi",
+		Job: &config.JobConfig{
+			ContainerConfig: config.ContainerConfig{
+				RequestConfig: config.ResourceConfig{
+					CPU:    "100m",
+					Memory: "100Mi",
+				},
+				LimitConfig: config.ResourceConfig{
+					CPU:    "200m",
+					Memory: "200Mi",
+				},
+				Privileged: false,
 			},
-			LimitConfig: config2.ResourceConfig{
-				CPU:    "200m",
-				Memory: "200Mi",
-			},
-			Namespace:  "Namespace",
-			Privileged: false,
+			Namespace: "Namespace",
 		},
 	}
 	b := &jvmCreator{}
@@ -102,7 +104,7 @@ func Test_jvmCreate_create(t *testing.T) {
 							ImagePullPolicy: apiv1.PullAlways,
 							Name:            ContainerName,
 							Image:           cfg.Target.Image,
-							Command:         []string{"/app/agent"},
+							Command:         []string{command},
 							Args:            getArgs(targetPod, cfg, id),
 							VolumeMounts: []apiv1.VolumeMount{
 								{
@@ -143,8 +145,8 @@ func Test_jvmCreate_shouldFailWhenUnableGenerateResources(t *testing.T) {
 			NodeName: "NodeName",
 		},
 	}
-	cfg := &config2.ProfilerConfig{
-		Target: &config2.TargetConfig{
+	cfg := &config.ProfilerConfig{
+		Target: &config.TargetConfig{
 			Namespace:            "Namespace",
 			PodName:              "PodName",
 			ContainerName:        "ContainerName",
@@ -153,27 +155,28 @@ func Test_jvmCreate_shouldFailWhenUnableGenerateResources(t *testing.T) {
 			Duration:             100,
 			Id:                   "ID",
 			LocalPath:            "LocalPath",
-			Alpine:               false,
 			DryRun:               false,
 			Image:                "Image",
 			ContainerRuntime:     "ContainerRuntime",
 			ContainerRuntimePath: "ContainerRuntimePath",
 			Language:             "Language",
 			Compressor:           "Compressor",
-			ImagePullSecret:      "ImagePullSecret",
 			ServiceAccountName:   "ServiceAccountName",
+			ImagePullPolicy:      apiv1.PullAlways,
 		},
-		Job: &config2.JobConfig{
-			RequestConfig: config2.ResourceConfig{
-				CPU:    "error",
-				Memory: "100Mi",
+		Job: &config.JobConfig{
+			ContainerConfig: config.ContainerConfig{
+				RequestConfig: config.ResourceConfig{
+					CPU:    "error",
+					Memory: "100Mi",
+				},
+				LimitConfig: config.ResourceConfig{
+					CPU:    "error",
+					Memory: "200Mi",
+				},
+				Privileged: false,
 			},
-			LimitConfig: config2.ResourceConfig{
-				CPU:    "error",
-				Memory: "200Mi",
-			},
-			Namespace:  "Namespace",
-			Privileged: false,
+			Namespace: "Namespace",
 		},
 	}
 	b := &jvmCreator{}
@@ -188,7 +191,7 @@ func Test_jvmCreate_shouldFailWhenUnableGenerateResources(t *testing.T) {
 
 func Test_jvmCreator_getImageName(t *testing.T) {
 	type args struct {
-		cfg *config2.TargetConfig
+		cfg *config.TargetConfig
 	}
 	tests := []struct {
 		name string
@@ -198,25 +201,16 @@ func Test_jvmCreator_getImageName(t *testing.T) {
 		{
 			name: "Get image name from TargetConfig",
 			args: args{
-				cfg: &config2.TargetConfig{
+				cfg: &config.TargetConfig{
 					Image: "Image",
 				},
 			},
 			want: "Image",
 		},
 		{
-			name: "Get default alpine image",
-			args: args{
-				cfg: &config2.TargetConfig{
-					Alpine: true,
-				},
-			},
-			want: "josepdcs/kubectl-prof:-jvm-alpine",
-		},
-		{
 			name: "Get default image",
 			args: args{
-				cfg: &config2.TargetConfig{
+				cfg: &config.TargetConfig{
 					Image: "",
 				},
 			},

@@ -34,7 +34,7 @@ type PerfUtil interface {
 	runPerfScript(job *job.ProfilingJob) error
 	foldPerfOutput(job *job.ProfilingJob) error
 	generateFlameGraph(job *job.ProfilingJob) error
-	publishResult(c compressor.Type, fileName string, outputType api.EventType) error
+	publishResult(c compressor.Type, fileName string, outputType api.OutputType) error
 }
 
 type perfUtil struct {
@@ -187,7 +187,7 @@ func (b *perfUtil) generateFlameGraph(job *job.ProfilingJob) error {
 	return err
 }
 
-func (b *perfUtil) publishResult(c compressor.Type, fileName string, outputType api.EventType) error {
+func (b *perfUtil) publishResult(c compressor.Type, fileName string, outputType api.OutputType) error {
 	return util.Publish(c, fileName, outputType)
 }
 

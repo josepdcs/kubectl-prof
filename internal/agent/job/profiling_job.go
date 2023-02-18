@@ -18,7 +18,7 @@ type ProfilingJob struct {
 	Event            api.ProfilingEvent
 	Compressor       compressor.Type
 	Tool             api.ProfilingTool
-	OutputType       api.EventType
+	OutputType       api.OutputType
 	FileName         string
 }
 

@@ -25,6 +25,7 @@ const (
 	defaultLogLevel          = string(api.InfoLevel)
 	defaultCompressor        = string(compressor.Gzip)
 	defaultOutputType        = string(api.FlameGraph)
+	defaultImagePullPolicy   = string(apiv1.PullIfNotPresent)
 	longDescription          = `Profiling on existing applications with low-overhead.
 
 These commands help you identify application performance issues.
@@ -175,7 +176,7 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 		fmt.Sprintf("Output type, choose one accorting tool %v", api.AvailableOutputTypesString()))
 	cmd.Flags().BoolVar(&target.PrintLogs, "print-logs", true, "Force agent to print the log messages type to standard output")
 	cmd.Flags().DurationVar(&target.GracePeriodEnding, "grace-period-ending", defaultGracePeriodEnding, "The grace period to spend before to end the agent")
-	cmd.Flags().StringVar(&imagePullPolicy, "image-pull-policy", string(apiv1.PullAlways), fmt.Sprintf("Image pull policy, choose one of %v", imagePullPolicies))
+	cmd.Flags().StringVar(&imagePullPolicy, "image-pull-policy", defaultImagePullPolicy, fmt.Sprintf("Image pull policy, choose one of %v", imagePullPolicies))
 
 	options.configFlags.AddFlags(cmd.Flags())
 
@@ -207,16 +208,25 @@ func validateFlags(runtime string, lang string, event string, logLevel string, c
 		event = defaultEvent
 	}
 
-	if logLevel != "" && !api.IsSupportedLogLevel(logLevel) {
+	if stringUtils.IsNotBlank(logLevel) && !api.IsSupportedLogLevel(logLevel) {
 		return fmt.Errorf("unsupported log level, choose one of %s", api.AvailableLogLevels())
 	}
-
-	if compressorType != "" && !compressor.IsSupportedCompressor(compressorType) {
-		return fmt.Errorf("unsupported compressor, choose one of %s", compressor.AvailableCompressors())
+	if stringUtils.IsBlank(logLevel) {
+		logLevel = defaultLogLevel
 	}
 
-	if imagePullPolicy != "" && !isSupportedImagePullPolicy(imagePullPolicy) {
+	if stringUtils.IsNotBlank(compressorType) && !compressor.IsSupportedCompressor(compressorType) {
+		return fmt.Errorf("unsupported compressor, choose one of %s", compressor.AvailableCompressors())
+	}
+	if stringUtils.IsBlank(compressorType) {
+		compressorType = defaultCompressor
+	}
+
+	if stringUtils.IsNotBlank(imagePullPolicy) && !isSupportedImagePullPolicy(imagePullPolicy) {
 		return fmt.Errorf("unsupported image pull policy, choose one of %s", imagePullPolicies)
+	}
+	if stringUtils.IsBlank(imagePullPolicy) {
+		imagePullPolicy = defaultImagePullPolicy
 	}
 
 	target.ImagePullPolicy = apiv1.PullPolicy(imagePullPolicy)
@@ -242,7 +252,7 @@ func validateFlags(runtime string, lang string, event string, logLevel string, c
 
 func validateProfilingTool(profilingTool string, outputType string, target *config.TargetConfig) {
 	if stringUtils.IsBlank(profilingTool) {
-		target.ProfilingTool = api.GetProfilingTool(target.Language, api.EventType(outputType))
+		target.ProfilingTool = api.GetProfilingTool(target.Language, api.OutputType(outputType))
 		fmt.Printf("Default profiling tool %s will be used ... ✔\n", target.ProfilingTool)
 		return
 	}
@@ -278,14 +288,14 @@ func validateOutputType(outputType string, target *config.TargetConfig) {
 		return
 	}
 
-	if !api.IsValidOutputType(api.EventType(outputType), target.ProfilingTool) {
+	if !api.IsValidOutputType(api.OutputType(outputType), target.ProfilingTool) {
 		fmt.Printf("Unsupported output type %s for profiling tool %s, default %s will be used ... ✔\n",
 			outputType, target.ProfilingTool, defaultOutputType)
 		target.OutputType = defaultOutputType
 		return
 	}
 
-	target.OutputType = api.EventType(outputType)
+	target.OutputType = api.OutputType(outputType)
 }
 
 func isSupportedImagePullPolicy(imagePullPolicy string) bool {

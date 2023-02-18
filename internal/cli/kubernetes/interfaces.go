@@ -31,14 +31,21 @@ type Deleter interface {
 	DeleteProfilingJob(*batchv1.Job, context.Context) error
 }
 
-/*type JobManager interface {
+/*
+
+type ProfilingJobManager interface {
 	CreateProfilingJob(*v1.Pod, *config.ProfilerConfig, context.Context) (string, *batchv1.Job, error)
 	GetProfilingPod(cfg *config.ProfilerConfig, ctx context.Context) (*apiv1.Pod, error)
 	DeleteProfilingJob(*batchv1.Job, context.Context) error
 }
 
-type PodManager interface {
-	GetPod(podName, namespace string, ctx context.Context) (*apiv1.Pod, error)
+type ProfilingPodManager interface {
 	GetPodLogs(pod *apiv1.Pod, handler EventHandler, ctx context.Context) (chan bool, chan string, error)
 	GetRemoteFile(pod *apiv1.Pod, remoteFileName string, localFileName string, compressor compressor.Type) error
-}*/
+}
+
+type TargetPodManager interface {
+	GetPod(podName, namespace string, ctx context.Context) (*apiv1.Pod, error)
+}
+
+*/

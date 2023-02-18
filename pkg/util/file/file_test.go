@@ -1,6 +1,10 @@
 package file
 
 import (
+	"bytes"
+	"github.com/josepdcs/kubectl-prof/internal/agent/config"
+	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
+	"github.com/josepdcs/kubectl-prof/pkg/util/log"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
@@ -164,6 +168,130 @@ func Test_RemoveAll(t *testing.T) {
 
 			// Then
 			tt.then(t)
+		})
+	}
+}
+
+func TestGetSize(t *testing.T) {
+	type args struct {
+		file string
+	}
+	tests := []struct {
+		name  string
+		given func() args
+		when  func(args args) int64
+		then  func(t *testing.T, result int64)
+		after func(file string)
+	}{
+		{
+			name: "Get size",
+			given: func() args {
+				file := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt")
+				var b bytes.Buffer
+				b.Write([]byte("test"))
+				_ = os.WriteFile(file, b.Bytes(), 0644)
+				return args{file: file}
+			},
+			when: func(args args) int64 {
+				return GetSize(args.file)
+			},
+			then: func(t *testing.T, result int64) {
+				assert.Equal(t, int64(4), result)
+			},
+			after: func(file string) {
+				_ = Remove(file)
+			},
+		},
+		{
+			name: "Get size when error",
+			given: func() args {
+				log.SetPrintLogs(true)
+				return args{file: "unknown"}
+			},
+			when: func(args args) int64 {
+				return GetSize(args.file)
+			},
+			then: func(t *testing.T, result int64) {
+				assert.Equal(t, int64(0), result)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Given
+			args := tt.given()
+
+			// When
+			result := tt.when(args)
+
+			// Then
+			tt.then(t, result)
+
+			if tt.after != nil {
+				tt.after(args.file)
+			}
+		})
+	}
+}
+
+func TestIsEmpty(t *testing.T) {
+	type args struct {
+		file string
+	}
+	tests := []struct {
+		name  string
+		given func() args
+		when  func(args args) bool
+		then  func(t *testing.T, result bool)
+		after func(file string)
+	}{
+		{
+			name: "Is not empty",
+			given: func() args {
+				file := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt")
+				var b bytes.Buffer
+				b.Write([]byte("test"))
+				_ = os.WriteFile(file, b.Bytes(), 0644)
+				return args{file: file}
+			},
+			when: func(args args) bool {
+				return IsEmpty(args.file)
+			},
+			then: func(t *testing.T, result bool) {
+				assert.False(t, result)
+			},
+			after: func(file string) {
+				_ = Remove(file)
+			},
+		},
+		{
+			name: "Is empty",
+			given: func() args {
+				log.SetPrintLogs(true)
+				return args{file: "unknown"}
+			},
+			when: func(args args) bool {
+				return IsEmpty(args.file)
+			},
+			then: func(t *testing.T, result bool) {
+				assert.True(t, result)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Given
+			args := tt.given()
+
+			// When
+			result := tt.when(args)
+
+			// Then
+			tt.then(t, result)
+
+			if tt.after != nil {
+				tt.after(args.file)
+			}
 		})
 	}
 }

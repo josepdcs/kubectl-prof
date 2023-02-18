@@ -31,7 +31,7 @@ type BpfProfiler struct {
 type BpfManager interface {
 	runProfiler(*job.ProfilingJob, string) error
 	generateFlameGraph(fileName string) error
-	publishResult(compressor compressor.Type, fileName string, outputType api.EventType) error
+	publishResult(compressor compressor.Type, fileName string, outputType api.OutputType) error
 	cleanUp()
 }
 
@@ -148,7 +148,7 @@ func (b *bpfManager) generateFlameGraph(fileName string) error {
 	return err
 }
 
-func (b *bpfManager) publishResult(c compressor.Type, fileName string, outputType api.EventType) error {
+func (b *bpfManager) publishResult(c compressor.Type, fileName string, outputType api.OutputType) error {
 	return util.Publish(c, fileName, outputType)
 }
 

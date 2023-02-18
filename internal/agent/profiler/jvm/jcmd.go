@@ -65,7 +65,7 @@ type JcmdManager interface {
 	copyJfrSettingsToTmpDir() error
 	handleProfilingResult(job *job.ProfilingJob, fileName string, out bytes.Buffer, targetPID string) error
 	handleJcmdRecording(targetPID string, outputType string)
-	publishResult(compressor compressor.Type, fileName string, outputType api.EventType) error
+	publishResult(compressor compressor.Type, fileName string, outputType api.OutputType) error
 }
 
 type jcmdManager struct {
@@ -183,7 +183,7 @@ func (j *jcmdManager) handleProfilingResult(job *job.ProfilingJob, fileName stri
 	return nil
 }
 
-func (j *jcmdManager) handleJcmdRecording(targetPID string, outputTYpe string) {
+func (j *jcmdManager) handleJcmdRecording(targetPID string, outputType string) {
 	stopJcmdRecording = make(chan bool, 1)
 	done := make(chan bool)
 
@@ -197,7 +197,7 @@ func (j *jcmdManager) handleJcmdRecording(targetPID string, outputTYpe string) {
 			default:
 				var out bytes.Buffer
 				var stderr bytes.Buffer
-				cmd := util.SilentCommand(jcmd, targetPID, "JFR.check", "name=pid_"+targetPID+"_"+outputTYpe)
+				cmd := util.SilentCommand(jcmd, targetPID, "JFR.check", "name=pid_"+targetPID+"_"+outputType)
 				cmd.Stdout = &out
 				cmd.Stderr = &stderr
 				err := cmd.Run()
@@ -224,6 +224,6 @@ func (j *jcmdManager) handleJcmdRecording(targetPID string, outputTYpe string) {
 	<-done
 }
 
-func (j *jcmdManager) publishResult(c compressor.Type, fileName string, outputType api.EventType) error {
+func (j *jcmdManager) publishResult(c compressor.Type, fileName string, outputType api.OutputType) error {
 	return util.Publish(c, fileName, outputType)
 }

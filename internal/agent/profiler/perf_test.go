@@ -35,7 +35,7 @@ func (m *mockPerfUtil) generateFlameGraph(job *job.ProfilingJob) error {
 	return args.Error(0)
 }
 
-func (m *mockPerfUtil) publishResult(c compressor.Type, fileName string, outputType api.EventType) error {
+func (m *mockPerfUtil) publishResult(c compressor.Type, fileName string, outputType api.OutputType) error {
 	args := m.Called(c, fileName, outputType)
 	return args.Error(0)
 }

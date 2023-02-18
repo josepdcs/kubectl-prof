@@ -40,3 +40,16 @@ func RemoveAll(dir string, pattern string) {
 		}
 	}
 }
+
+func GetSize(file string) int64 {
+	fileInfo, err := os.Stat(file)
+	if err != nil {
+		log.WarningLogLn(fmt.Sprintf("file could no be obtained: %s", err))
+		return 0
+	}
+	return fileInfo.Size()
+}
+
+func IsEmpty(file string) bool {
+	return GetSize(file) == 0
+}

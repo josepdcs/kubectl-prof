@@ -21,20 +21,10 @@ type EventType string
 type ProgressStage string
 
 const (
-	Error         EventType = "error"
-	FlameGraph    EventType = "flamegraph"
-	SpeedScope    EventType = "speedscope"
-	Jfr           EventType = "jfr"
-	ThreadDump    EventType = "threaddump"
-	HeapDump      EventType = "heapdump"
-	HeapHistogram EventType = "heaphistogram"
-	Flat          EventType = "flat"
-	Traces        EventType = "traces"
-	Collapsed     EventType = "collapsed"
-	Tree          EventType = "tree"
-	Progress      EventType = "progress"
-	Result        EventType = "result"
-	Log           EventType = "log"
+	Progress EventType = "progress"
+	Result   EventType = "result"
+	Log      EventType = "log"
+	Error    EventType = "error"
 
 	Started ProgressStage = "started"
 	Ended   ProgressStage = "ended"
@@ -50,10 +40,10 @@ type ErrorData struct {
 }
 
 type ResultData struct {
-	Time           time.Time `json:"time"`
-	ResultType     EventType `json:"result-type"`
-	File           string    `json:"file,omitempty"`
-	CompressorType string    `json:"compressor-type,omitempty"`
+	Time           time.Time  `json:"time"`
+	ResultType     OutputType `json:"result-type"`
+	File           string     `json:"file,omitempty"`
+	CompressorType string     `json:"compressor-type,omitempty"`
 }
 
 type ProgressData struct {

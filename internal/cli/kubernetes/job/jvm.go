@@ -3,7 +3,7 @@ package job
 import (
 	"fmt"
 	"github.com/josepdcs/kubectl-prof/api"
-	config2 "github.com/josepdcs/kubectl-prof/internal/cli/config"
+	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/version"
 	batchv1 "k8s.io/api/batch/v1"
 	apiv1 "k8s.io/api/core/v1"
@@ -13,7 +13,7 @@ import (
 
 type jvmCreator struct{}
 
-func (c *jvmCreator) Create(targetPod *apiv1.Pod, cfg *config2.ProfilerConfig) (string, *batchv1.Job, error) {
+func (c *jvmCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
 	id := string(uuid.NewUUID())
 	imageName := c.getImageName(cfg.Target)
 
@@ -92,7 +92,7 @@ func (c *jvmCreator) Create(targetPod *apiv1.Pod, cfg *config2.ProfilerConfig) (
 	return id, job, nil
 }
 
-func (c *jvmCreator) getImageName(t *config2.TargetConfig) string {
+func (c *jvmCreator) getImageName(t *config.TargetConfig) string {
 	if t.Image != "" {
 		return t.Image
 	}
@@ -105,7 +105,7 @@ func (c *jvmCreator) getImageName(t *config2.TargetConfig) string {
 	return fmt.Sprintf("%s:%s", baseImageName, tag)
 }
 
-func (c *jvmCreator) getObjectMeta(id string, cfg *config2.ProfilerConfig) metav1.ObjectMeta {
+func (c *jvmCreator) getObjectMeta(id string, cfg *config.ProfilerConfig) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
 		Name:      fmt.Sprintf("%s-jvm-%s", ContainerName, id),
 		Namespace: cfg.Job.Namespace,

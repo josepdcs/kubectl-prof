@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func Publish(compressorType compressor.Type, file string, eventType api.EventType) error {
+func Publish(compressorType compressor.Type, file string, eventType api.OutputType) error {
 	f, err := os.Open(file)
 	if err != nil {
 		return err

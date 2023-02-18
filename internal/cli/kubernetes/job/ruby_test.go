@@ -2,7 +2,7 @@ package job
 
 import (
 	"github.com/josepdcs/kubectl-prof/api"
-	config2 "github.com/josepdcs/kubectl-prof/internal/cli/config"
+	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	batchv1 "k8s.io/api/batch/v1"
@@ -24,8 +24,8 @@ func Test_rubyCreate_create(t *testing.T) {
 			NodeName: "NodeName",
 		},
 	}
-	cfg := &config2.ProfilerConfig{
-		Target: &config2.TargetConfig{
+	cfg := &config.ProfilerConfig{
+		Target: &config.TargetConfig{
 			Namespace:            "Namespace",
 			PodName:              "PodName",
 			ContainerName:        "ContainerName",
@@ -45,17 +45,19 @@ func Test_rubyCreate_create(t *testing.T) {
 			ServiceAccountName:   "ServiceAccountName",
 			ImagePullPolicy:      apiv1.PullAlways,
 		},
-		Job: &config2.JobConfig{
-			RequestConfig: config2.ResourceConfig{
-				CPU:    "100m",
-				Memory: "100Mi",
+		Job: &config.JobConfig{
+			ContainerConfig: config.ContainerConfig{
+				RequestConfig: config.ResourceConfig{
+					CPU:    "100m",
+					Memory: "100Mi",
+				},
+				LimitConfig: config.ResourceConfig{
+					CPU:    "200m",
+					Memory: "200Mi",
+				},
+				Privileged: false,
 			},
-			LimitConfig: config2.ResourceConfig{
-				CPU:    "200m",
-				Memory: "200Mi",
-			},
-			Namespace:  "Namespace",
-			Privileged: false,
+			Namespace: "Namespace",
 		},
 	}
 	b := &rubyCreator{}
@@ -142,8 +144,8 @@ func Test_rubyCreate_shouldFailWhenUnableGenerateResources(t *testing.T) {
 			NodeName: "NodeName",
 		},
 	}
-	cfg := &config2.ProfilerConfig{
-		Target: &config2.TargetConfig{
+	cfg := &config.ProfilerConfig{
+		Target: &config.TargetConfig{
 			Namespace:            "Namespace",
 			PodName:              "PodName",
 			ContainerName:        "ContainerName",
@@ -162,17 +164,19 @@ func Test_rubyCreate_shouldFailWhenUnableGenerateResources(t *testing.T) {
 			ImagePullSecret:      "ImagePullSecret",
 			ServiceAccountName:   "ServiceAccountName",
 		},
-		Job: &config2.JobConfig{
-			RequestConfig: config2.ResourceConfig{
-				CPU:    "error",
-				Memory: "100Mi",
+		Job: &config.JobConfig{
+			ContainerConfig: config.ContainerConfig{
+				RequestConfig: config.ResourceConfig{
+					CPU:    "error",
+					Memory: "100Mi",
+				},
+				LimitConfig: config.ResourceConfig{
+					CPU:    "error",
+					Memory: "200Mi",
+				},
+				Privileged: false,
 			},
-			LimitConfig: config2.ResourceConfig{
-				CPU:    "error",
-				Memory: "200Mi",
-			},
-			Namespace:  "Namespace",
-			Privileged: false,
+			Namespace: "Namespace",
 		},
 	}
 	b := &rubyCreator{}
@@ -187,7 +191,7 @@ func Test_rubyCreate_shouldFailWhenUnableGenerateResources(t *testing.T) {
 
 func Test_rubyCreator_getImageName(t *testing.T) {
 	type args struct {
-		cfg *config2.TargetConfig
+		cfg *config.TargetConfig
 	}
 	tests := []struct {
 		name string
@@ -197,7 +201,7 @@ func Test_rubyCreator_getImageName(t *testing.T) {
 		{
 			name: "Get image name from TargetConfig",
 			args: args{
-				cfg: &config2.TargetConfig{
+				cfg: &config.TargetConfig{
 					Image: "Image",
 				},
 			},
@@ -206,7 +210,7 @@ func Test_rubyCreator_getImageName(t *testing.T) {
 		{
 			name: "Get default image",
 			args: args{
-				cfg: &config2.TargetConfig{
+				cfg: &config.TargetConfig{
 					Image: "",
 				},
 			},

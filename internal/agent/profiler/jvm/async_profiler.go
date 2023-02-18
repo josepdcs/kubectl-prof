@@ -45,7 +45,7 @@ type AsyncProfilerManager interface {
 	removeTmpDir() error
 	linkTmpDirToTargetTmpDir(string) error
 	copyProfilerToTmpDir() error
-	publishResult(compressor compressor.Type, fileName string, outputType api.EventType) error
+	publishResult(compressor compressor.Type, fileName string, outputType api.OutputType) error
 }
 
 type asyncProfilerManager struct {
@@ -140,6 +140,6 @@ func (j *asyncProfilerManager) copyProfilerToTmpDir() error {
 	return cmd.Run()
 }
 
-func (j *asyncProfilerManager) publishResult(c compressor.Type, fileName string, outputType api.EventType) error {
+func (j *asyncProfilerManager) publishResult(c compressor.Type, fileName string, outputType api.OutputType) error {
 	return util.Publish(c, fileName, outputType)
 }

@@ -280,7 +280,7 @@ func TestGetResultFile(t *testing.T) {
 func TestGetFileExtension(t *testing.T) {
 	type args struct {
 		tool       api.ProfilingTool
-		OutputType api.EventType
+		OutputType api.OutputType
 	}
 	tests := []struct {
 		name  string

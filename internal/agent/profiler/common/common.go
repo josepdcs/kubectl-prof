@@ -16,7 +16,7 @@ func GetResultFile(targetDir string, job *job.ProfilingJob) string {
 	return prefix + string(job.OutputType) + GetFileExtension(job.Tool, job.OutputType)
 }
 
-func GetFileExtension(tool api.ProfilingTool, OutputType api.EventType) string {
+func GetFileExtension(tool api.ProfilingTool, OutputType api.OutputType) string {
 	switch tool {
 	case api.Jcmd, api.AsyncProfiler:
 		switch OutputType {

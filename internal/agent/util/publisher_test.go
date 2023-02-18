@@ -14,7 +14,7 @@ func TestPublish(t *testing.T) {
 	type args struct {
 		c         compressor.Type
 		file      string
-		eventType api.EventType
+		eventType api.OutputType
 	}
 	tests := []struct {
 		name       string

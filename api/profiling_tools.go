@@ -36,13 +36,13 @@ func containsProfilingTool(profilingTool ProfilingTool, profilingTools []Profili
 }
 
 // GetProfilingTool Gets profiling tool related to the programming language and output event type.
-var GetProfilingTool = func(l ProgrammingLanguage, e EventType) ProfilingTool {
+var GetProfilingTool = func(l ProgrammingLanguage, o OutputType) ProfilingTool {
 	switch l {
 	case Java:
-		switch e {
+		switch o {
 		case Jfr, ThreadDump, HeapDump, HeapHistogram:
 			return Jcmd
-		case FlameGraph, Flat, Traces, Collapsed, Tree:
+		case FlameGraph, Flat, Traces, Collapsed, Tree, Raw:
 			return AsyncProfiler
 		}
 	case Python:

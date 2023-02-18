@@ -42,7 +42,7 @@ type PythonProfiler struct {
 
 type PythonManager interface {
 	handleProfilingResult(job *job.ProfilingJob, fileName string, out bytes.Buffer) error
-	publishResult(compressor compressor.Type, fileName string, outputType api.EventType) error
+	publishResult(compressor compressor.Type, fileName string, outputType api.OutputType) error
 	cleanUp(cmd *exec.Cmd)
 }
 
@@ -108,7 +108,7 @@ func (p *pythonManager) handleProfilingResult(job *job.ProfilingJob, fileName st
 	return nil
 }
 
-func (p *pythonManager) publishResult(c compressor.Type, fileName string, outputType api.EventType) error {
+func (p *pythonManager) publishResult(c compressor.Type, fileName string, outputType api.OutputType) error {
 	return util.Publish(c, fileName, outputType)
 }
 

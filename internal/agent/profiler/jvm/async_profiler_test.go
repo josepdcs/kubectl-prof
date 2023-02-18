@@ -64,7 +64,7 @@ func (m *mockAsyncProfilerManager) copyProfilerToTmpDir() error {
 	return nil
 }
 
-func (m *mockAsyncProfilerManager) publishResult(compressor.Type, string, api.EventType) error {
+func (m *mockAsyncProfilerManager) publishResult(compressor.Type, string, api.OutputType) error {
 	fmt.Println("fake publish result")
 	m.publishResultInvokedTimes++
 	return nil

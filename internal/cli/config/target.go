@@ -28,7 +28,7 @@ type TargetConfig struct {
 	ImagePullSecret      string
 	ServiceAccountName   string
 	ProfilingTool        api.ProfilingTool
-	OutputType           api.EventType
+	OutputType           api.OutputType
 	ImagePullPolicy      apiv1.PullPolicy
 
 	ExtraTargetOptions

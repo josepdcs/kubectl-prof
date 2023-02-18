@@ -31,7 +31,7 @@ func (m *mockBpfManager) moveSources(target string) error {
 	return args.Error(0)
 }
 
-func (m *mockBpfManager) publishResult(c compressor.Type, fileName string, outputType api.EventType) error {
+func (m *mockBpfManager) publishResult(c compressor.Type, fileName string, outputType api.OutputType) error {
 	args := m.Called(c, fileName, outputType)
 	return args.Error(0)
 }

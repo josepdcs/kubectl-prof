@@ -85,7 +85,7 @@ func (m *mockJcmdManager) handleJcmdRecording(string, string) {
 	fmt.Println("fake handleJcmdRecording")
 }
 
-func (m *mockJcmdManager) publishResult(compressor.Type, string, api.EventType) error {
+func (m *mockJcmdManager) publishResult(compressor.Type, string, api.OutputType) error {
 	fmt.Println("fake publish result")
 	m.publishResultInvokedTimes++
 	return nil
@@ -657,7 +657,7 @@ func Test_jcmdUtil_publishResult(t *testing.T) {
 	type args struct {
 		c          compressor.Type
 		fileName   string
-		outputType api.EventType
+		outputType api.OutputType
 	}
 	tests := []struct {
 		name  string

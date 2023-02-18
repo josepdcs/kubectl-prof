@@ -47,7 +47,7 @@ func (m *mockPythonManager) handleProfilingResult(*job.ProfilingJob, string, byt
 	return nil
 }
 
-func (m *mockPythonManager) publishResult(compressor.Type, string, api.EventType) error {
+func (m *mockPythonManager) publishResult(compressor.Type, string, api.OutputType) error {
 	m.publishResultInvokedTimes++
 	fmt.Println("fake publish result")
 	return nil

@@ -145,7 +145,7 @@ func getProfilingJob(args map[string]interface{}) (*job.ProfilingJob, error) {
 // validateProfilingTool validates the given profiling tool and sets the default tool if needed
 func validateProfilingTool(profilingTool string, outputType string, job *job.ProfilingJob) {
 	if stringUtils.IsBlank(profilingTool) {
-		job.Tool = api.GetProfilingTool(job.Language, api.EventType(outputType))
+		job.Tool = api.GetProfilingTool(job.Language, api.OutputType(outputType))
 		log.InfoLogLn(fmt.Sprintf("Default profiling tool %s will be used", job.Tool))
 		return
 	}
@@ -184,12 +184,12 @@ func validateOutputType(outputType string, job *job.ProfilingJob) {
 		return
 	}
 
-	if !api.IsValidOutputType(api.EventType(outputType), job.Tool) {
+	if !api.IsValidOutputType(api.OutputType(outputType), job.Tool) {
 		log.WarningLogLn(fmt.Sprintf("Unsupported output type %s for profiling tool %s, default %s will be used",
 			outputType, job.Tool, defaultOutputType))
 		job.OutputType = defaultOutputType
 		return
 	}
 
-	job.OutputType = api.EventType(outputType)
+	job.OutputType = api.OutputType(outputType)
 }
