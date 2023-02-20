@@ -61,6 +61,13 @@ func TestGet(t *testing.T) {
 			want: &perfCreator{},
 		},
 		{
+			name: "fake creator is instanced",
+			args: args{
+				lang: api.FakeLang,
+			},
+			want: &fakeCreator{},
+		},
+		{
 			name: "creator not found",
 			args: args{
 				lang: api.ProgrammingLanguage("other"),

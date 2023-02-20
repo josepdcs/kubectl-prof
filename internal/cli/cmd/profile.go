@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/agrison/go-commons-lang/stringUtils"
+	"github.com/josepdcs/kubectl-prof/internal/cli/adapter"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
 	"github.com/josepdcs/kubectl-prof/internal/cli/profiler"
@@ -120,21 +121,17 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 			// Prepare profiler
 			cfg := config.NewProfilerConfig(&target, &job).WithLogLevel(api.LogLevel(logLevel))
 
-			connector := kubernetes.NewConnector()
-			connectionContext, err := connector.Connect(options.configFlags)
+			connectionInfo, err := kubernetes.Connect(options.configFlags)
 			if err != nil {
 				log.Fatalf("Failed connecting to kubernetes cluster: %v\n", err)
 			}
 
 			if cfg.Target.Namespace == "" {
-				cfg.Target.Namespace = connectionContext.Namespace
+				cfg.Target.Namespace = connectionInfo.Namespace
 			}
-			cfg.Job.Namespace = connectionContext.Namespace
+			cfg.Job.Namespace = connectionInfo.Namespace
 
-			getter := kubernetes.NewGetter(connectionContext.KubeContext)
-			creator := kubernetes.NewJobCreator(connectionContext.ClientSet)
-			deleter := kubernetes.NewDeleter(connectionContext.ClientSet)
-			profiler.NewProfiler(getter, creator, deleter).Profile(cfg)
+			profiler.NewProfiler(adapter.NewProfilingAdapter(connectionInfo)).Profile(cfg)
 		},
 	}
 

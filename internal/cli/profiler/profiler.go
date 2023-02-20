@@ -17,6 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/josepdcs/kubectl-prof/internal/cli"
+	"github.com/josepdcs/kubectl-prof/internal/cli/adapter"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/handler"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
@@ -25,28 +26,24 @@ import (
 )
 
 type Profiler struct {
-	Getter  kubernetes.Getter
-	Creator kubernetes.Creator
-	Deleter kubernetes.Deleter
+	profilingAdapter adapter.ProfilingAdapter
 }
 
 // NewProfiler returns new Profiler
-func NewProfiler(get kubernetes.Getter, cre kubernetes.Creator, del kubernetes.Deleter) *Profiler {
-	return &Profiler{
-		Getter:  get,
-		Creator: cre,
-		Deleter: del,
+func NewProfiler(profilingAdapter adapter.ProfilingAdapter) Profiler {
+	return Profiler{
+		profilingAdapter: profilingAdapter,
 	}
 }
 
 // Profile runs all the steps of a profiling execution
-func (p *Profiler) Profile(cfg *config.ProfilerConfig) {
+func (p Profiler) Profile(cfg *config.ProfilerConfig) {
 	ctx := context.Background()
 
 	printer := cli.NewPrinter(cfg.Target.DryRun)
 
 	printer.Print("Verifying target pod ... ")
-	pod, err := p.Getter.GetPod(cfg.Target.PodName, cfg.Target.Namespace, ctx)
+	pod, err := p.profilingAdapter.GetTargetPod(cfg.Target.PodName, cfg.Target.Namespace, ctx)
 	if err != nil {
 		printer.PrintError()
 		log.Fatalf(err.Error())
@@ -70,7 +67,7 @@ func (p *Profiler) Profile(cfg *config.ProfilerConfig) {
 	cfg.Target.ContainerId = containerId
 
 	printer.Print("Launching profiler ... ")
-	profileId, job, err := p.Creator.CreateProfilingJob(pod, cfg, ctx)
+	profileId, job, err := p.profilingAdapter.CreateProfilingJob(pod, cfg, ctx)
 	if err != nil {
 		printer.PrintError()
 		log.Fatalf(err.Error())
@@ -81,7 +78,7 @@ func (p *Profiler) Profile(cfg *config.ProfilerConfig) {
 	}
 
 	cfg.Target.Id = profileId
-	profilingPod, err := p.Getter.GetProfilingPod(cfg, ctx)
+	profilingPod, err := p.profilingAdapter.GetProfilingPod(cfg, ctx)
 	if err != nil {
 		printer.PrintError()
 		log.Fatalf(err.Error())
@@ -89,7 +86,7 @@ func (p *Profiler) Profile(cfg *config.ProfilerConfig) {
 
 	printer.PrintSuccess()
 	eventHandler := handler.NewEventHandler(job, cfg.Target, cfg.LogLevel)
-	done, resultFile, err := p.Getter.GetPodLogs(profilingPod, eventHandler, ctx)
+	done, resultFile, err := p.profilingAdapter.GetProfilingPodLogs(profilingPod, eventHandler, ctx)
 	if err != nil {
 		printer.PrintError()
 		fmt.Println(err.Error())
@@ -99,7 +96,7 @@ func (p *Profiler) Profile(cfg *config.ProfilerConfig) {
 	for {
 		select {
 		case f := <-resultFile:
-			fileName, err := p.Getter.GetRemoteFile(profilingPod, f, cfg.Target.LocalPath, cfg.Target.Compressor)
+			fileName, err := p.profilingAdapter.GetRemoteFile(profilingPod, f, cfg.Target.LocalPath, cfg.Target.Compressor)
 			if err != nil {
 				printer.PrintError()
 				fmt.Println(err.Error())
@@ -115,7 +112,7 @@ func (p *Profiler) Profile(cfg *config.ProfilerConfig) {
 	}
 
 	// invoke delete profiling job
-	_ = p.Deleter.DeleteProfilingJob(job, ctx)
+	_ = p.profilingAdapter.DeleteProfilingJob(job, ctx)
 }
 
 func validatePod(pod *v1.Pod, cfg *config.TargetConfig) (string, error) {
