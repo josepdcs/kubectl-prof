@@ -1,5 +1,7 @@
 package api
 
+import "github.com/samber/lo"
+
 type ProfilingEvent string
 
 const (
@@ -20,14 +22,5 @@ func AvailableEvents() []ProfilingEvent {
 }
 
 func IsSupportedEvent(event string) bool {
-	return containsEvent(ProfilingEvent(event), AvailableEvents())
-}
-
-func containsEvent(e ProfilingEvent, events []ProfilingEvent) bool {
-	for _, current := range events {
-		if e == current {
-			return true
-		}
-	}
-	return false
+	return lo.Contains(AvailableEvents(), ProfilingEvent(event))
 }

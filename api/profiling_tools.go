@@ -1,6 +1,9 @@
 package api
 
-import jsoniter "github.com/json-iterator/go"
+import (
+	jsoniter "github.com/json-iterator/go"
+	"github.com/samber/lo"
+)
 
 type ProfilingTool string
 
@@ -15,24 +18,15 @@ const (
 )
 
 var (
-	ProfilingTools = []ProfilingTool{AsyncProfiler, Jcmd, Pyspy, Bpf, Perf, Rbspy}
+	profilingTools = []ProfilingTool{AsyncProfiler, Jcmd, Pyspy, Bpf, Perf, Rbspy}
 )
 
 func AvailableProfilingTools() []ProfilingTool {
-	return ProfilingTools
+	return profilingTools
 }
 
 func IsSupportedProfilingTool(profilingTool string) bool {
-	return containsProfilingTool(ProfilingTool(profilingTool), AvailableProfilingTools())
-}
-
-func containsProfilingTool(profilingTool ProfilingTool, profilingTools []ProfilingTool) bool {
-	for _, current := range profilingTools {
-		if profilingTool == current {
-			return true
-		}
-	}
-	return false
+	return lo.Contains(AvailableProfilingTools(), ProfilingTool(profilingTool))
 }
 
 // GetProfilingTool Gets profiling tool related to the programming language and output event type.

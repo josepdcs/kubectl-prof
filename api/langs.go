@@ -1,5 +1,7 @@
 package api
 
+import "github.com/samber/lo"
+
 type ProgrammingLanguage string
 
 const (
@@ -25,15 +27,5 @@ func IsSupportedLanguage(lang string) bool {
 	if lang == string(FakeLang) {
 		return true
 	}
-	return containsLang(ProgrammingLanguage(lang), AvailableLanguages())
-}
-
-func containsLang(l ProgrammingLanguage, langs []ProgrammingLanguage) bool {
-	for _, current := range langs {
-		if l == current {
-			return true
-		}
-	}
-
-	return false
+	return lo.Contains(AvailableLanguages(), ProgrammingLanguage(lang))
 }

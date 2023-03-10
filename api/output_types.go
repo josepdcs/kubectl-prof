@@ -1,6 +1,9 @@
 package api
 
-import jsoniter "github.com/json-iterator/go"
+import (
+	jsoniter "github.com/json-iterator/go"
+	"github.com/samber/lo"
+)
 
 type OutputType string
 
@@ -58,16 +61,7 @@ func AvailableOutputTypes() []OutputType {
 }
 
 func IsSupportedOutputType(outputType string) bool {
-	return containsOutputType(OutputType(outputType), AvailableOutputTypes())
-}
-
-func containsOutputType(OutputType OutputType, OutputTypes []OutputType) bool {
-	for _, current := range OutputTypes {
-		if OutputType == current {
-			return true
-		}
-	}
-	return false
+	return lo.Contains(AvailableOutputTypes(), OutputType(outputType))
 }
 
 // IsValidOutputType Identifies if given OutputType is valid for the also given ProfilingTool
