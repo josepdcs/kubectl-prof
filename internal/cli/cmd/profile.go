@@ -52,8 +52,9 @@ These commands help you identify application performance issues.
 
 var imagePullPolicies = []apiv1.PullPolicy{apiv1.PullNever, apiv1.PullAlways, apiv1.PullIfNotPresent}
 
+// Profiler defines the profile method.
 type Profiler interface {
-	Profile(cfg *config.ProfilerConfig)
+	Profile(cfg *config.ProfilerConfig) error
 }
 
 type ProfileOptions struct {

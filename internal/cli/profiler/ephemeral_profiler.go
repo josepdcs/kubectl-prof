@@ -20,8 +20,8 @@ type EphemeralProfiler struct {
 
 // NewEphemeralProfiler returns a new EphemeralProfiler
 func NewEphemeralProfiler(podAdapter adapter.PodAdapter, profilingEphemeralContainerAdapter adapter.ProfilingEphemeralContainerAdapter,
-	profilingContainerAdapter adapter.ProfilingContainerAdapter) EphemeralProfiler {
-	return EphemeralProfiler{
+	profilingContainerAdapter adapter.ProfilingContainerAdapter) *EphemeralProfiler {
+	return &EphemeralProfiler{
 		podAdapter:                         podAdapter,
 		profilingEphemeralContainerAdapter: profilingEphemeralContainerAdapter,
 		profilingContainerAdapter:          profilingContainerAdapter,
@@ -30,7 +30,7 @@ func NewEphemeralProfiler(podAdapter adapter.PodAdapter, profilingEphemeralConta
 
 // Profile runs all the steps of the profiling: from creating and adding the new ephemeral container to the target Pod
 // up to obtain the profiling result
-func (e EphemeralProfiler) Profile(cfg *config.ProfilerConfig) error {
+func (e *EphemeralProfiler) Profile(cfg *config.ProfilerConfig) error {
 	ctx := context.Background()
 
 	printer := cli.NewPrinter(cfg.Target.DryRun)
