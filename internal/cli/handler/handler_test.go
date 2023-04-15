@@ -3,13 +3,11 @@ package handler
 import (
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
-	batchv1 "k8s.io/api/batch/v1"
 	"testing"
 )
 
 func TestEventHandler_reportProgress(t *testing.T) {
 	type fields struct {
-		Job      *batchv1.Job
 		Target   *config.TargetConfig
 		LogLevel api.LogLevel
 	}
@@ -45,7 +43,6 @@ func TestEventHandler_reportProgress(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			h := &EventHandler{
-				Job:      tt.fields.Job,
 				Target:   tt.fields.Target,
 				LogLevel: tt.fields.LogLevel,
 			}

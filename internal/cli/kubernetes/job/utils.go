@@ -10,7 +10,7 @@ func getArgs(targetPod *apiv1.Pod, cfg *config.ProfilerConfig, id string) []stri
 		"--job-id", id,
 		"--target-container-runtime", string(cfg.Target.ContainerRuntime),
 		"--target-pod-uid", string(targetPod.UID),
-		"--target-container-id", cfg.Target.ContainerId,
+		"--target-container-id", cfg.Target.ContainerID,
 		"--lang", string(cfg.Target.Language),
 		"--event-type", string(cfg.Target.Event),
 		"--compressor-type", string(cfg.Target.Compressor),

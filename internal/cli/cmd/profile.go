@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/agrison/go-commons-lang/stringUtils"
+	"github.com/josepdcs/kubectl-prof/internal/cli"
 	"github.com/josepdcs/kubectl-prof/internal/cli/adapter"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
@@ -69,17 +70,20 @@ func NewProfileOptions(streams genericclioptions.IOStreams) *ProfileOptions {
 
 func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	var (
-		target          config.TargetConfig
-		job             config.JobConfig
-		showVersion     bool
-		runtime         string
-		lang            string
-		event           string
-		logLevel        string
-		compressorType  string
-		profilingTool   string
-		outputType      string
-		imagePullPolicy string
+		target                config.TargetConfig
+		job                   config.JobConfig
+		ephemeralContainer    config.EphemeralContainerConfig
+		showVersion           bool
+		runtime               string
+		lang                  string
+		event                 string
+		logLevel              string
+		compressorType        string
+		profilingTool         string
+		outputType            string
+		imagePullPolicy       string
+		privileged            bool
+		useEphemeralContainer = false // disabled
 	)
 
 	options := NewProfileOptions(streams)
@@ -119,7 +123,10 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 			}
 
 			// Prepare profiler
-			cfg := config.NewProfilerConfig(&target, &job).WithLogLevel(api.LogLevel(logLevel))
+			cfg, err := getProfilerConfig(target, job, ephemeralContainer, useEphemeralContainer, logLevel, privileged)
+			if err != nil {
+				log.Fatalf("Failed configure profiler: %v\n", err)
+			}
 
 			connectionInfo, err := kubernetes.Connect(options.configFlags)
 			if err != nil {
@@ -129,9 +136,27 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 			if cfg.Target.Namespace == "" {
 				cfg.Target.Namespace = connectionInfo.Namespace
 			}
-			cfg.Job.Namespace = connectionInfo.Namespace
 
-			profiler.NewProfiler(adapter.NewProfilingAdapter(connectionInfo)).Profile(cfg)
+			if useEphemeralContainer {
+				err = profiler.NewEphemeralProfiler(
+					adapter.NewPodAdapter(connectionInfo),
+					adapter.NewProfilingEphemeralContainerAdapter(connectionInfo),
+					adapter.NewProfilingContainerAdapter(connectionInfo),
+				).Profile(cfg)
+			} else {
+				cfg.Job.Namespace = connectionInfo.Namespace
+				err = profiler.NewJobProfiler(
+					adapter.NewPodAdapter(connectionInfo),
+					adapter.NewProfilingJobAdapter(connectionInfo),
+					adapter.NewProfilingContainerAdapter(connectionInfo),
+				).Profile(cfg)
+			}
+
+			if err != nil {
+				printer := cli.NewPrinter(cfg.Target.DryRun)
+				printer.PrintError()
+				log.Fatalf(err.Error())
+			}
 		},
 	}
 
@@ -163,7 +188,7 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.Flags().StringVar(&target.ImagePullSecret, "image-pull-secret", "", "imagePullSecret for agent docker image")
 	cmd.Flags().StringVar(&target.ServiceAccountName, "service-account", "", "serviceAccountName to be used for profiling container")
 
-	cmd.Flags().BoolVar(&job.Privileged, "privileged", true, "Run agent container in privileged mode")
+	cmd.Flags().BoolVar(&privileged, "privileged", true, "Run agent container in privileged mode")
 	cmd.Flags().StringVar(&logLevel, "log-level", defaultLogLevel,
 		fmt.Sprintf("Log level, choose one of %v", api.AvailableLogLevels()))
 	cmd.Flags().StringVarP(&compressorType, "compressor", "c", defaultCompressor,
@@ -174,10 +199,22 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.Flags().BoolVar(&target.PrintLogs, "print-logs", true, "Force agent to print the log messages type to standard output")
 	cmd.Flags().DurationVar(&target.GracePeriodEnding, "grace-period-ending", defaultGracePeriodEnding, "The grace period to spend before to end the agent")
 	cmd.Flags().StringVar(&imagePullPolicy, "image-pull-policy", defaultImagePullPolicy, fmt.Sprintf("Image pull policy, choose one of %v", imagePullPolicies))
+	//cmd.Flags().BoolVar(&useEphemeralContainer, "use-ephemeral-container", false, "Launching profiling agent into ephemeral container instead into Job (experimental)")
 
 	options.configFlags.AddFlags(cmd.Flags())
 
 	return cmd
+}
+
+func getProfilerConfig(target config.TargetConfig, job config.JobConfig, ephemeralContainer config.EphemeralContainerConfig,
+	useEphemeralContainer bool, logLevel string, privileged bool) (*config.ProfilerConfig, error) {
+	if useEphemeralContainer {
+		ephemeralContainer = config.EphemeralContainerConfig{Privileged: privileged}
+		return config.NewProfilerConfig(&target, config.WithEphemeralContainer(&ephemeralContainer), config.WithLogLevel(api.LogLevel(logLevel)))
+	}
+
+	job.Privileged = privileged
+	return config.NewProfilerConfig(&target, config.WithJob(&job), config.WithLogLevel(api.LogLevel(logLevel)))
 }
 
 func validateFlags(runtime string, lang string, event string, logLevel string, compressorType string, profilingTool string,

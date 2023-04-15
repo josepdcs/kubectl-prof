@@ -14,19 +14,21 @@ import (
 )
 
 type Exec struct {
-	RestConfig *rest.Config
-	ClientSet  kubernetes.Interface
-	Pod        *apiv1.Pod
+	RestConfig    *rest.Config
+	ClientSet     kubernetes.Interface
+	Pod           *apiv1.Pod
+	ContainerName string
 }
 
-func NewExec(config *rest.Config, client kubernetes.Interface, pod *apiv1.Pod) *Exec {
+func NewExec(config *rest.Config, client kubernetes.Interface, pod *apiv1.Pod, containerName string) *Exec {
 	config.APIPath = "/api"
 	config.GroupVersion = &schema.GroupVersion{Version: "v1"}
 	config.NegotiatedSerializer = serializer.WithoutConversionCodecFactory{CodecFactory: scheme.Codecs}
 	return &Exec{
-		RestConfig: config,
-		ClientSet:  client,
-		Pod:        pod,
+		RestConfig:    config,
+		ClientSet:     client,
+		Pod:           pod,
+		ContainerName: containerName,
 	}
 }
 
@@ -42,6 +44,7 @@ func (p *Exec) ExecCmd(command []string) (*bytes.Buffer, *bytes.Buffer, *bytes.B
 			Quiet:           false,
 			InterruptParent: nil,
 			IOStreams:       ioStreams,
+			ContainerName:   p.ContainerName,
 		},
 		Command:       command,
 		Executor:      &exec.DefaultRemoteExecutor{},

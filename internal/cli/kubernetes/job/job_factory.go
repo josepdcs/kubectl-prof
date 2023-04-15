@@ -16,10 +16,12 @@ const (
 	LabelID       = "kubectl-prof/id"
 )
 
+// Creator defines the method for creating the profiling job according the programming language.
 type Creator interface {
 	Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error)
 }
 
+// Get returns the Creator implementation according the programming language.
 func Get(lang api.ProgrammingLanguage, tool api.ProfilingTool) (Creator, error) {
 	switch lang {
 	case api.Java:

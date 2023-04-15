@@ -12,7 +12,7 @@ type TargetConfig struct {
 	Namespace            string
 	PodName              string
 	ContainerName        string
-	ContainerId          string
+	ContainerID          string
 	Event                api.ProfilingEvent
 	Duration             time.Duration
 	Interval             time.Duration
