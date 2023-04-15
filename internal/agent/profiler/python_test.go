@@ -7,6 +7,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/agent/config"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
+	"github.com/josepdcs/kubectl-prof/internal/agent/util/flamegraph"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/stretchr/testify/assert"
@@ -38,7 +39,7 @@ func NewMockPythonManager() MockPythonManager {
 	return &mockPythonManager{}
 }
 
-func (m *mockPythonManager) handleProfilingResult(*job.ProfilingJob, string, bytes.Buffer) error {
+func (m *mockPythonManager) handleProfilingResult(*job.ProfilingJob, flamegraph.FrameGrapher, string, bytes.Buffer) error {
 	m.handleProfilingResultInvokedTimes++
 	if m.withHandleProfilingResultError {
 		return fmt.Errorf("fake handleProfilingResult with error")
@@ -179,6 +180,7 @@ func TestPythonProfiler_Invoke(t *testing.T) {
 							Duration:         0,
 							ContainerRuntime: api.FakeContainer,
 							ContainerID:      "ContainerID",
+							OutputType:       api.FlameGraph,
 						},
 					}
 			},
@@ -416,9 +418,10 @@ func Test_pythonManager_handleProfilingResult(t *testing.T) {
 		PythonProfiler *PythonProfiler
 	}
 	type args struct {
-		job      *job.ProfilingJob
-		fileName string
-		out      bytes.Buffer
+		job          *job.ProfilingJob
+		flameGrapher flamegraph.FrameGrapher
+		fileName     string
+		out          bytes.Buffer
 	}
 	tests := []struct {
 		name  string
@@ -428,7 +431,7 @@ func Test_pythonManager_handleProfilingResult(t *testing.T) {
 		after func()
 	}{
 		{
-			name: "should handle profiling result",
+			name: "should handle thread dump profiler result",
 			given: func() (fields, args) {
 				var b bytes.Buffer
 				b.Write([]byte("test"))
@@ -446,7 +449,7 @@ func Test_pythonManager_handleProfilingResult(t *testing.T) {
 					}
 			},
 			when: func(fields fields, args args) error {
-				return fields.PythonProfiler.handleProfilingResult(args.job, args.fileName, args.out)
+				return fields.PythonProfiler.handleProfilingResult(args.job, args.flameGrapher, args.fileName, args.out)
 			},
 			then: func(t *testing.T, err error, fields fields) {
 				b, err := os.ReadFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"threaddump.txt"))
@@ -458,7 +461,7 @@ func Test_pythonManager_handleProfilingResult(t *testing.T) {
 			},
 		},
 		{
-			name: "should fail when unable write",
+			name: "should fail when unable write for thread dump profiler result",
 			given: func() (fields, args) {
 				var b bytes.Buffer
 				b.Write([]byte("test"))
@@ -476,15 +479,18 @@ func Test_pythonManager_handleProfilingResult(t *testing.T) {
 					}
 			},
 			when: func(fields fields, args args) error {
-				return fields.PythonProfiler.handleProfilingResult(args.job, args.fileName, args.out)
+				return fields.PythonProfiler.handleProfilingResult(args.job, args.flameGrapher, args.fileName, args.out)
 			},
 			then: func(t *testing.T, err error, fields fields) {
 				require.Error(t, err)
 			},
 		},
 		{
-			name: "no thread dump",
+			name: "should handle flamegraph profiler result",
 			given: func() (fields, args) {
+				var b bytes.Buffer
+				b.Write([]byte("test"))
+				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
 				return fields{
 						PythonProfiler: NewPythonProfiler(),
 					}, args{
@@ -493,19 +499,80 @@ func Test_pythonManager_handleProfilingResult(t *testing.T) {
 							ContainerRuntime: api.FakeContainer,
 							ContainerID:      "ContainerID",
 							OutputType:       api.FlameGraph,
+							Language:         api.FakeLang,
 						},
-						fileName: filepath.Join(common.TmpDir(), config.ProfilingPrefix+"threaddump.txt"),
+						flameGrapher: flamegraph.NewFlameGrapherFake(),
+						fileName:     filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"),
+						out:          b,
 					}
 			},
 			when: func(fields fields, args args) error {
-				return fields.PythonProfiler.handleProfilingResult(args.job, args.fileName, args.out)
+				return fields.PythonProfiler.handleProfilingResult(args.job, args.flameGrapher, args.fileName, args.out)
 			},
 			then: func(t *testing.T, err error, fields fields) {
-				assert.Equal(t, false, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"threaddump.txt")))
 				assert.Nil(t, err)
 			},
 			after: func() {
-				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"threaddump.txt"))
+				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"))
+			},
+		},
+		{
+			name: "should fail handle flamegraph profiler result",
+			given: func() (fields, args) {
+				var b bytes.Buffer
+				b.Write([]byte("test"))
+				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
+				return fields{
+						PythonProfiler: NewPythonProfiler(),
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							OutputType:       api.FlameGraph,
+							Language:         "other",
+						},
+						flameGrapher: flamegraph.NewFlameGrapherFakeWithError(),
+						fileName:     filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"),
+					}
+			},
+			when: func(fields fields, args args) error {
+				return fields.PythonProfiler.handleProfilingResult(args.job, args.flameGrapher, args.fileName, args.out)
+			},
+			then: func(t *testing.T, err error, fields fields) {
+				assert.EqualError(t, err, "could not convert raw format to flamegraph: StackSamplesToFlameGraph with error")
+			},
+			after: func() {
+				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"))
+			},
+		},
+		{
+			name: "should fail handle flamegraph profiler result when no stacks found",
+			given: func() (fields, args) {
+				var b bytes.Buffer
+				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
+				return fields{
+						PythonProfiler: NewPythonProfiler(),
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							OutputType:       api.FlameGraph,
+							Language:         "other",
+						},
+						flameGrapher: flamegraph.NewFlameGrapherFake(),
+						fileName:     filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"),
+					}
+			},
+			when: func(fields fields, args args) error {
+				return fields.PythonProfiler.handleProfilingResult(args.job, args.flameGrapher, args.fileName, args.out)
+			},
+			then: func(t *testing.T, err error, fields fields) {
+				assert.EqualError(t, err, "unable to generate flamegraph: no stacks found (maybe due low cpu load)")
+			},
+			after: func() {
+				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"))
 			},
 		},
 	}

@@ -1,76 +1,101 @@
 package profiler
 
 import (
-	"errors"
+	"bytes"
+	"fmt"
 	"github.com/josepdcs/kubectl-prof/api"
+	"github.com/josepdcs/kubectl-prof/internal/agent/config"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
+	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
+	"github.com/josepdcs/kubectl-prof/internal/agent/util/flamegraph"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
+	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"testing"
 	"time"
 )
 
+type MockBpfManager interface {
+	BpfManager
+	HandleProfilingResultInvokedTimes() int
+	PublishResultInvokedTimes() int
+	CleanUpInvokedTimes() int
+	WithHandleProfilingResultError() MockBpfManager
+}
+
 type mockBpfManager struct {
-	mock.Mock
+	handleProfilingResultInvokedTimes int
+	publishResultInvokedTimes         int
+	cleanUpInvokedTimes               int
+	withHandleProfilingResultError    bool
 }
 
-func (m *mockBpfManager) runProfiler(job *job.ProfilingJob, targetPID string) error {
-	args := m.Called(job, targetPID)
-	return args.Error(0)
+// NewMockBpfManager instances an empty MockBpfManager util for unit tests
+func NewMockBpfManager() MockBpfManager {
+	return &mockBpfManager{}
 }
 
-func (m *mockBpfManager) generateFlameGraph(fileName string) error {
-	args := m.Called(fileName)
-	return args.Error(0)
+func (m *mockBpfManager) handleProfilingResult(*job.ProfilingJob, flamegraph.FrameGrapher, string, bytes.Buffer) error {
+	m.handleProfilingResultInvokedTimes++
+	if m.withHandleProfilingResultError {
+		return fmt.Errorf("fake handleProfilingResult with error")
+	}
+	fmt.Println("fake handleProfilingResult")
+	return nil
 }
 
-func (m *mockBpfManager) moveSources(target string) error {
-	args := m.Called(target)
-	return args.Error(0)
+func (m *mockBpfManager) publishResult(compressor.Type, string, api.OutputType) error {
+	m.publishResultInvokedTimes++
+	fmt.Println("fake publish result")
+	return nil
 }
 
-func (m *mockBpfManager) publishResult(c compressor.Type, fileName string, outputType api.OutputType) error {
-	args := m.Called(c, fileName, outputType)
-	return args.Error(0)
+func (m *mockBpfManager) cleanUp(*exec.Cmd) {
+	m.cleanUpInvokedTimes++
+	fmt.Println("fake cleanUp")
 }
 
-func (m *mockBpfManager) cleanUp() {
-
+func (m *mockBpfManager) HandleProfilingResultInvokedTimes() int {
+	return m.handleProfilingResultInvokedTimes
 }
 
-func TestNewBpfProfiler(t *testing.T) {
-	p := NewBpfProfiler()
-	assert.IsType(t, p, &BpfProfiler{})
+func (m *mockBpfManager) PublishResultInvokedTimes() int {
+	return m.publishResultInvokedTimes
+}
+
+func (m *mockBpfManager) CleanUpInvokedTimes() int {
+	return m.cleanUpInvokedTimes
+}
+
+func (m *mockBpfManager) WithHandleProfilingResultError() MockBpfManager {
+	m.withHandleProfilingResultError = true
+	return m
 }
 
 func TestBpfProfiler_SetUp(t *testing.T) {
 	type fields struct {
-		*BpfProfiler
+		BpfProfiler *BpfProfiler
 	}
 	type args struct {
 		job *job.ProfilingJob
 	}
 	tests := []struct {
 		name  string
-		args  args
 		given func() (fields, args)
 		when  func(fields, args) error
 		then  func(t *testing.T, err error, fields fields)
 	}{
 		{
 			name: "should setup",
-			args: args{
-				job: &job.ProfilingJob{},
-			},
 			given: func() (fields, args) {
-				m := &mockBpfManager{}
-				b := &BpfProfiler{
-					BpfManager: BpfManager(m),
-				}
 				return fields{
-						b,
+						BpfProfiler: &BpfProfiler{
+							BpfManager: NewMockBpfManager(),
+						},
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,
@@ -80,26 +105,21 @@ func TestBpfProfiler_SetUp(t *testing.T) {
 					}
 			},
 			when: func(fields fields, args args) error {
-				return fields.SetUp(args.job)
+				return fields.BpfProfiler.SetUp(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
-				//mock := fields.BpfProfiler.BpfManager.(*mockBpfManager)
-				require.NoError(t, err)
-				assert.Equal(t, "PID_ContainerID", fields.targetPID)
+				//mock := fields.BpfProfiler.BpfManager.(MockBpfManager)
+				assert.Nil(t, err)
+				assert.Equal(t, "PID_ContainerID", fields.BpfProfiler.targetPID)
 			},
 		},
 		{
 			name: "should fail when container PID not found",
-			args: args{
-				job: &job.ProfilingJob{},
-			},
 			given: func() (fields, args) {
-				m := &mockBpfManager{}
-				b := &BpfProfiler{
-					BpfManager: BpfManager(m),
-				}
 				return fields{
-						b,
+						BpfProfiler: &BpfProfiler{
+							BpfManager: NewMockBpfManager(),
+						},
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,
@@ -109,11 +129,273 @@ func TestBpfProfiler_SetUp(t *testing.T) {
 					}
 			},
 			when: func(fields fields, args args) error {
-				return fields.SetUp(args.job)
+				return fields.BpfProfiler.SetUp(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
-				//mock := fields.BpfProfiler.BpfManager.(*mockBpfManager)
-				require.Error(t, err)
+				assert.NotNil(t, err)
+				assert.Empty(t, fields.BpfProfiler.targetPID)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Given
+			fields, args := tt.given()
+
+			// When
+			err := tt.when(fields, args)
+
+			// Then
+			tt.then(t, err, fields)
+		})
+	}
+}
+
+func TestBpfProfiler_Invoke(t *testing.T) {
+	type fields struct {
+		BpfProfiler *BpfProfiler
+	}
+	type args struct {
+		job *job.ProfilingJob
+	}
+	tests := []struct {
+		name  string
+		given func() (fields, args)
+		when  func(fields, args) (error, time.Duration)
+		then  func(t *testing.T, err error, fields fields)
+	}{
+		{
+			name: "should publish result",
+			given: func() (fields, args) {
+				bccProfilerCommand = func(job *job.ProfilingJob, pid string) *exec.Cmd {
+					return exec.Command("ls", "/tmp")
+				}
+				return fields{
+						BpfProfiler: &BpfProfiler{
+							BpfManager: NewMockBpfManager(),
+						},
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							OutputType:       api.FlameGraph,
+						},
+					}
+			},
+			when: func(fields fields, args args) (error, time.Duration) {
+				return fields.BpfProfiler.Invoke(args.job)
+			},
+			then: func(t *testing.T, err error, fields fields) {
+				mock := fields.BpfProfiler.BpfManager.(MockBpfManager)
+				assert.Nil(t, err)
+				assert.Equal(t, 1, mock.HandleProfilingResultInvokedTimes())
+				assert.Equal(t, 1, mock.PublishResultInvokedTimes())
+			},
+		},
+		{
+			name: "should publish result when ThreadDump output type",
+			given: func() (fields, args) {
+				bccProfilerCommand = func(job *job.ProfilingJob, pid string) *exec.Cmd {
+					return exec.Command("ls", "/tmp")
+				}
+				return fields{
+						BpfProfiler: &BpfProfiler{
+							BpfManager: NewMockBpfManager(),
+						},
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         time.Duration(1) * time.Second,
+							Interval:         time.Duration(1) * time.Second,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							OutputType:       api.ThreadDump,
+						},
+					}
+			},
+			when: func(fields fields, args args) (error, time.Duration) {
+				return fields.BpfProfiler.Invoke(args.job)
+			},
+			then: func(t *testing.T, err error, fields fields) {
+				mock := fields.BpfProfiler.BpfManager.(MockBpfManager)
+				assert.Nil(t, err)
+				assert.Equal(t, 1, mock.HandleProfilingResultInvokedTimes())
+				assert.Equal(t, 1, mock.PublishResultInvokedTimes())
+			},
+		},
+		{
+			name: "should fail when fail exec command",
+			given: func() (fields, args) {
+				bccProfilerCommand = func(job *job.ProfilingJob, pid string) *exec.Cmd {
+					return &exec.Cmd{}
+				}
+				return fields{
+						BpfProfiler: &BpfProfiler{
+							BpfManager: NewMockBpfManager(),
+						},
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+						},
+					}
+			},
+			when: func(fields fields, args args) (error, time.Duration) {
+				return fields.BpfProfiler.Invoke(args.job)
+			},
+			then: func(t *testing.T, err error, fields fields) {
+				mock := fields.BpfProfiler.BpfManager.(MockBpfManager)
+				assert.NotNil(t, err)
+				assert.Equal(t, 0, mock.HandleProfilingResultInvokedTimes())
+				assert.Equal(t, 0, mock.PublishResultInvokedTimes())
+			},
+		},
+		{
+			name: "should fail when handle profiling result fail",
+			given: func() (fields, args) {
+				bccProfilerCommand = func(job *job.ProfilingJob, pid string) *exec.Cmd {
+					return exec.Command("ls", "/tmp")
+				}
+				return fields{
+						BpfProfiler: &BpfProfiler{
+							BpfManager: NewMockBpfManager().WithHandleProfilingResultError(),
+						},
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+						},
+					}
+			},
+			when: func(fields fields, args args) (error, time.Duration) {
+				return fields.BpfProfiler.Invoke(args.job)
+			},
+			then: func(t *testing.T, err error, fields fields) {
+				mock := fields.BpfProfiler.BpfManager.(MockBpfManager)
+				assert.NotNil(t, err)
+				assert.Equal(t, 0, mock.PublishResultInvokedTimes())
+			},
+		},
+		{
+			name: "should fail when profile fail for ThreadDump output type",
+			given: func() (fields, args) {
+				bccProfilerCommand = func(job *job.ProfilingJob, pid string) *exec.Cmd {
+					return exec.Command("ls", "/tmp")
+				}
+				return fields{
+						BpfProfiler: &BpfProfiler{
+							BpfManager: NewMockBpfManager().WithHandleProfilingResultError(),
+						},
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         time.Duration(2) * time.Second,
+							Interval:         time.Duration(1) * time.Second,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							OutputType:       api.ThreadDump,
+						},
+					}
+			},
+			when: func(fields fields, args args) (error, time.Duration) {
+				return fields.BpfProfiler.Invoke(args.job)
+			},
+			then: func(t *testing.T, err error, fields fields) {
+				mock := fields.BpfProfiler.BpfManager.(MockBpfManager)
+				assert.NotNil(t, err)
+				assert.Equal(t, 0, mock.PublishResultInvokedTimes())
+			},
+		},
+		{
+			name: "should fail when profile fail for ThreadDump output type",
+			given: func() (fields, args) {
+				bccProfilerCommand = func(job *job.ProfilingJob, pid string) *exec.Cmd {
+					return exec.Command("ls", "/tmp")
+				}
+				return fields{
+						BpfProfiler: &BpfProfiler{
+							BpfManager: NewMockBpfManager().WithHandleProfilingResultError(),
+						},
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         time.Duration(2) * time.Second,
+							Interval:         time.Duration(1) * time.Second,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							OutputType:       api.ThreadDump,
+						},
+					}
+			},
+			when: func(fields fields, args args) (error, time.Duration) {
+				return fields.BpfProfiler.Invoke(args.job)
+			},
+			then: func(t *testing.T, err error, fields fields) {
+				mock := fields.BpfProfiler.BpfManager.(MockBpfManager)
+				assert.NotNil(t, err)
+				assert.Equal(t, 0, mock.PublishResultInvokedTimes())
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Given
+			fields, args := tt.given()
+
+			// When
+			err, _ := tt.when(fields, args)
+
+			// Then
+			tt.then(t, err, fields)
+		})
+	}
+}
+
+func TestBpfProfiler_CleanUp(t *testing.T) {
+	type fields struct {
+		BpfProfiler *BpfProfiler
+	}
+	type args struct {
+		job *job.ProfilingJob
+	}
+	tests := []struct {
+		name  string
+		given func() (fields, args)
+		when  func(fields, args) error
+		then  func(t *testing.T, err error, fields fields)
+	}{
+		{
+			name: "should cleanup",
+			given: func() (fields, args) {
+				f := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph.svg")
+				_, _ = os.Create(f)
+				_, _ = os.Create(f + compressor.GetExtensionFileByCompressor[compressor.Gzip])
+				return fields{
+						BpfProfiler: &BpfProfiler{
+							BpfManager: NewMockBpfManager(),
+							cmd:        exec.Command("ls", "/tmp"),
+						},
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+						},
+					}
+			},
+			when: func(fields fields, args args) error {
+				return fields.BpfProfiler.CleanUp(args.job)
+			},
+			then: func(t *testing.T, err error, fields fields) {
+				mock := fields.BpfProfiler.BpfManager.(MockBpfManager)
+				f := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph.svg")
+				g := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph.svg"+
+					compressor.GetExtensionFileByCompressor[compressor.Gzip])
+				assert.False(t, file.Exists(f))
+				assert.False(t, file.Exists(g))
+				assert.Nil(t, err)
+				assert.Equal(t, 1, mock.CleanUpInvokedTimes())
 			},
 		},
 	}
@@ -131,131 +413,154 @@ func TestBpfProfiler_SetUp(t *testing.T) {
 	}
 }
 
-func TestBpfProfiler_Invoke(t *testing.T) {
+func Test_bpfManager_handleProfilingResult(t *testing.T) {
 	type fields struct {
-		BpfProfiler
+		BpfProfiler *BpfProfiler
 	}
 	type args struct {
-		job *job.ProfilingJob
+		job          *job.ProfilingJob
+		flameGrapher flamegraph.FrameGrapher
+		fileName     string
+		out          bytes.Buffer
 	}
 	tests := []struct {
 		name  string
-		args  args
 		given func() (fields, args)
-		when  func(fields, args) (error, time.Duration)
-		then  func(t *testing.T, err error, mock *mockBpfManager)
+		when  func(fields, args) error
+		then  func(t *testing.T, err error, fields fields)
+		after func()
 	}{
 		{
-			name: "should publish result",
-			args: args{
-				job: &job.ProfilingJob{},
-			},
+			name: "should handle thread dump profiler result",
 			given: func() (fields, args) {
-				m := &mockBpfManager{}
-				b := BpfProfiler{
-					BpfManager: BpfManager(m),
-				}
-				m.On("runProfiler", mock.Anything, mock.Anything).Return(nil)
-				m.On("generateFlameGraph", mock.Anything).Return(nil)
-				m.On("publishResult", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				var b bytes.Buffer
+				b.Write([]byte("test"))
 				return fields{
-						b,
+						BpfProfiler: NewBpfProfiler(),
 					}, args{
-						job: &job.ProfilingJob{},
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							OutputType:       api.ThreadDump,
+						},
+						fileName: filepath.Join(common.TmpDir(), config.ProfilingPrefix+"threaddump.txt"),
+						out:      b,
 					}
 			},
-			when: func(fields fields, args args) (error, time.Duration) {
-				return fields.Invoke(args.job)
+			when: func(fields fields, args args) error {
+				return fields.BpfProfiler.handleProfilingResult(args.job, args.flameGrapher, args.fileName, args.out)
 			},
-			then: func(t *testing.T, err error, mock *mockBpfManager) {
-				require.NoError(t, err)
-				mock.AssertNumberOfCalls(t, "runProfiler", 1)
-				mock.AssertNumberOfCalls(t, "generateFlameGraph", 1)
-				mock.AssertNumberOfCalls(t, "publishResult", 1)
+			then: func(t *testing.T, err error, fields fields) {
+				b, err := os.ReadFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"threaddump.txt"))
+				assert.Equal(t, "test", string(b))
+				assert.Nil(t, err)
+			},
+			after: func() {
+				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"threaddump.txt"))
 			},
 		},
 		{
-			name: "should fail when run profiler fail",
-			args: args{
-				job: &job.ProfilingJob{},
-			},
+			name: "should fail when unable write for thread dump profiler result",
 			given: func() (fields, args) {
-				m := &mockBpfManager{}
-				b := BpfProfiler{
-					BpfManager: BpfManager(m),
-				}
-				m.On("runProfiler", mock.Anything, mock.Anything).Return(errors.New("error"))
+				var b bytes.Buffer
+				b.Write([]byte("test"))
 				return fields{
-						b,
+						BpfProfiler: NewBpfProfiler(),
 					}, args{
-						job: &job.ProfilingJob{},
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							OutputType:       api.ThreadDump,
+						},
+						fileName: filepath.Join("/", config.ProfilingPrefix+"threaddump.txt"),
+						out:      b,
 					}
 			},
-			when: func(fields fields, args args) (error, time.Duration) {
-				return fields.Invoke(args.job)
+			when: func(fields fields, args args) error {
+				return fields.BpfProfiler.handleProfilingResult(args.job, args.flameGrapher, args.fileName, args.out)
 			},
-			then: func(t *testing.T, err error, mock *mockBpfManager) {
+			then: func(t *testing.T, err error, fields fields) {
 				require.Error(t, err)
-				mock.AssertNumberOfCalls(t, "runProfiler", 1)
-				mock.AssertNumberOfCalls(t, "generateFlameGraph", 0)
-				mock.AssertNumberOfCalls(t, "publishResult", 0)
 			},
 		},
 		{
-			name: "should fail when generate FlameGraph fail",
-			args: args{
-				job: &job.ProfilingJob{},
-			},
+			name: "should handle flamegraph profiler result",
 			given: func() (fields, args) {
-				m := &mockBpfManager{}
-				b := BpfProfiler{
-					BpfManager: BpfManager(m),
-				}
-				m.On("runProfiler", mock.Anything, mock.Anything).Return(nil)
-				m.On("generateFlameGraph", mock.Anything).Return(errors.New("error"))
+				var b bytes.Buffer
+				b.Write([]byte("test"))
 				return fields{
-						b,
+						BpfProfiler: NewBpfProfiler(),
 					}, args{
-						job: &job.ProfilingJob{},
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							OutputType:       api.FlameGraph,
+							Language:         api.FakeLang,
+						},
+						flameGrapher: flamegraph.NewFlameGrapherFake(),
+						fileName:     filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"),
+						out:          b,
 					}
 			},
-			when: func(fields fields, args args) (error, time.Duration) {
-				return fields.Invoke(args.job)
+			when: func(fields fields, args args) error {
+				return fields.BpfProfiler.handleProfilingResult(args.job, args.flameGrapher, args.fileName, args.out)
 			},
-			then: func(t *testing.T, err error, mock *mockBpfManager) {
-				require.Error(t, err)
-				mock.AssertNumberOfCalls(t, "runProfiler", 1)
-				mock.AssertNumberOfCalls(t, "generateFlameGraph", 1)
-				mock.AssertNumberOfCalls(t, "publishResult", 0)
+			then: func(t *testing.T, err error, fields fields) {
+				assert.Nil(t, err)
 			},
 		},
 		{
-			name: "should fail when publish result fail",
-			args: args{
-				job: &job.ProfilingJob{},
-			},
+			name: "should fail handle flamegraph profiler result",
 			given: func() (fields, args) {
-				m := &mockBpfManager{}
-				b := BpfProfiler{
-					BpfManager: BpfManager(m),
-				}
-				m.On("runProfiler", mock.Anything, mock.Anything).Return(nil)
-				m.On("generateFlameGraph", mock.Anything).Return(nil)
-				m.On("publishResult", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("error"))
+				var b bytes.Buffer
+				b.Write([]byte("test"))
 				return fields{
-						b,
+						BpfProfiler: NewBpfProfiler(),
 					}, args{
-						job: &job.ProfilingJob{},
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							OutputType:       api.FlameGraph,
+							Language:         "other",
+						},
+						flameGrapher: flamegraph.NewFlameGrapherFakeWithError(),
+						fileName:     filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"),
+						out:          b,
 					}
 			},
-			when: func(fields fields, args args) (error, time.Duration) {
-				return fields.Invoke(args.job)
+			when: func(fields fields, args args) error {
+				return fields.BpfProfiler.handleProfilingResult(args.job, args.flameGrapher, args.fileName, args.out)
 			},
-			then: func(t *testing.T, err error, mock *mockBpfManager) {
-				require.Error(t, err)
-				mock.AssertNumberOfCalls(t, "runProfiler", 1)
-				mock.AssertNumberOfCalls(t, "generateFlameGraph", 1)
-				mock.AssertNumberOfCalls(t, "publishResult", 1)
+			then: func(t *testing.T, err error, fields fields) {
+				assert.EqualError(t, err, "could not convert raw format to flamegraph: StackSamplesToFlameGraph with error")
+			},
+		},
+		{
+			name: "should fail handle flamegraph profiler result when no stacks found",
+			given: func() (fields, args) {
+				return fields{
+						BpfProfiler: NewBpfProfiler(),
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							OutputType:       api.FlameGraph,
+							Language:         "other",
+						},
+						flameGrapher: flamegraph.NewFlameGrapherFake(),
+						fileName:     filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"),
+					}
+			},
+			when: func(fields fields, args args) error {
+				return fields.BpfProfiler.handleProfilingResult(args.job, args.flameGrapher, args.fileName, args.out)
+			},
+			then: func(t *testing.T, err error, fields fields) {
+				assert.EqualError(t, err, "unable to generate flamegraph: no stacks found (maybe due low cpu load)")
 			},
 		},
 	}
@@ -265,10 +570,27 @@ func TestBpfProfiler_Invoke(t *testing.T) {
 			fields, args := tt.given()
 
 			// When
-			err, _ := tt.when(fields, args)
+			err := tt.when(fields, args)
 
 			// Then
-			tt.then(t, err, fields.BpfProfiler.BpfManager.(*mockBpfManager))
+			tt.then(t, err, fields)
+
+			if tt.after != nil {
+				tt.after()
+			}
 		})
 	}
+}
+
+func Test_bpfManager_bccProfilerCommand(t *testing.T) {
+	// Given
+	j := &job.ProfilingJob{
+		Interval: 10 * time.Second,
+	}
+
+	// When
+	result := bccProfilerCommand(j, "1000")
+
+	// Then
+	assert.NotNil(t, result)
 }

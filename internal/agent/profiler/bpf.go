@@ -3,11 +3,13 @@ package profiler
 import (
 	"bytes"
 	"fmt"
+	"github.com/agrison/go-commons-lang/stringUtils"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/config"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util"
+	"github.com/josepdcs/kubectl-prof/internal/agent/util/flamegraph"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
@@ -18,26 +20,28 @@ import (
 )
 
 const (
-	profilerLocation         = "/app/bcc-profiler/profile"
-	rawProfilerOutputFile    = "/tmp/raw_profile.txt"
-	flameGraphScriptLocation = "/app/FlameGraph/flamegraph.pl"
+	profilerLocation = "/app/bcc-profiler/profile"
 )
+
+var bccProfilerCommand = func(job *job.ProfilingJob, pid string) *exec.Cmd {
+	interval := strconv.Itoa(int(job.Interval.Seconds()))
+	args := []string{"-df", "-U", "-p", pid, interval}
+	return util.Command(profilerLocation, args...)
+}
 
 type BpfProfiler struct {
 	targetPID string
+	cmd       *exec.Cmd
 	BpfManager
 }
 
 type BpfManager interface {
-	runProfiler(*job.ProfilingJob, string) error
-	generateFlameGraph(fileName string) error
+	handleProfilingResult(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher, fileName string, out bytes.Buffer) error
 	publishResult(compressor compressor.Type, fileName string, outputType api.OutputType) error
-	cleanUp()
+	cleanUp(cmd *exec.Cmd)
 }
 
 type bpfManager struct {
-	profCmd  *exec.Cmd
-	flameCmd *exec.Cmd
 }
 
 func NewBpfProfiler() *BpfProfiler {
@@ -57,116 +61,73 @@ func (b *BpfProfiler) SetUp(job *job.ProfilingJob) error {
 
 func (b *BpfProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	start := time.Now()
-	err := b.runProfiler(job, b.targetPID)
+	// override output type when flamegraph: it will be generated in two steps
+	// 1 - get raw format
+	// 2 - convert to flamegraph with Brendan Gregg's tool: flamegraph.pl
+	copiedJob := *job
+	var flameGrapher flamegraph.FrameGrapher
+	if job.OutputType == api.FlameGraph {
+		copiedJob.OutputType = api.Raw
+		flameGrapher = flamegraph.Get(job)
+
+	}
+	fileName := common.GetResultFile(common.TmpDir(), &copiedJob)
+
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+
+	b.cmd = bccProfilerCommand(&copiedJob, b.targetPID)
+	b.cmd.Stdout = &out
+	b.cmd.Stderr = &stderr
+	err := b.cmd.Run()
 	if err != nil {
-		return fmt.Errorf("profiling failed: %s", err), time.Since(start)
+		log.ErrorLogLn(out.String())
+		return fmt.Errorf("could not launch profiler: %w; detail: %s", err, stderr.String()), time.Since(start)
 	}
 
-	fileName := common.GetResultFile(common.TmpDir(), job)
-	err = b.generateFlameGraph(fileName)
+	err = b.handleProfilingResult(job, flameGrapher, fileName, out)
 	if err != nil {
-		return fmt.Errorf("flamegraph generation failed: %s", err), time.Since(start)
+		return err, time.Since(start)
 	}
 
-	return b.publishResult(job.Compressor, fileName, job.OutputType), time.Since(start)
+	return b.publishResult(job.Compressor, common.GetResultFile(common.TmpDir(), job), job.OutputType), time.Since(start)
 }
 
 func (b *BpfProfiler) CleanUp(*job.ProfilingJob) error {
-	b.cleanUp()
+	b.cleanUp(b.cmd)
 
 	file.RemoveAll(common.TmpDir(), config.ProfilingPrefix)
 
 	return nil
 }
 
-func (b *bpfManager) runProfiler(job *job.ProfilingJob, targetPID string) error {
-	f, err := os.Create(rawProfilerOutputFile)
+func (b *bpfManager) handleProfilingResult(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher, fileName string, out bytes.Buffer) error {
+	err := os.WriteFile(fileName, out.Bytes(), 0644)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not save thread dump: %w", err)
 	}
-
-	defer func(f *os.File) {
-		err := f.Close()
-		if err != nil {
-			fmt.Printf("error closing resource: %s", err)
-			return
+	if job.OutputType == api.FlameGraph {
+		if stringUtils.IsBlank(out.String()) {
+			return fmt.Errorf("unable to generate flamegraph: no stacks found (maybe due low cpu load)")
 		}
-	}(f)
-
-	interval := strconv.Itoa(int(job.Interval.Seconds()))
-	var stderr bytes.Buffer
-	args := []string{"-df", "-U", "-p", targetPID, interval}
-	b.profCmd = util.Command(profilerLocation, args...)
-	b.profCmd.Stdout = f
-	b.profCmd.Stderr = &stderr
-
-	err = b.profCmd.Run()
-	if err != nil {
-		log.ErrorLogLn(stderr.String())
-	}
-	return err
-}
-
-func (b *bpfManager) generateFlameGraph(fileName string) error {
-	inputFile, err := os.Open(rawProfilerOutputFile)
-	if err != nil {
-		return err
-	}
-
-	defer func(inputFile *os.File) {
-		err := inputFile.Close()
+		// convert raw format to flamegraph
+		err = flameGrapher.StackSamplesToFlameGraph(fileName, common.GetResultFile(common.TmpDir(), job))
 		if err != nil {
-			log.ErrorLogLn(fmt.Sprintf("error closing input file: %s", err))
-			return
+			return fmt.Errorf("could not convert raw format to flamegraph: %w", err)
 		}
-	}(inputFile)
-
-	outputFile, err := os.Create(fileName)
-	if err != nil {
-		return err
 	}
-
-	defer func(outputFile *os.File) {
-		err := outputFile.Close()
-		if err != nil {
-			log.ErrorLogLn(fmt.Sprintf("error closing output file: %s", err))
-			return
-		}
-	}(outputFile)
-
-	var stderr bytes.Buffer
-	b.flameCmd = util.Command(flameGraphScriptLocation)
-	b.flameCmd.Stdin = inputFile
-	b.flameCmd.Stdout = outputFile
-	b.flameCmd.Stderr = &stderr
-
-	err = b.flameCmd.Run()
-	if err != nil {
-		log.ErrorLogLn(stderr.String())
-	}
-
-	return err
+	return nil
 }
 
 func (b *bpfManager) publishResult(c compressor.Type, fileName string, outputType api.OutputType) error {
 	return util.Publish(c, fileName, outputType)
 }
 
-func (b *bpfManager) cleanUp() {
-	if b.profCmd != nil && b.profCmd.ProcessState == nil {
-		err := b.profCmd.Process.Kill()
+func (b *bpfManager) cleanUp(cmd *exec.Cmd) {
+	if cmd != nil && cmd.ProcessState == nil {
+		err := cmd.Process.Kill()
 		if err != nil {
 			log.WarningLogLn(fmt.Sprintf("unable kill process: %s", err))
-		} else {
-			log.DebugLogLn("try to kill prof process")
-		}
-	}
-	if b.flameCmd != nil && b.flameCmd.ProcessState == nil {
-		err := b.flameCmd.Process.Kill()
-		if err != nil {
-			log.WarningLogLn(fmt.Sprintf("unable kill process: %s", err))
-		} else {
-			log.DebugLogLn("try to kill flamegraph generator process")
 		}
 	}
 }
