@@ -8,9 +8,6 @@ import (
 )
 
 func TestGet(t *testing.T) {
-	type args struct {
-		job *job.ProfilingJob
-	}
 	tests := []struct {
 		name string
 		job  *job.ProfilingJob
@@ -32,7 +29,8 @@ func TestGet(t *testing.T) {
 			name: "should return flame grapher for node",
 			job:  &job.ProfilingJob{Language: api.Node},
 			want: NewFlameGrapherScript(
-				WithTitle("NodeJS - CPU Flamegraph")),
+				WithTitle("NodeJS - CPU Flamegraph"),
+				WithColors("js")),
 		},
 		{
 			name: "should return flame grapher for fake language",

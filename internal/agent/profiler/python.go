@@ -23,11 +23,17 @@ const (
 )
 
 var pythonCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-	switch job.OutputType {
+	output := job.OutputType
+	if job.OutputType == api.FlameGraph {
+		// overrides to Raw
+		output = api.Raw
+	}
+
+	switch output {
 	case api.FlameGraph, api.SpeedScope, api.Raw:
 		interval := strconv.Itoa(int(job.Interval.Seconds()))
 		args := []string{"record"}
-		args = append(args, "-p", pid, "-o", fileName, "-d", interval, "-s", "-t", "-f", string(job.OutputType))
+		args = append(args, "-p", pid, "-o", fileName, "-d", interval, "-s", "-t", "-f", string(output))
 		return util.Command(pySpyLocation, args...)
 	// api.ThreadDump:
 	default:
@@ -75,19 +81,12 @@ func (p *PythonProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	// 1 - get raw format
 	// 2 - convert to flamegraph with Brendan Gregg's tool: flamegraph.pl
 	// the flamegraph format of py-spy will be ignored since the size of this one cannot be adjusted, and we want it
-	copiedJob := *job
-	var flameGrapher flamegraph.FrameGrapher
-	if job.OutputType == api.FlameGraph {
-		copiedJob.OutputType = api.Raw
-		flameGrapher = flamegraph.Get(job)
-
-	}
-	fileName := common.GetResultFile(common.TmpDir(), &copiedJob)
+	fileName := common.GetResultFile(common.TmpDir(), job.Tool, api.Raw)
 
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 
-	p.cmd = pythonCommand(&copiedJob, p.targetPID, fileName)
+	p.cmd = pythonCommand(job, p.targetPID, fileName)
 	p.cmd.Stdout = &out
 	p.cmd.Stderr = &stderr
 	err := p.cmd.Run()
@@ -96,12 +95,12 @@ func (p *PythonProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 		return fmt.Errorf("could not launch profiler: %w; detail: %s", err, stderr.String()), time.Since(start)
 	}
 
-	err = p.handleProfilingResult(job, flameGrapher, fileName, out)
+	err = p.handleProfilingResult(job, flamegraph.Get(job), fileName, out)
 	if err != nil {
 		return err, time.Since(start)
 	}
 
-	return p.publishResult(job.Compressor, common.GetResultFile(common.TmpDir(), job), job.OutputType), time.Since(start)
+	return p.publishResult(job.Compressor, common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType), job.OutputType), time.Since(start)
 }
 
 func (p *PythonProfiler) CleanUp(*job.ProfilingJob) error {
@@ -123,7 +122,7 @@ func (p *pythonManager) handleProfilingResult(job *job.ProfilingJob, flameGraphe
 			return fmt.Errorf("unable to generate flamegraph: no stacks found (maybe due low cpu load)")
 		}
 		// convert raw format to flamegraph
-		err := flameGrapher.StackSamplesToFlameGraph(fileName, common.GetResultFile(common.TmpDir(), job))
+		err := flameGrapher.StackSamplesToFlameGraph(fileName, common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType))
 		if err != nil {
 			return fmt.Errorf("could not convert raw format to flamegraph: %w", err)
 		}

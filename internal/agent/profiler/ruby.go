@@ -35,7 +35,7 @@ func (r *RubyProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	}
 	log.DebugLogLn(fmt.Sprintf("The PID to be profiled: %s", pid))
 
-	filName := common.GetResultFile(common.TmpDir(), job)
+	filName := common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType)
 	duration := strconv.Itoa(int(job.Duration.Seconds()))
 	cmd := util.Command(rbspyLocation, "record", "--pid", pid, "--file", filName, "--duration", duration, "--format", "flamegraph")
 	var out bytes.Buffer

@@ -108,7 +108,7 @@ func (j *JcmdProfiler) SetUp(job *job.ProfilingJob) error {
 
 func (j *JcmdProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	start := time.Now()
-	fileName := common.GetResultFile(common.TmpDir(), job)
+	fileName := common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType)
 
 	var out bytes.Buffer
 	var stderr bytes.Buffer

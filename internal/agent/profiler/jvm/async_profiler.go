@@ -28,6 +28,10 @@ var asyncProfilerCommand = func(job *job.ProfilingJob, pid string, fileName stri
 	interval := strconv.Itoa(int(job.Interval.Seconds()))
 	event := string(job.Event)
 	output := string(job.OutputType)
+	if job.OutputType == api.Raw {
+		// overrides to collapsed type since it is the type defined be async-profiler, which it is what we want
+		output = string(api.Collapsed)
+	}
 	args := []string{"-o", output, "-d", interval, "-f", fileName, "-e", event, "--fdtransfer", pid}
 	return util.Command(profilerSh, args...)
 }
@@ -91,7 +95,7 @@ func (j *AsyncProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 
-	fileName := common.GetResultFile(common.TmpDir(), job)
+	fileName := common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType)
 	cmd := asyncProfilerCommand(job, j.targetPID, fileName)
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr

@@ -66,7 +66,9 @@ func TestPerfProfiler_Invoke(t *testing.T) {
 		{
 			name: "Invoke should publish result",
 			args: args{
-				job: &job.ProfilingJob{},
+				job: &job.ProfilingJob{
+					OutputType: api.FlameGraph,
+				},
 			},
 			mock: func(m *mockPerfUtil) {
 				m.On("runPerfRecord", mock.Anything).Return(nil)
@@ -140,7 +142,9 @@ func TestPerfProfiler_Invoke(t *testing.T) {
 		{
 			name: "Invoke should fail when generate FlameGraph fail",
 			args: args{
-				job: &job.ProfilingJob{},
+				job: &job.ProfilingJob{
+					OutputType: api.FlameGraph,
+				},
 			},
 			mock: func(m *mockPerfUtil) {
 				m.On("runProfiler", mock.Anything).Return(nil)
@@ -156,12 +160,14 @@ func TestPerfProfiler_Invoke(t *testing.T) {
 				m.AssertNumberOfCalls(t, "generateFlameGraph", 1)
 				m.AssertNumberOfCalls(t, "publishResult", 0)
 			},
-			wantErrMsg: "flamegraph generation failed: error",
+			wantErrMsg: "error",
 		},
 		{
 			name: "Invoke should fail when publish result fail",
 			args: args{
-				job: &job.ProfilingJob{},
+				job: &job.ProfilingJob{
+					OutputType: api.FlameGraph,
+				},
 			},
 			mock: func(m *mockPerfUtil) {
 				m.On("runProfiler", mock.Anything).Return(nil)

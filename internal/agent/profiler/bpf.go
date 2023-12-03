@@ -61,22 +61,10 @@ func (b *BpfProfiler) SetUp(job *job.ProfilingJob) error {
 
 func (b *BpfProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	start := time.Now()
-	// override output type when flamegraph: it will be generated in two steps
-	// 1 - get raw format
-	// 2 - convert to flamegraph with Brendan Gregg's tool: flamegraph.pl
-	copiedJob := *job
-	var flameGrapher flamegraph.FrameGrapher
-	if job.OutputType == api.FlameGraph {
-		copiedJob.OutputType = api.Raw
-		flameGrapher = flamegraph.Get(job)
-
-	}
-	fileName := common.GetResultFile(common.TmpDir(), &copiedJob)
-
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 
-	b.cmd = bccProfilerCommand(&copiedJob, b.targetPID)
+	b.cmd = bccProfilerCommand(job, b.targetPID)
 	b.cmd.Stdout = &out
 	b.cmd.Stderr = &stderr
 	err := b.cmd.Run()
@@ -85,12 +73,12 @@ func (b *BpfProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 		return fmt.Errorf("could not launch profiler: %w; detail: %s", err, stderr.String()), time.Since(start)
 	}
 
-	err = b.handleProfilingResult(job, flameGrapher, fileName, out)
+	err = b.handleProfilingResult(job, flamegraph.Get(job), common.GetResultFile(common.TmpDir(), job.Tool, api.Raw), out)
 	if err != nil {
 		return err, time.Since(start)
 	}
 
-	return b.publishResult(job.Compressor, common.GetResultFile(common.TmpDir(), job), job.OutputType), time.Since(start)
+	return b.publishResult(job.Compressor, common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType), job.OutputType), time.Since(start)
 }
 
 func (b *BpfProfiler) CleanUp(*job.ProfilingJob) error {
@@ -111,7 +99,7 @@ func (b *bpfManager) handleProfilingResult(job *job.ProfilingJob, flameGrapher f
 			return fmt.Errorf("unable to generate flamegraph: no stacks found (maybe due low cpu load)")
 		}
 		// convert raw format to flamegraph
-		err = flameGrapher.StackSamplesToFlameGraph(fileName, common.GetResultFile(common.TmpDir(), job))
+		err = flameGrapher.StackSamplesToFlameGraph(fileName, common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType))
 		if err != nil {
 			return fmt.Errorf("could not convert raw format to flamegraph: %w", err)
 		}

@@ -1,23 +1,16 @@
-ARG KERNEL_VERSION=5.15.15
-
-FROM linuxkit/kernel:$KERNEL_VERSION AS ksrc
-
-FROM golang:1.19.6-alpine as agentbuild
+FROM golang:1.21.3-alpine AS agentbuild
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof
 ADD . /go/src/github.com/josepdcs/kubectl-prof
 RUN go get -d -v ./...
-RUN cd cmd/agent && go build -o /go/bin/agent
+WORKDIR /go/src/github.com/josepdcs/kubectl-prof/cmd/agent
+RUN go build -o /go/bin/agent
 
-FROM alpine:3.17.2 as builder
-COPY --from=ksrc /kernel-dev.tar /
-RUN tar xf /kernel-dev.tar -C /
-RUN mv /usr/src/*/ /usr/src/kernel-source/
-RUN apk add git
+FROM alpine:3.18.4 AS builder
+RUN apk add --no-cache git
 RUN git clone https://github.com/brendangregg/FlameGraph
 
-FROM alpine:3.17.2
-COPY --from=builder /usr/src /usr/src
-RUN apk add bcc-tools perl procps strace
+FROM alpine:3.18.4
+RUN apk add --no-cache bash bcc-tools perl procps strace
 RUN mkdir -p /app/FlameGraph
 COPY --from=builder /FlameGraph /app/FlameGraph
 COPY --from=agentbuild /go/bin/agent /app

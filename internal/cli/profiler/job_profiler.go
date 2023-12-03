@@ -21,8 +21,8 @@ type JobProfiler struct {
 
 // NewJobProfiler returns a new JobProfiler
 func NewJobProfiler(podAdapter adapter.PodAdapter, profilingJobAdapter adapter.ProfilingJobAdapter,
-	profilingContainerAdapter adapter.ProfilingContainerAdapter) *JobProfiler {
-	return &JobProfiler{
+	profilingContainerAdapter adapter.ProfilingContainerAdapter) JobProfiler {
+	return JobProfiler{
 		podAdapter:                podAdapter,
 		profilingJobAdapter:       profilingJobAdapter,
 		profilingContainerAdapter: profilingContainerAdapter,
@@ -30,7 +30,7 @@ func NewJobProfiler(podAdapter adapter.PodAdapter, profilingJobAdapter adapter.P
 }
 
 // Profile runs all the steps of the profiling from the job creation up to obtain the profiling result
-func (p *JobProfiler) Profile(cfg *config.ProfilerConfig) error {
+func (p JobProfiler) Profile(cfg *config.ProfilerConfig) error {
 	ctx := context.Background()
 
 	printer := cli.NewPrinter(cfg.Target.DryRun)

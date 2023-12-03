@@ -20,6 +20,9 @@ const (
 	Tree          OutputType = "tree"
 	Callgrind     OutputType = "callgrind"
 	Raw           OutputType = "raw"
+	Pprof         OutputType = "pprof"
+	Summary       OutputType = "summary"
+	SummaryByLine OutputType = "summary-by-line"
 )
 
 // GetOutputTypesByProfilingTool Gets the list of OutputType related to the ProfilingTool that they will be considered as output types.

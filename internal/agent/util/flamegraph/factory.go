@@ -27,6 +27,7 @@ func Get(job *job.ProfilingJob) FrameGrapher {
 		return NewFlameGrapherScript(
 			WithTitle("NodeJS - CPU Flamegraph"),
 			WithWidth(job.GetWidthAdditionalArgumentAndDelete()),
+			WithColors("js"),
 		)
 	case api.FakeLang:
 		return NewFlameGrapherFake()

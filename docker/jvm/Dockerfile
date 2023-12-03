@@ -15,7 +15,7 @@ RUN curl -o jdk-17.0.6+10.tar.gz -L \
     https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.6+10/OpenJDK17U-jdk_x64_linux_hotspot_17.0.6_10.tar.gz
 RUN tar -xf jdk-17.0.6+10.tar.gz && mv jdk-17.0.6+10 jdk-17
 
-FROM bitnami/minideb:stretch
+FROM bitnami/minideb:bullseye
 RUN apt-get update && apt-get install -y procps strace sudo gzip
 RUN mkdir -p /app/async-profiler/build
 COPY --from=agentbuild /go/bin/agent /app

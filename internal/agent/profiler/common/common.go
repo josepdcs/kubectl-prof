@@ -3,26 +3,26 @@ package common
 import (
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/config"
-	"github.com/josepdcs/kubectl-prof/internal/agent/job"
+	"os"
 	"path/filepath"
 )
 
 var TmpDir = func() string {
-	return "/tmp"
+	return os.TempDir()
 }
 
-func GetResultFile(targetDir string, job *job.ProfilingJob) string {
+func GetResultFile(targetDir string, tool api.ProfilingTool, outputType api.OutputType) string {
 	prefix := filepath.Join(targetDir, config.ProfilingPrefix)
-	return prefix + string(job.OutputType) + GetFileExtension(job.Tool, job.OutputType)
+	return prefix + string(outputType) + GetFileExtension(tool, outputType)
 }
 
-func GetFileExtension(tool api.ProfilingTool, OutputType api.OutputType) string {
+func GetFileExtension(tool api.ProfilingTool, outputType api.OutputType) string {
 	switch tool {
 	case api.Jcmd, api.AsyncProfiler:
-		switch OutputType {
+		switch outputType {
 		case api.Jfr:
 			return ".jfr"
-		case api.ThreadDump, api.HeapHistogram, api.Flat, api.Traces, api.Collapsed:
+		case api.ThreadDump, api.HeapHistogram, api.Flat, api.Traces, api.Collapsed, api.SpeedScope, api.Raw:
 			return ".txt"
 		case api.HeapDump:
 			return ".hprof"
@@ -31,10 +31,18 @@ func GetFileExtension(tool api.ProfilingTool, OutputType api.OutputType) string 
 			return ".html"
 		}
 	case api.Pyspy:
-		switch OutputType {
+		switch outputType {
 		case api.SpeedScope:
 			return ".json"
-		case api.ThreadDump:
+		case api.ThreadDump, api.Raw:
+			return ".txt"
+		default:
+			// api.FlameGraph
+			return ".svg"
+		}
+	case api.Bpf, api.Perf:
+		switch outputType {
+		case api.SpeedScope, api.Raw:
 			return ".txt"
 		default:
 			// api.FlameGraph
