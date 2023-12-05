@@ -8,7 +8,6 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util"
-	"github.com/josepdcs/kubectl-prof/internal/agent/util/flamegraph"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
@@ -20,8 +19,10 @@ import (
 const (
 	perfLocation                    = "/app/perf"
 	perfRecordOutputFileName        = "/tmp/perf.data"
+	flameGraphPlLocation            = "/app/FlameGraph/flamegraph.pl"
 	flameGraphStackCollapseLocation = "/app/FlameGraph/stackcollapse-perf.pl"
 	perfScriptOutputFileName        = "/tmp/perf.out"
+	//	perfFoldedOutputFileName        = "/tmp/perf.folded"
 )
 
 type PerfProfiler struct {
@@ -43,7 +44,7 @@ func NewPerfProfiler() *PerfProfiler {
 	return &PerfProfiler{&perfUtil{}}
 }
 
-func (p *PerfProfiler) SetUp(*job.ProfilingJob) error {
+func (p *PerfProfiler) SetUp(job *job.ProfilingJob) error {
 	return nil
 }
 
@@ -64,15 +65,14 @@ func (p *PerfProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 		return fmt.Errorf("folding perf output failed: %s", err), time.Since(start)
 	}
 
-	fileName := common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType)
 	if job.OutputType == api.FlameGraph {
 		err = p.generateFlameGraph(job)
 		if err != nil {
-			return err, time.Since(start)
+			return fmt.Errorf("flamegraph generation failed: %s", err), time.Since(start)
 		}
 	}
 
-	return p.publishResult(job.Compressor, fileName, job.OutputType), time.Since(start)
+	return p.publishResult(job.Compressor, common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType), job.OutputType), time.Since(start)
 }
 
 func (p *PerfProfiler) CleanUp(job *job.ProfilingJob) error {
@@ -101,7 +101,7 @@ func (b *perfUtil) runPerfRecord(job *job.ProfilingJob) error {
 	return err
 }
 
-func (b *perfUtil) runPerfScript(*job.ProfilingJob) error {
+func (b *perfUtil) runPerfScript(job *job.ProfilingJob) error {
 	f, err := os.Create(perfScriptOutputFileName)
 	if err != nil {
 		return err
@@ -127,9 +127,7 @@ func (b *perfUtil) runPerfScript(*job.ProfilingJob) error {
 }
 
 func (b *perfUtil) foldPerfOutput(job *job.ProfilingJob) error {
-	fileName := common.GetResultFile(common.TmpDir(), job.Tool, api.Raw)
-
-	f, err := os.Create(fileName)
+	f, err := os.Create(common.GetResultFile(common.TmpDir(), job.Tool, api.Raw))
 	if err != nil {
 		return err
 	}
@@ -154,16 +152,54 @@ func (b *perfUtil) foldPerfOutput(job *job.ProfilingJob) error {
 }
 
 func (b *perfUtil) generateFlameGraph(job *job.ProfilingJob) error {
-	var flameGrapher flamegraph.FrameGrapher
-	// convert raw format to flamegraph
-	err := flameGrapher.StackSamplesToFlameGraph(common.GetResultFile(common.TmpDir(), job.Tool, api.Raw),
-		common.GetResultFile(common.TmpDir(), job.Tool, api.FlameGraph))
+	inputFile, err := os.Open(common.GetResultFile(common.TmpDir(), job.Tool, api.Raw))
 	if err != nil {
-		return fmt.Errorf("could not convert folded format to flamegraph: %w", err)
+		return err
 	}
-	return nil
+	defer func(inputFile *os.File) {
+		err := inputFile.Close()
+		if err != nil {
+			fmt.Printf("error closing input file: %s", err)
+			return
+		}
+	}(inputFile)
+
+	outputFile, err := os.Create(common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType))
+	if err != nil {
+		return err
+	}
+	defer func(outputFile *os.File) {
+		err := outputFile.Close()
+		if err != nil {
+			fmt.Printf("error closing output file: %s", err)
+			return
+		}
+	}(outputFile)
+
+	var stderr bytes.Buffer
+	cmd := util.Command(flameGraphPlLocation, "--colors", getColors(job.Language))
+	cmd.Stdin = inputFile
+	cmd.Stdout = outputFile
+	cmd.Stderr = &stderr
+
+	err = cmd.Run()
+	if err != nil {
+		log.ErrorLogLn(stderr.String())
+	}
+	return err
 }
 
 func (b *perfUtil) publishResult(c compressor.Type, fileName string, outputType api.OutputType) error {
 	return util.Publish(c, fileName, outputType)
+}
+
+func getColors(l api.ProgrammingLanguage) string {
+	switch l {
+	case api.Node:
+		return "js"
+	case api.Java:
+		return "java"
+	default:
+		return "green"
+	}
 }
