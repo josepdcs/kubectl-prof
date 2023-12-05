@@ -21,9 +21,10 @@ import (
 )
 
 const (
-	jcmd                             = "/opt/jdk-17/bin/jcmd"
-	contprofJFRSettingsImageFilePath = "/app/jfr/settings/contprof-profile.jfc"
-	contprofJFRSettingsTmpFilePath   = "/tmp/contprof-profile.jfc"
+	jcmd                     = "/opt/jdk/bin/jcmd"
+	jfrSettingsImageFilePath = "/app/jfr/settings/jfr-profile.jfc"
+	jfrSettingsTmpFilePath   = "/tmp/jfr-profile.jfc"
+	invocationName           = "name=pid_"
 )
 
 var stopJcmdRecording chan bool
@@ -43,7 +44,7 @@ var jcmdCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec
 
 	// default api.Jfr
 	interval := strconv.Itoa(int(job.Interval.Seconds()))
-	args := []string{pid, "JFR.start", "duration=" + interval + "s", "filename=" + fileName, "name=pid_" + pid + "_" + string(job.OutputType)}
+	args := []string{pid, "JFR.start", "duration=" + interval + "s", "filename=" + fileName, invocationName + pid + "_" + string(job.OutputType), "settings=" + jfrSettingsTmpFilePath}
 	return util.Command(jcmd, args...)
 }
 
@@ -51,7 +52,7 @@ var jcmdStopCommand = func(job *job.ProfilingJob, pid string) *exec.Cmd {
 	if job.OutputType != api.Jfr {
 		return nil
 	}
-	return util.Command(jcmd, pid, "JFR.stop", "name=pid_"+pid+"_"+string(job.OutputType))
+	return util.Command(jcmd, pid, "JFR.stop", invocationName+pid+"_"+string(job.OutputType))
 }
 
 type JcmdProfiler struct {
@@ -103,7 +104,7 @@ func (j *JcmdProfiler) SetUp(job *job.ProfilingJob) error {
 	log.DebugLogLn(fmt.Sprintf("The PID to be profiled: %s", pid))
 	j.targetPID = pid
 
-	return nil
+	return j.copyJfrSettingsToTmpDir()
 }
 
 func (j *JcmdProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
@@ -163,7 +164,7 @@ func (j *jcmdManager) linkTmpDirToTargetTmpDir(targetTmpDir string) error {
 }
 
 func (j *jcmdManager) copyJfrSettingsToTmpDir() error {
-	cmd := util.Command("cp", contprofJFRSettingsImageFilePath, common.TmpDir())
+	cmd := util.Command("cp", jfrSettingsImageFilePath, common.TmpDir())
 	return cmd.Run()
 }
 

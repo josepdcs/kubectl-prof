@@ -81,7 +81,12 @@ func (p *PythonProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	// 1 - get raw format
 	// 2 - convert to flamegraph with Brendan Gregg's tool: flamegraph.pl
 	// the flamegraph format of py-spy will be ignored since the size of this one cannot be adjusted, and we want it
-	fileName := common.GetResultFile(common.TmpDir(), job.Tool, api.Raw)
+	var fileName string
+	if job.OutputType == api.FlameGraph {
+		fileName = common.GetResultFile(common.TmpDir(), job.Tool, api.Raw)
+	} else {
+		fileName = common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType)
+	}
 
 	var out bytes.Buffer
 	var stderr bytes.Buffer
@@ -113,6 +118,8 @@ func (p *PythonProfiler) CleanUp(*job.ProfilingJob) error {
 
 func (p *pythonManager) handleProfilingResult(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher, fileName string, out bytes.Buffer) error {
 	if job.OutputType == api.ThreadDump {
+		log.DebugLogLn(fmt.Sprintf("The output of the profiler is: %s", out.String()))
+		log.DebugLogLn(fmt.Sprintf("The output file is: %s", fileName))
 		err := os.WriteFile(fileName, out.Bytes(), 0644)
 		if err != nil {
 			return fmt.Errorf("could not save thread dump: %w", err)

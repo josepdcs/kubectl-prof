@@ -21,14 +21,17 @@ import (
 )
 
 const (
-	defaultGracePeriodEnding = 5 * time.Minute
-	defaultContainerRuntime  = string(api.Containerd)
-	defaultEvent             = string(api.Itimer)
-	defaultLogLevel          = string(api.InfoLevel)
-	defaultCompressor        = string(compressor.Gzip)
-	defaultOutputType        = string(api.FlameGraph)
-	defaultImagePullPolicy   = string(apiv1.PullIfNotPresent)
-	longDescription          = `Profiling on existing applications with low-overhead.
+	defaultGracePeriodEnding      = 5 * time.Minute
+	defaultContainerRuntime       = string(api.Containerd)
+	defaultEvent                  = string(api.Itimer)
+	defaultLogLevel               = string(api.InfoLevel)
+	defaultCompressor             = string(compressor.Gzip)
+	defaultOutputType             = string(api.FlameGraph)
+	defaultImagePullPolicy        = string(apiv1.PullIfNotPresent)
+	defaultHeapDumpSplitSize      = "20M"
+	defaultPoolSizeRetrieveChunks = 5
+	defaultRetrieveFileRetries    = 3
+	longDescription               = `Profiling on existing applications with low-overhead.
 
 These commands help you identify application performance issues.
 `
@@ -200,6 +203,8 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.Flags().BoolVar(&target.PrintLogs, "print-logs", true, "Force agent to print the log messages type to standard output")
 	cmd.Flags().DurationVar(&target.GracePeriodEnding, "grace-period-ending", defaultGracePeriodEnding, "The grace period to spend before to end the agent")
 	cmd.Flags().StringVar(&imagePullPolicy, "image-pull-policy", defaultImagePullPolicy, fmt.Sprintf("Image pull policy, choose one of %v", imagePullPolicies))
+	cmd.Flags().StringVar(&target.ContainerName, "target-container-name", "", "The target container name to be profiled")
+
 	//cmd.Flags().BoolVar(&useEphemeralContainer, "use-ephemeral-container", false, "Launching profiling agent into ephemeral container instead into Job (experimental)")
 
 	options.configFlags.AddFlags(cmd.Flags())

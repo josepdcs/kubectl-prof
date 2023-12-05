@@ -147,6 +147,24 @@ func TestGetResultFile(t *testing.T) {
 			},
 		},
 		{
+			name: "should return Collapsed",
+			given: func() args {
+				return args{
+					targetDir: TmpDir(),
+					job: &job.ProfilingJob{
+						Tool:       api.AsyncProfiler,
+						OutputType: api.Raw,
+					},
+				}
+			},
+			when: func(args args) string {
+				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType)
+			},
+			then: func(t *testing.T, result string) {
+				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"raw.txt"), result)
+			},
+		},
+		{
 			name: "should return Tree",
 			given: func() args {
 				return args{
