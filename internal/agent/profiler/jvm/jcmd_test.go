@@ -167,7 +167,7 @@ func TestJcmdProfiler_SetUp(t *testing.T) {
 				assert.Equal(t, "PID_ContainerID", fields.JcmdProfiler.targetPID)
 				assert.Equal(t, 1, mock.RemoveTmpDirInvokedTimes())
 				assert.Equal(t, 1, mock.LinkTmpDirToTargetTmpDirInvokedTimes())
-				assert.Equal(t, 0, mock.CopyJfrSettingsToTmpDirInvokedTimes())
+				assert.Equal(t, 1, mock.CopyJfrSettingsToTmpDirInvokedTimes())
 			},
 		},
 		{
