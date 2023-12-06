@@ -15,21 +15,21 @@ func TestGet(t *testing.T) {
 	}{
 		{
 			name: "should return flame grapher for python",
-			job:  &job.ProfilingJob{Language: api.Python},
+			job:  &job.ProfilingJob{Language: api.Python, Event: api.Cpu},
 			want: NewFlameGrapherScript(
-				WithTitle("Python - CPU Flamegraph")),
+				WithTitle("PYTHON - CPU Flamegraph")),
 		},
 		{
 			name: "should return flame grapher for golang",
-			job:  &job.ProfilingJob{Language: api.Go},
+			job:  &job.ProfilingJob{Language: api.Go, Event: api.Cpu},
 			want: NewFlameGrapherScript(
-				WithTitle("Golang - CPU Flamegraph")),
+				WithTitle("GO - CPU Flamegraph")),
 		},
 		{
 			name: "should return flame grapher for node",
-			job:  &job.ProfilingJob{Language: api.Node},
+			job:  &job.ProfilingJob{Language: api.Node, Event: api.Cpu},
 			want: NewFlameGrapherScript(
-				WithTitle("NodeJS - CPU Flamegraph"),
+				WithTitle("NODE - CPU Flamegraph"),
 				WithColors("js")),
 		},
 		{

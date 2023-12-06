@@ -40,10 +40,19 @@ type ErrorData struct {
 }
 
 type ResultData struct {
-	Time           time.Time  `json:"time"`
-	ResultType     OutputType `json:"result-type"`
-	File           string     `json:"file,omitempty"`
-	CompressorType string     `json:"compressor-type,omitempty"`
+	Time            time.Time   `json:"time"`
+	ResultType      OutputType  `json:"result-type"`
+	File            string      `json:"file,omitempty"`
+	FileSizeInBytes int64       `json:"file-size-in-bytes,omitempty"`
+	Checksum        string      `json:"checksum,omitempty"`
+	CompressorType  string      `json:"compressor-type,omitempty"`
+	Chunks          []ChunkData `json:"chunks,omitempty"`
+}
+
+type ChunkData struct {
+	File            string `json:"file"`
+	FileSizeInBytes int64  `json:"file-size-in-bytes"`
+	Checksum        string `json:"checksum"`
 }
 
 type ProgressData struct {
