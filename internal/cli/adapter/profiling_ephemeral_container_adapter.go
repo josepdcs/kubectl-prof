@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
@@ -79,7 +80,8 @@ func (p *profilingEphemeralContainerAdapter) AddEphemeralContainer(targetPod *v1
 		Patch(ctx, targetPod.GetName(), types.StrategicMergePatchType, patch, metav1.PatchOptions{}, "ephemeralcontainers")
 
 	if err != nil {
-		if serr, ok := err.(*kuberrors.StatusError); ok && serr.Status().Reason == metav1.StatusReasonNotFound && serr.ErrStatus.Details.Name == "" {
+		var serr *kuberrors.StatusError
+		if errors.As(err, &serr) && serr.Status().Reason == metav1.StatusReasonNotFound && serr.ErrStatus.Details.Name == "" {
 			return nil, fmt.Errorf("ephemeral containers are disabled for this cluster (error from server: %q)", err)
 		}
 

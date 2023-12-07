@@ -14,20 +14,27 @@ import (
 
 // arguments passed to the agent
 const (
-	JobId                  string = "job-id"
-	TargetContainerRuntime        = "target-container-runtime"
-	TargetPodUID                  = "target-pod-uid"
-	TargetContainerID             = "target-container-id"
-	Duration                      = "duration"
-	Interval                      = "interval"
-	Lang                          = "lang"
-	EventType                     = "event-type"
-	CompressorType                = "compressor-type"
-	ProfilingTool                 = "profiling-tool"
-	OutputType                    = "output-type"
-	Filename                      = "filename"
-	PrintLogs                     = "print-logs"
-	GracePeriodForEnding          = "grace-period-ending"
+	JobId                    string = "job-id"
+	TargetContainerRuntime          = "target-container-runtime"
+	TargetPodUID                    = "target-pod-uid"
+	TargetContainerID               = "target-container-id"
+	Duration                        = "duration"
+	Interval                        = "interval"
+	Lang                            = "lang"
+	EventType                       = "event-type"
+	CompressorType                  = "compressor-type"
+	ProfilingTool                   = "profiling-tool"
+	OutputType                      = "output-type"
+	Filename                        = "filename"
+	PrintLogs                       = "print-logs"
+	GracePeriodForEnding            = "grace-period-ending"
+	HeapDumpSplitInChunkSize        = "heap-dump-split-in-chunk-size"
+
+	defaultDuration                 = 60 * time.Second
+	defaultContainerRuntime         = api.Containerd
+	defaultCompressor               = compressor.Gzip
+	defaultEventType                = api.Itimer
+	defaultHeapDumpSplitInChunkSize = "50M"
 )
 
 func NewAction(args map[string]interface{}) (profiler.Profiler, *job.ProfilingJob, error) {
@@ -72,7 +79,7 @@ func getProfilingJob(args map[string]interface{}) (*job.ProfilingJob, error) {
 	j := &job.ProfilingJob{}
 
 	// duration is set as mandatory
-	j.Duration = 60 * time.Second
+	j.Duration = defaultDuration
 	if stringUtils.IsNotBlank(args[Duration].(string)) {
 		duration, err := time.ParseDuration(args[Duration].(string))
 		if err != nil {
@@ -98,7 +105,7 @@ func getProfilingJob(args map[string]interface{}) (*job.ProfilingJob, error) {
 
 	containerRuntime := args[TargetContainerRuntime].(string)
 	if stringUtils.IsBlank(containerRuntime) {
-		j.ContainerRuntime = api.Crio // default is crio
+		j.ContainerRuntime = defaultContainerRuntime
 	}
 	if !api.IsSupportedContainerRuntime(containerRuntime) {
 		return nil, fmt.Errorf("unsupported container runtime, choose one of %s", api.AvailableContainerRuntimes())
@@ -118,7 +125,7 @@ func getProfilingJob(args map[string]interface{}) (*job.ProfilingJob, error) {
 
 	event := args[EventType].(string)
 	if stringUtils.IsBlank(event) {
-		event = string(api.Itimer)
+		event = string(defaultEventType)
 	}
 	if !api.IsSupportedEvent(event) {
 		return nil, fmt.Errorf("unsupported event, choose one of %s", api.AvailableEvents())
@@ -127,7 +134,7 @@ func getProfilingJob(args map[string]interface{}) (*job.ProfilingJob, error) {
 
 	co := args[CompressorType].(string)
 	if stringUtils.IsBlank(co) {
-		co = compressor.Gzip
+		co = defaultCompressor
 	}
 	if !compressor.IsSupportedCompressor(co) {
 		return nil, fmt.Errorf("unsupported compressor, choose one of %s", compressor.AvailableCompressors())
@@ -136,6 +143,14 @@ func getProfilingJob(args map[string]interface{}) (*job.ProfilingJob, error) {
 
 	validateProfilingTool(args[ProfilingTool].(string), args[OutputType].(string), j)
 	validateOutputType(args[OutputType].(string), j)
+
+	// set heap dump split in chunk size
+	if j.OutputType == api.HeapDump {
+		j.HeapDumpSplitInChunkSize = defaultHeapDumpSplitInChunkSize
+		if args[HeapDumpSplitInChunkSize] != nil && stringUtils.IsNotBlank(args[HeapDumpSplitInChunkSize].(string)) {
+			j.HeapDumpSplitInChunkSize = args[HeapDumpSplitInChunkSize].(string)
+		}
+	}
 
 	log.DebugLogLn(j.String())
 

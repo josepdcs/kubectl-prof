@@ -1,5 +1,7 @@
 package compressor
 
+import "github.com/samber/lo"
+
 type Type string
 
 const (
@@ -19,16 +21,7 @@ func AvailableCompressors() []Type {
 }
 
 func IsSupportedCompressor(compressor string) bool {
-	return containsCompressor(Type(compressor), AvailableCompressors())
-}
-
-func containsCompressor(compressor Type, compressors []Type) bool {
-	for _, current := range compressors {
-		if compressor == current {
-			return true
-		}
-	}
-	return false
+	return lo.Contains(AvailableCompressors(), Type(compressor))
 }
 
 var GetExtensionFileByCompressor = map[Type]string{

@@ -85,7 +85,7 @@ func (m *mockJcmdManager) handleJcmdRecording(string, string) {
 	fmt.Println("fake handleJcmdRecording")
 }
 
-func (m *mockJcmdManager) publishResult(compressor.Type, string, api.OutputType) error {
+func (m *mockJcmdManager) publishResult(compressor.Type, string, api.OutputType, string) error {
 	fmt.Println("fake publish result")
 	m.publishResultInvokedTimes++
 	return nil
@@ -168,33 +168,6 @@ func TestJcmdProfiler_SetUp(t *testing.T) {
 				assert.Equal(t, 1, mock.RemoveTmpDirInvokedTimes())
 				assert.Equal(t, 1, mock.LinkTmpDirToTargetTmpDirInvokedTimes())
 				assert.Equal(t, 1, mock.CopyJfrSettingsToTmpDirInvokedTimes())
-			},
-		},
-		{
-			name: "should setup with custom settings",
-			given: func() (fields, args) {
-				return fields{
-						JcmdProfiler: &JcmdProfiler{
-							JcmdManager: NewMockJcmdManager(),
-						},
-					}, args{
-						job: &job.ProfilingJob{
-							Duration:         0,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
-						},
-					}
-			},
-			when: func(fields fields, args args) error {
-				return fields.JcmdProfiler.SetUp(args.job)
-			},
-			then: func(t *testing.T, err error, fields fields) {
-				mock := fields.JcmdProfiler.JcmdManager.(MockJcmdManager)
-				assert.Nil(t, err)
-				assert.Equal(t, "PID_ContainerID", fields.JcmdProfiler.targetPID)
-				assert.Equal(t, 1, mock.RemoveTmpDirInvokedTimes())
-				assert.Equal(t, 1, mock.LinkTmpDirToTargetTmpDirInvokedTimes())
-				//assert.Equal(t, 1, mock.CopyJfrSettingsToTmpDirInvokedTimes())
 			},
 		},
 		{
@@ -548,11 +521,12 @@ func TestJcmdProfiler_CleanUp(t *testing.T) {
 						},
 					}, args{
 						job: &job.ProfilingJob{
-							Duration:         0,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
-							Compressor:       compressor.Gzip,
-							FileName:         "flamegraph.html",
+							Duration:            0,
+							ContainerRuntime:    api.FakeContainer,
+							ContainerID:         "ContainerID",
+							Compressor:          compressor.Gzip,
+							FileName:            "flamegraph.html",
+							AdditionalArguments: map[string]string{"settings": "contprof"},
 						},
 					}
 			},
@@ -660,13 +634,39 @@ func Test_jcmdUtil_publishResult(t *testing.T) {
 		outputType api.OutputType
 	}
 	tests := []struct {
-		name  string
-		given func() (fields, args)
-		when  func(fields, args) error
-		then  func(t *testing.T, err error)
+		name      string
+		given     func() (fields, args)
+		when      func(fields, args) error
+		then      func(t *testing.T, err error)
+		afterEach func()
 	}{
 		{
-			name: "should publish",
+			name: "should publish heap dump",
+			given: func() (fields, args) {
+				cmd := exec.Command("cp", filepath.Join(testdata.ResultTestDataDir(), "heapdump.hprof"), common.TmpDir())
+				_ = cmd.Run()
+				return fields{
+						JcmdProfiler: *NewJcmdProfiler(),
+					}, args{
+						c:          compressor.None,
+						fileName:   filepath.Join(common.TmpDir(), "heapdump.hprof"),
+						outputType: api.HeapDump,
+					}
+			},
+			when: func(fields fields, args args) error {
+				return fields.JcmdProfiler.JcmdManager.publishResult(args.c, args.fileName, args.outputType, "10M")
+			},
+			then: func(t *testing.T, err error) {
+				assert.Nil(t, err)
+				assert.False(t, file.Exists(filepath.Join(common.TmpDir(), "heapdump.hprof")))
+				assert.False(t, file.Exists(filepath.Join(common.TmpDir(), "heapdump.hprof.gz")))
+			},
+			afterEach: func() {
+				file.RemoveAll(common.TmpDir(), "heapdump.hprof.gz.*")
+			},
+		},
+		{
+			name: "should publish other output type",
 			given: func() (fields, args) {
 				return fields{
 						JcmdProfiler: *NewJcmdProfiler(),
@@ -677,7 +677,7 @@ func Test_jcmdUtil_publishResult(t *testing.T) {
 					}
 			},
 			when: func(fields fields, args args) error {
-				return fields.JcmdProfiler.JcmdManager.publishResult(args.c, args.fileName, args.outputType)
+				return fields.JcmdProfiler.JcmdManager.publishResult(args.c, args.fileName, args.outputType, "")
 			},
 			then: func(t *testing.T, err error) {
 				assert.Nil(t, err)
@@ -694,6 +694,10 @@ func Test_jcmdUtil_publishResult(t *testing.T) {
 
 			// Then
 			tt.then(t, err)
+
+			if tt.afterEach != nil {
+				tt.afterEach()
+			}
 		})
 	}
 }

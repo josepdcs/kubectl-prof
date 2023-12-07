@@ -6,6 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
+// ContainerConfig wraps the container`s configuration to be launched.
 type ContainerConfig struct {
 	// RequestConfig configures resource requests for the job that is started.
 	RequestConfig ResourceConfig

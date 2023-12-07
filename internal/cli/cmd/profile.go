@@ -28,7 +28,7 @@ const (
 	defaultCompressor             = string(compressor.Gzip)
 	defaultOutputType             = string(api.FlameGraph)
 	defaultImagePullPolicy        = string(apiv1.PullIfNotPresent)
-	defaultHeapDumpSplitSize      = "20M"
+	defaultHeapDumpSplitSize      = "50M"
 	defaultPoolSizeRetrieveChunks = 5
 	defaultRetrieveFileRetries    = 3
 	longDescription               = `Profiling on existing applications with low-overhead.
@@ -195,8 +195,8 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.Flags().BoolVar(&privileged, "privileged", true, "Run agent container in privileged mode")
 	cmd.Flags().StringVar(&logLevel, "log-level", defaultLogLevel,
 		fmt.Sprintf("Log level, choose one of %v", api.AvailableLogLevels()))
-	cmd.Flags().StringVarP(&compressorType, "compressor", "c", defaultCompressor,
-		fmt.Sprintf("Compressor for compressing generated profiling result, choose one of %v", compressor.AvailableCompressors()))
+	/*cmd.Flags().StringVarP(&compressorType, "compressor", "c", defaultCompressor,
+	fmt.Sprintf("Compressor for compressing generated profiling result, choose one of %v", compressor.AvailableCompressors()))*/
 	cmd.Flags().StringVar(&profilingTool, "tool", "", fmt.Sprintf("Profiling tool, choose one accorfing language %v", api.AvailableProfilingToolsString()))
 	cmd.Flags().StringVarP(&outputType, "output", "o", defaultOutputType,
 		fmt.Sprintf("Output type, choose one accorting tool %v", api.AvailableOutputTypesString()))
@@ -204,7 +204,9 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.Flags().DurationVar(&target.GracePeriodEnding, "grace-period-ending", defaultGracePeriodEnding, "The grace period to spend before to end the agent")
 	cmd.Flags().StringVar(&imagePullPolicy, "image-pull-policy", defaultImagePullPolicy, fmt.Sprintf("Image pull policy, choose one of %v", imagePullPolicies))
 	cmd.Flags().StringVar(&target.ContainerName, "target-container-name", "", "The target container name to be profiled")
-
+	cmd.Flags().StringVar(&target.HeapDumpSplitInChunkSize, "heap-dump-split-size", defaultHeapDumpSplitSize, "The heap dump will be split into chunks of given size following the split command valid format.")
+	cmd.Flags().IntVar(&target.PoolSizeRetrieveChunks, "pool-size-retrieve-chunks", defaultPoolSizeRetrieveChunks, "The pool size of go routines to retrieve chunks of the obtained heap dump from the agent.")
+	cmd.Flags().IntVar(&target.RetrieveFileRetries, "retrieve-file-retries", defaultRetrieveFileRetries, "The number of retries to retrieve a file from the remote container.")
 	//cmd.Flags().BoolVar(&useEphemeralContainer, "use-ephemeral-container", false, "Launching profiling agent into ephemeral container instead into Job (experimental)")
 
 	options.configFlags.AddFlags(cmd.Flags())
@@ -255,9 +257,9 @@ func validateFlags(runtime string, lang string, event string, logLevel string, c
 		logLevel = defaultLogLevel
 	}
 
-	if stringUtils.IsNotBlank(compressorType) && !compressor.IsSupportedCompressor(compressorType) {
+	/*if stringUtils.IsNotBlank(compressorType) && !compressor.IsSupportedCompressor(compressorType) {
 		return fmt.Errorf("unsupported compressor, choose one of %s", compressor.AvailableCompressors())
-	}
+	}*/
 	if stringUtils.IsBlank(compressorType) {
 		compressorType = defaultCompressor
 	}

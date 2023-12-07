@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/agrison/go-commons-lang v0.0.0-20230627184709-5cc85301fd96
+	github.com/alitto/pond v1.8.3
 	github.com/golang/snappy v0.0.4
 	github.com/json-iterator/go v1.1.12
 	github.com/klauspost/compress v1.17.4
@@ -17,6 +18,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4
 	github.com/urfave/cli/v2 v2.26.0
+	golang.org/x/exp v0.0.0-20231127185646-65229373498e
 	k8s.io/api v0.28.4
 	k8s.io/apimachinery v0.28.4
 	k8s.io/cli-runtime v0.28.4
@@ -68,7 +70,6 @@ require (
 	github.com/xlab/treeprint v1.2.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	go.starlark.net v0.0.0-20231121155337-90ade8b19d09 // indirect
-	golang.org/x/exp v0.0.0-20231127185646-65229373498e // indirect
 	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/oauth2 v0.15.0 // indirect
 	golang.org/x/sync v0.5.0 // indirect

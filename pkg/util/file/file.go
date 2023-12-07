@@ -1,6 +1,8 @@
 package file
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
 	"os"
@@ -14,6 +16,7 @@ func Exists(file string) bool {
 	return false
 }
 
+// List lists all files that accomplish the given pattern
 func List(pattern string) []string {
 	var files []string
 	matches, _ := filepath.Glob(pattern)
@@ -23,6 +26,7 @@ func List(pattern string) []string {
 	return matches
 }
 
+// Remove removes a file
 func Remove(file string) error {
 	if Exists(file) {
 		log.DebugLogLn("Trying to remove file: " + file)
@@ -31,6 +35,7 @@ func Remove(file string) error {
 	return nil
 }
 
+// RemoveAll removes all files that accomplish the given pattern
 func RemoveAll(dir string, pattern string) {
 	files := List(filepath.Join(dir, "*"+pattern+"*"))
 	for _, f := range files {
@@ -41,6 +46,7 @@ func RemoveAll(dir string, pattern string) {
 	}
 }
 
+// GetSize returns the file size
 func GetSize(file string) int64 {
 	fileInfo, err := os.Stat(file)
 	if err != nil {
@@ -50,6 +56,37 @@ func GetSize(file string) int64 {
 	return fileInfo.Size()
 }
 
+// IsEmpty returns if file is empty
 func IsEmpty(file string) bool {
 	return GetSize(file) == 0
+}
+
+// Write writes a file with the given content
+func Write(file string, content string) {
+	err := os.WriteFile(file, []byte(content), 0666)
+	if err != nil {
+		log.WarningLogLn(fmt.Sprintf("file [%s] could no be written: %s", file, err))
+	}
+}
+
+// Read reads a file and returns its contents
+func Read(file string) string {
+	content, err := os.ReadFile(file)
+	if err != nil {
+		log.WarningLogLn(fmt.Sprintf("file [%s] could no be read: %s", file, err))
+	}
+
+	return string(content)
+}
+
+// GetChecksum returns the checksum of a file applying md5
+// if file could not be read, returns empty string
+func GetChecksum(file string) string {
+	content, err := os.ReadFile(file)
+	if err != nil {
+		log.WarningLogLn(fmt.Sprintf("file [%s] could no be read: %s", file, err))
+		return ""
+	}
+	hash := md5.Sum(content)
+	return hex.EncodeToString(hash[:])
 }

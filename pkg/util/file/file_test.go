@@ -141,9 +141,9 @@ func Test_RemoveAll(t *testing.T) {
 		then  func(t *testing.T)
 	}{
 		{
-			name: "should remove profiling results",
+			name: "Remove all files",
 			given: func() args {
-				f := filepath.Join("/tmp", "file.txt")
+				f := filepath.Join("/tmp", config.ProfilingPrefix+"file.txt")
 				_, _ = os.Create(f)
 				return args{
 					targetTmpDir: "/tmp",
@@ -153,7 +153,7 @@ func Test_RemoveAll(t *testing.T) {
 				RemoveAll(args.targetTmpDir, "file.txt")
 			},
 			then: func(t *testing.T) {
-				f := filepath.Join("/tmp", "file.txt")
+				f := filepath.Join("/tmp", config.ProfilingPrefix+"file.txt")
 				assert.False(t, Exists(f))
 			},
 		},
@@ -288,6 +288,189 @@ func TestIsEmpty(t *testing.T) {
 
 			// Then
 			tt.then(t, result)
+
+			if tt.after != nil {
+				tt.after(args.file)
+			}
+		})
+	}
+}
+
+func TestWrite(t *testing.T) {
+	type args struct {
+		file    string
+		content string
+	}
+	tests := []struct {
+		name  string
+		given func() args
+		when  func(args args)
+		then  func(t *testing.T, file string)
+		after func(file string)
+	}{
+		{
+			name: "write file",
+			given: func() args {
+				return args{file: filepath.Join(common.TmpDir(), "test.txt"), content: "content"}
+			},
+			when: func(args args) {
+				Write(args.file, args.content)
+			},
+			then: func(t *testing.T, file string) {
+				assert.True(t, Exists(file))
+				assert.Equal(t, int64(len("content")), GetSize(file))
+			},
+			after: func(file string) {
+				_ = Remove(file)
+			},
+		},
+		{
+			name: "not write file",
+			given: func() args {
+				return args{file: filepath.Join("/", "test.txt"), content: "content"}
+			},
+			when: func(args args) {
+				log.SetPrintLogs(true)
+				Write(args.file, args.content)
+			},
+			then: func(t *testing.T, file string) {
+				assert.False(t, Exists(file))
+			},
+			after: func(file string) {
+				_ = Remove(file)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Given
+			args := tt.given()
+
+			// When
+			tt.when(args)
+
+			// Then
+			tt.then(t, args.file)
+
+			if tt.after != nil {
+				tt.after(args.file)
+			}
+		})
+	}
+}
+
+func TestRead(t *testing.T) {
+	type args struct {
+		file string
+	}
+	tests := []struct {
+		name  string
+		given func() args
+		when  func(args args) string
+		then  func(t *testing.T, content string)
+		after func(file string)
+	}{
+		{
+			name: "read file",
+			given: func() args {
+				file := filepath.Join(common.TmpDir(), "test.txt")
+				Write(file, "content")
+				return args{file: file}
+			},
+			when: func(args args) string {
+				return Read(args.file)
+			},
+			then: func(t *testing.T, content string) {
+				assert.Equal(t, "content", content)
+			},
+			after: func(file string) {
+				_ = Remove(file)
+			},
+		},
+		{
+			name: "no read file",
+			given: func() args {
+				return args{file: "other_file.txt"}
+			},
+			when: func(args args) string {
+				log.SetPrintLogs(true)
+				return Read(args.file)
+			},
+			then: func(t *testing.T, content string) {
+				assert.Empty(t, content)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Given
+			args := tt.given()
+
+			// When
+			content := tt.when(args)
+
+			// Then
+			tt.then(t, content)
+
+			if tt.after != nil {
+				tt.after(args.file)
+			}
+		})
+	}
+}
+
+func TestGetChecksum(t *testing.T) {
+	type args struct {
+		file string
+	}
+	tests := []struct {
+		name  string
+		given func() args
+		when  func(args args) string
+		then  func(t *testing.T, content string)
+		after func(file string)
+	}{
+		{
+			name: "get checksum",
+			given: func() args {
+				file := filepath.Join(common.TmpDir(), "test.txt")
+				Write(file, "content")
+				return args{file: file}
+			},
+			when: func(args args) string {
+				return GetChecksum(args.file)
+			},
+			then: func(t *testing.T, content string) {
+				assert.Equal(t, "9a0364b9e99bb480dd25e1f0284c8555", content)
+			},
+			after: func(file string) {
+				_ = Remove(file)
+			},
+		},
+		{
+			name: "no read file",
+			given: func() args {
+				return args{file: "other_file.txt"}
+			},
+			when: func(args args) string {
+				log.SetPrintLogs(true)
+				return GetChecksum(args.file)
+			},
+			then: func(t *testing.T, content string) {
+				assert.Empty(t, content)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Given
+			args := tt.given()
+
+			// When
+			content := tt.when(args)
+
+			// Then
+			tt.then(t, content)
 
 			if tt.after != nil {
 				tt.after(args.file)

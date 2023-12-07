@@ -35,6 +35,9 @@ type TargetConfig struct {
 }
 
 type ExtraTargetOptions struct {
-	PrintLogs         bool
-	GracePeriodEnding time.Duration
+	PrintLogs                bool
+	GracePeriodEnding        time.Duration
+	HeapDumpSplitInChunkSize string
+	PoolSizeRetrieveChunks   int
+	RetrieveFileRetries      int
 }

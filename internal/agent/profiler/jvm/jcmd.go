@@ -66,7 +66,7 @@ type JcmdManager interface {
 	copyJfrSettingsToTmpDir() error
 	handleProfilingResult(job *job.ProfilingJob, fileName string, out bytes.Buffer, targetPID string) error
 	handleJcmdRecording(targetPID string, outputType string)
-	publishResult(compressor compressor.Type, fileName string, outputType api.OutputType) error
+	publishResult(compressor compressor.Type, fileName string, outputType api.OutputType, heapDumpSplitInChunkSize string) error
 }
 
 type jcmdManager struct {
@@ -128,7 +128,7 @@ func (j *JcmdProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 		return err, time.Since(start)
 	}
 
-	return j.publishResult(job.Compressor, fileName, job.OutputType), time.Since(start)
+	return j.publishResult(job.Compressor, fileName, job.OutputType, job.HeapDumpSplitInChunkSize), time.Since(start)
 }
 
 func (j *JcmdProfiler) CleanUp(job *job.ProfilingJob) error {
@@ -225,6 +225,9 @@ func (j *jcmdManager) handleJcmdRecording(targetPID string, outputType string) {
 	<-done
 }
 
-func (j *jcmdManager) publishResult(c compressor.Type, fileName string, outputType api.OutputType) error {
+func (j *jcmdManager) publishResult(c compressor.Type, fileName string, outputType api.OutputType, heapDumpSplitInChunkSize string) error {
+	if outputType == api.HeapDump {
+		return util.PublishWithNativeGzipAndSplit(fileName, heapDumpSplitInChunkSize, outputType)
+	}
 	return util.Publish(c, fileName, outputType)
 }

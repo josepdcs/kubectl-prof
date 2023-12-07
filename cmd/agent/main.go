@@ -138,6 +138,11 @@ func runApp() error {
 				Usage:    "grace period for agent ending",
 				Required: false,
 			},
+			&cli.StringFlag{
+				Name:     profile.HeapDumpSplitInChunkSize,
+				Usage:    "size of the chunks used to split the heap dump",
+				Required: false,
+			},
 		},
 		Action: func(c *cli.Context) error {
 			period, errParse := time.ParseDuration(c.String(profile.GracePeriodForEnding))
@@ -161,20 +166,21 @@ func runApp() error {
 func toArgs(c *cli.Context) map[string]interface{} {
 
 	return map[string]interface{}{
-		profile.JobId:                  c.String(profile.JobId),
-		profile.TargetContainerRuntime: c.String(profile.TargetContainerRuntime),
-		profile.TargetPodUID:           c.String(profile.TargetPodUID),
-		profile.TargetContainerID:      c.String(profile.TargetContainerID),
-		profile.Duration:               c.String(profile.Duration),
-		profile.Interval:               c.String(profile.Interval),
-		profile.Lang:                   c.String(profile.Lang),
-		profile.EventType:              c.String(profile.EventType),
-		profile.CompressorType:         c.String(profile.CompressorType),
-		profile.ProfilingTool:          c.String(profile.ProfilingTool),
-		profile.OutputType:             c.String(profile.OutputType),
-		profile.Filename:               c.String(profile.Filename),
-		profile.PrintLogs:              c.Bool(profile.PrintLogs),
-		profile.GracePeriodForEnding:   c.String(profile.GracePeriodForEnding),
+		profile.JobId:                    c.String(profile.JobId),
+		profile.TargetContainerRuntime:   c.String(profile.TargetContainerRuntime),
+		profile.TargetPodUID:             c.String(profile.TargetPodUID),
+		profile.TargetContainerID:        c.String(profile.TargetContainerID),
+		profile.Duration:                 c.String(profile.Duration),
+		profile.Interval:                 c.String(profile.Interval),
+		profile.Lang:                     c.String(profile.Lang),
+		profile.EventType:                c.String(profile.EventType),
+		profile.CompressorType:           c.String(profile.CompressorType),
+		profile.ProfilingTool:            c.String(profile.ProfilingTool),
+		profile.OutputType:               c.String(profile.OutputType),
+		profile.Filename:                 c.String(profile.Filename),
+		profile.PrintLogs:                c.Bool(profile.PrintLogs),
+		profile.GracePeriodForEnding:     c.String(profile.GracePeriodForEnding),
+		profile.HeapDumpSplitInChunkSize: c.String(profile.HeapDumpSplitInChunkSize),
 	}
 }
 

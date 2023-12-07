@@ -45,18 +45,19 @@ func TestProfilingJob_String(t *testing.T) {
 
 func TestProfilingJob_ToMap(t *testing.T) {
 	p := ProfilingJob{
-		Duration:         10,
-		Interval:         5,
-		UID:              "ID",
-		ContainerRuntime: "ContainerRuntime",
-		ContainerID:      "ContainerID",
-		PodUID:           "PodUID",
-		Language:         "Language",
-		Event:            "Event",
-		Compressor:       "Compressor",
-		Tool:             "Tool",
-		OutputType:       "OutputType",
-		FileName:         "FileName",
+		Duration:                 10,
+		Interval:                 5,
+		UID:                      "ID",
+		ContainerRuntime:         "ContainerRuntime",
+		ContainerID:              "ContainerID",
+		PodUID:                   "PodUID",
+		Language:                 "Language",
+		Event:                    "Event",
+		Compressor:               "Compressor",
+		Tool:                     "Tool",
+		OutputType:               "OutputType",
+		FileName:                 "FileName",
+		HeapDumpSplitInChunkSize: "100M",
 		AdditionalArguments: map[string]string{
 			"maxsize":  "1024M",
 			"settings": "custom",
@@ -66,7 +67,7 @@ func TestProfilingJob_ToMap(t *testing.T) {
 	out := p.ToMap()
 
 	assert.NotEmpty(t, out)
-	assert.Len(t, out, 13)
+	assert.Len(t, out, 14)
 	assert.Equal(t, float64(10), out["Duration"])
 	assert.Equal(t, float64(5), out["Interval"])
 	assert.Equal(t, "ID", out["UID"])
@@ -79,6 +80,7 @@ func TestProfilingJob_ToMap(t *testing.T) {
 	assert.Equal(t, "Tool", out["Tool"])
 	assert.Equal(t, "OutputType", out["OutputType"])
 	assert.Equal(t, "FileName", out["FileName"])
+	assert.Equal(t, "100M", out["HeapDumpSplitInChunkSize"])
 	assert.Equal(t, map[string]interface{}{
 		"maxsize":  "1024M",
 		"settings": "custom",

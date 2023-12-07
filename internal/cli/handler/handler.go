@@ -29,8 +29,11 @@ func (h *EventHandler) Handle(events chan string, done chan bool, resultFile cha
 			done <- true
 		case *api.ResultData:
 			resultFile <- result.File{
-				FileName:  eventType.File,
-				Timestamp: eventType.Time,
+				FileName:        eventType.File,
+				FileSizeInBytes: eventType.FileSizeInBytes,
+				Checksum:        eventType.Checksum,
+				Chunks:          eventType.Chunks,
+				Timestamp:       eventType.Time,
 			}
 		case *api.ProgressData:
 			h.reportProgress(eventType, done)
