@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
+	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
 	"github.com/josepdcs/kubectl-prof/internal/cli/version"
 	batchv1 "k8s.io/api/batch/v1"
 	apiv1 "k8s.io/api/core/v1"
@@ -54,14 +55,6 @@ func (b *bpfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 							},
 						},
 						{
-							Name: "sys",
-							VolumeSource: apiv1.VolumeSource{
-								HostPath: &apiv1.HostPathVolumeSource{
-									Path: "/sys",
-								},
-							},
-						},
-						{
 							Name: "modules",
 							VolumeSource: apiv1.VolumeSource{
 								HostPath: &apiv1.HostPathVolumeSource{
@@ -78,15 +71,11 @@ func (b *bpfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 							Name:            ContainerName,
 							Image:           imageName,
 							Command:         []string{command},
-							Args:            getArgs(targetPod, cfg, id),
+							Args:            kubernetes.GetArgs(targetPod, cfg, id),
 							VolumeMounts: []apiv1.VolumeMount{
 								{
 									Name:      "target-filesystem",
 									MountPath: api.GetContainerRuntimeRootPath[cfg.Target.ContainerRuntime],
-								},
-								{
-									Name:      "sys",
-									MountPath: "/sys",
 								},
 								{
 									Name:      "modules",

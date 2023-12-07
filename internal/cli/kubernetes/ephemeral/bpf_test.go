@@ -57,7 +57,7 @@ func Test_bpfCreator_Create(t *testing.T) {
 			Name:    result.Name,
 			Image:   "Image",
 			Command: []string{"/app/agent"},
-			Args:    []string{"--job-id", "", "--target-container-runtime", "ContainerRuntime", "--target-pod-uid", "UID", "--target-container-id", "ContainerID", "--lang", "Language", "--event-type", "Event", "--compressor-type", "Compressor", "--profiling-tool", "", "--output-type", "", "--grace-period-ending", "0s", "--duration", "100ns"},
+			Args:    []string{"--target-container-runtime", "ContainerRuntime", "--target-pod-uid", "UID", "--target-container-id", "ContainerID", "--lang", "Language", "--event-type", "Event", "--compressor-type", "Compressor", "--profiling-tool", "", "--output-type", "", "--grace-period-ending", "0s", "--duration", "100ns"},
 			SecurityContext: &v1.SecurityContext{
 				Privileged: &cfg.EphemeralContainer.Privileged,
 			},

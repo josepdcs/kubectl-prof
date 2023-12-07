@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
+	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
 	"github.com/josepdcs/kubectl-prof/internal/cli/version"
 	batchv1 "k8s.io/api/batch/v1"
 	apiv1 "k8s.io/api/core/v1"
@@ -62,7 +63,7 @@ func (c *jvmCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 							Name:            ContainerName,
 							Image:           imageName,
 							Command:         []string{command},
-							Args:            getArgs(targetPod, cfg, id),
+							Args:            kubernetes.GetArgs(targetPod, cfg, id),
 							VolumeMounts: []apiv1.VolumeMount{
 								{
 									Name:      "target-filesystem",

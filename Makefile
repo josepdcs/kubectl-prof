@@ -29,9 +29,9 @@ all: build-cli push-docker-jvm push-docker-jvm-alpine push-docker-bpf push-docke
 .PHONY: build
 build: build-cli build-agent
 
-## build-agents: Build the docker images
-.PHONY: build-agents
-agents: build-docker-bpf build-docker-jvm build-docker-jvm-alpine build-docker-perf build-docker-python build-docker-ruby
+## build-docker-agents: Build the docker images
+.PHONY: build-docker-agents
+build-docker-agents: build-docker-bpf build-docker-jvm build-docker-jvm-alpine build-docker-perf build-docker-python build-docker-ruby
 
 ## install-deps: install dependencies if needed
 .PHONY: install-deps
@@ -122,6 +122,10 @@ build-docker-ruby:
 push-docker-ruby: build-docker-ruby
 	$(info $(M) pushing RUBY docker image to DockerHub...)
 	@docker push $(REGISTRY)/$(DOCKER_RUBY_IMAGE)
+
+## push-docker-all: Build and push all docker images
+.PHONY: push-docker-all
+push-docker-all: push-docker-jvm push-docker-jvm-alpine push-docker-bpf push-docker-perf push-docker-python push-docker-ruby
 
 ## test: Run unit tests
 .PHONY: test

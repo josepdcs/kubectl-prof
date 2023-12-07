@@ -3,6 +3,7 @@ package job
 import (
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
+	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	batchv1 "k8s.io/api/batch/v1"
@@ -105,7 +106,7 @@ func Test_perfCreate_create(t *testing.T) {
 							Name:            ContainerName,
 							Image:           cfg.Target.Image,
 							Command:         []string{"/app/agent"},
-							Args:            getArgs(targetPod, cfg, id),
+							Args:            kubernetes.GetArgs(targetPod, cfg, id),
 							VolumeMounts: []apiv1.VolumeMount{
 								{
 									Name:      "target-filesystem",
