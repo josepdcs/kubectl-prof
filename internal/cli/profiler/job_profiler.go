@@ -71,18 +71,23 @@ func (p JobProfiler) Profile(cfg *config.ProfilerConfig) error {
 		return err
 	}
 
+	profilingStart := time.Now()
 	var end bool
 	for {
 		select {
 		case f := <-resultFile:
-			fileName, err := p.profilingContainerAdapter.GetRemoteFile(profilingPod,
-				p.profilingJobAdapter.GetProfilingContainerName(), f, cfg.Target.LocalPath, cfg.Target.Compressor)
+			start := time.Now()
+			fileName, err := p.profilingContainerAdapter.GetRemoteFile(profilingPod, p.profilingJobAdapter.GetProfilingContainerName(), f, cfg.Target)
 			if err != nil {
 				printer.PrintError()
 				fmt.Println(err.Error())
 			} else {
-				// retrieved result file
-				fmt.Printf("✔\nResult profiling data saved to: %s 🔥\n", fileName)
+				// downloaded result file
+				elapsed := time.Since(start)
+				fmt.Printf("✔\nRemote profiling file downloaded in %f seconds.\n", elapsed.Seconds())
+
+				elapsed = time.Since(profilingStart)
+				fmt.Printf("The profiling result file [%s] was obtained in %f seconds. 🔥\n", fileName, elapsed.Seconds())
 			}
 		case end = <-done:
 		}
