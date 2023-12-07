@@ -191,7 +191,7 @@ func handleSignals() {
 
 	go func() {
 		s := <-sigs
-		log.DebugLogLn(fmt.Sprintf("Recived signal: %s", s))
+		log.DebugLogLn(fmt.Sprintf("Received signal: %s", s))
 		if p != nil {
 			err := p.CleanUp(profilingJob)
 			if err != nil {

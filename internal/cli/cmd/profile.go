@@ -286,7 +286,7 @@ func validateFlags(runtime string, lang string, event string, logLevel string, c
 	}
 
 	if _, err := job.LimitConfig.ParseResources(); err != nil {
-		return fmt.Errorf("unable to parse resourse limits: %w", err)
+		return fmt.Errorf("unable to parse resource limits: %w", err)
 	}
 
 	return nil
