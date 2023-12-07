@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"github.com/josepdcs/kubectl-prof/internal/cli/adapter"
+	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/result"
-	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	v1 "k8s.io/api/core/v1"
 	"time"
 )
@@ -54,7 +54,7 @@ func (p *profilingContainerAdapter) HandleProfilingContainerLogs(*v1.Pod, string
 	return done, resultFile, nil
 }
 
-func (p *profilingContainerAdapter) GetRemoteFile(pod *v1.Pod, containerName string, remoteFile result.File, localPath string, c compressor.Type) (string, error) {
+func (p *profilingContainerAdapter) GetRemoteFile(pod *v1.Pod, containerName string, remoteFile result.File, target *config.TargetConfig) (string, error) {
 	if p.getRemoteFileReturnsError {
 		return "", errors.New("error getting remote file")
 	}
