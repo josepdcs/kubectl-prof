@@ -69,8 +69,7 @@ func (e EphemeralProfiler) Profile(cfg *config.ProfilerConfig) error {
 	for {
 		select {
 		case f := <-resultFile:
-			fileName, err := e.profilingContainerAdapter.GetRemoteFile(podWithEphemeral,
-				e.profilingEphemeralContainerAdapter.GetEphemeralContainerName(), f, cfg.Target.LocalPath, cfg.Target.Compressor)
+			fileName, err := e.profilingContainerAdapter.GetRemoteFile(podWithEphemeral, e.profilingEphemeralContainerAdapter.GetEphemeralContainerName(), f, cfg.Target)
 			if err != nil {
 				printer.PrintError()
 				fmt.Println(err.Error())
