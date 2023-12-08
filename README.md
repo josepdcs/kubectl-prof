@@ -200,7 +200,7 @@ kubectl prof --help
 
 ### Pre-built binaries
 
-See the [release](https://github.com/josepdcs/kubectl-prof/releases/tag/v1.1.0) page for the full list of pre-built
+See the [release](https://github.com/josepdcs/kubectl-prof/releases/tag/1.1.0) page for the full list of pre-built
 assets. And download the binary according yours architecture.
 
 ### Installing for Linux x86_64
