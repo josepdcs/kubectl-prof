@@ -3,6 +3,7 @@ package profiler
 import (
 	"fmt"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
+	"github.com/pkg/errors"
 	"time"
 )
 
@@ -26,7 +27,7 @@ func NewMockProfiler() *DefaultMockProfiler {
 func (m *DefaultMockProfiler) SetUp(job *job.ProfilingJob) error {
 	m.setUpInvokedTimes++
 	if job.ContainerID == "WithSetupError" {
-		return fmt.Errorf("fake SetUp with error")
+		return errors.New("fake SetUp with error")
 	}
 	fmt.Println("fake SetUp")
 	return nil
@@ -36,7 +37,7 @@ func (m *DefaultMockProfiler) Invoke(job *job.ProfilingJob) (error, time.Duratio
 	start := time.Now()
 	m.invokeInvokedTimes++
 	if job.ContainerID == "WithInvokeError" {
-		return fmt.Errorf("fake Invoke with error"), time.Since(start)
+		return errors.New("fake Invoke with error"), time.Since(start)
 	}
 	fmt.Println("fake Invoke")
 	return nil, time.Since(start)

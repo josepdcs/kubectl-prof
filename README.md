@@ -206,7 +206,7 @@ assets. And download the binary according yours architecture.
 ### Installing for Linux x86_64
 
 ```shell
-curl -sL https://github.com/josepdcs/kubectl-prof/releases/download/v1.0.0/kubectl-prof_v1.0.0_linux_x86_64.tar.gz -o kubectl-prof.tar.gz
+curl -sL https://github.com/josepdcs/kubectl-prof/releases/download/v1.1.0/kubectl-prof_v1.1.0_linux_x86_64.tar.gz -o kubectl-prof.tar.gz
 tar xvfz kubectl-prof.tar.gz && sudo install kubectl-prof /usr/local/bin/
 ```
 
@@ -242,24 +242,43 @@ following tools according the programming language:
 * For Java:
     * [async-profiler](https://github.com/jvm-profiling-tools/async-profiler) in order to generate flame graphs or JFR
       files and the rest of output type supported for this tool.
+      * For generating flame graphs use the option: `--tool async-profiler` and `-o flamegraph`.
+      * For generating JFR files use the option: `--tool async-profiler` and `-o jfr`.
+      * For generating collapsed/raw use the option: `--tool async-profiler` and `-o collapsed` or `-o raw`.
+      * Note: Default output is flame graphs if no option `-o/--output` is given.
     * [jcmd](https://download.java.net/java/early_access/panama/docs/specs/man/jcmd.html) in order to generate: JFR
       files, thread dumps, heap dumps and heap histogram.
         * For generating JFR files use the options: `--tool jcmd` and `-o jfr`.
         * For generating thread dumps use the options: `--tool jcmd` and `-o threaddump`.
         * For generating heap dumps use the options: `--tool jcmd` and `-o heapdump`.
         * For generating heap histogram use the options: `--tool jcmd` and `-o histogram`.
+        * Note: Default output is JFR if no option `-o/--output` is given.
     * Note: Default tool is [async-profiler](https://github.com/jvm-profiling-tools/async-profiler) if no
       option `--tool` is given and default output is flame graphs if no option `-o/--output` is also given.
 * For Golang: [ebpf profiling](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter).
+  * For generating flame graphs use the option: `-o flamegraph`.
+  * For generating raw use the option: `-o raw`.
+  * Note: Default output is flame graphs if no option `-o/--output` is given.
 * For Python: [py-spy](https://github.com/benfred/py-spy).
-    * For generating thread dumps use the option: `-o threaddump`.
-    * For generating speed scope use the option : `-o speedscope`.
+  * For generating flame graphs use the option: `-o flamegraph`.
+  * For generating thread dumps use the option: `-o threaddump`.
+  * For generating speed scope use the option : `-o speedscope`.
+  * For generating raw use the option: `-o raw`. 
+  * Note: Default output is flame graphs if no option `-o/--output` is given.
 * For Ruby: [rbspy](https://rbspy.github.io/).
-* For NodeJS: [ebpf profiling](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter)
-  and [perf](https://perf.wiki.kernel.org/index.php/Main_Page) but last one is not recommended.
-    * In order for Javascript Symbols to be resolved, node process needs to be run with `--prof-basic-prof` flag.
+  * For generating flame graphs use the option: `-o flamegraph`.
+  * For generating speed scope use the option : `-o speedscope`.
+  * For generating callgrind use the option: `-o callgrind`.
+  * Note: Default output is flame graphs if no option `-o/--output` is given.
+* For Node.js: [ebpf profiling](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter) and [perf](https://perf.wiki.kernel.org/index.php/Main_Page) but last one is not recommended.
+  * For generating flame graphs use the option: `-o flamegraph`.
+  * For generating raw use the option: `-o raw`.
+  * Note: Default output is flame graphs if no option `-o/--output` is given.
+  * In order for Javascript Symbols to be resolved, node process needs to be run with `--prof-basic-prof` flag.
 * For Clang and Clang++: [perf](https://perf.wiki.kernel.org/index.php/Main_Page) is the default profiler
   but [ebpf profiling](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter) is also supported.
+
+The raw output is a text file with the raw data from the profiler. It could be used to generate flame graphs, or you can use https://www.speedscope.app/ to visualize the data.
 
 `kubectl-prof` also supports to work in modes discrete and continuous:
 

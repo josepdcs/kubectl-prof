@@ -2,6 +2,7 @@ package fake
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 )
 
 type RuntimeFake struct {
@@ -25,14 +26,14 @@ func (r *RuntimeFake) WithPIDResultError() *RuntimeFake {
 
 func (r *RuntimeFake) RootFileSystemLocation(containerID string) (string, error) {
 	if r.RootFileSystemLocationResultError {
-		return "", fmt.Errorf("fake RootFileSystemLocation with error")
+		return "", errors.New("fake RootFileSystemLocation with error")
 	}
 	return fmt.Sprintf("/root/fs/%s", containerID), nil
 }
 
 func (r *RuntimeFake) PID(containerID string) (string, error) {
 	if r.PIDResultError {
-		return "", fmt.Errorf("fake PID with error")
+		return "", errors.New("fake PID with error")
 	}
 	return fmt.Sprintf("PID_%s", containerID), nil
 }

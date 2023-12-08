@@ -1,13 +1,160 @@
 package config
 
 import (
-	"testing"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"testing"
 )
+
+func TestContainerConfig_ToResourceRequirements(t *testing.T) {
+	tt := []struct {
+		name            string
+		containerConfig *ContainerConfig
+		want            apiv1.ResourceRequirements
+		wantErrMsg      string
+	}{
+		{
+			name:            "empty resources yields empty requirements",
+			containerConfig: &ContainerConfig{},
+			want:            apiv1.ResourceRequirements{},
+		},
+		{
+			name: "invalid request CPU yields error",
+			containerConfig: &ContainerConfig{
+				RequestConfig: ResourceConfig{
+					CPU: "test",
+				},
+			},
+			wantErrMsg: "unable to generate container requests",
+		},
+		{
+			name: "invalid request mem yields error",
+			containerConfig: &ContainerConfig{
+				RequestConfig: ResourceConfig{
+					Memory: "test",
+				},
+			},
+			wantErrMsg: "unable to generate container requests",
+		},
+		{
+			name: "valid requests yields requests only",
+			containerConfig: &ContainerConfig{
+				RequestConfig: ResourceConfig{
+					CPU:    "100m",
+					Memory: "200Mi",
+				},
+			},
+			want: apiv1.ResourceRequirements{
+				Requests: apiv1.ResourceList{
+					apiv1.ResourceCPU:    resource.MustParse("100m"),
+					apiv1.ResourceMemory: resource.MustParse("200Mi"),
+				},
+			},
+		},
+		{
+			name: "valid requests & invalid cpu limits yields error",
+			containerConfig: &ContainerConfig{
+				RequestConfig: ResourceConfig{
+					CPU:    "100m",
+					Memory: "200Mi",
+				},
+			},
+			want: apiv1.ResourceRequirements{
+				Requests: apiv1.ResourceList{
+					apiv1.ResourceCPU:    resource.MustParse("100m"),
+					apiv1.ResourceMemory: resource.MustParse("200Mi"),
+				},
+			},
+		},
+		{
+			name: "valid requests & invalid memory limits yields error",
+			containerConfig: &ContainerConfig{
+				RequestConfig: ResourceConfig{
+					CPU:    "100m",
+					Memory: "200Mi",
+				},
+				LimitConfig: ResourceConfig{
+					CPU: "test",
+				},
+			},
+			wantErrMsg: "unable to generate container limits",
+		},
+		{
+			name: "valid requests & invalid memory limits yields error",
+			containerConfig: &ContainerConfig{
+				RequestConfig: ResourceConfig{
+					CPU:    "100m",
+					Memory: "200Mi",
+				},
+				LimitConfig: ResourceConfig{
+					Memory: "test",
+				},
+			},
+			wantErrMsg: "unable to generate container limits",
+		},
+		{
+			name: "valid requests & memory yields both correctly",
+			containerConfig: &ContainerConfig{
+				RequestConfig: ResourceConfig{
+					CPU:    "100m",
+					Memory: "200Mi",
+				},
+				LimitConfig: ResourceConfig{
+					CPU:    "100m",
+					Memory: "200Mi",
+				},
+			},
+			want: apiv1.ResourceRequirements{
+				Requests: apiv1.ResourceList{
+					apiv1.ResourceCPU:    resource.MustParse("100m"),
+					apiv1.ResourceMemory: resource.MustParse("200Mi"),
+				},
+				Limits: apiv1.ResourceList{
+					apiv1.ResourceCPU:    resource.MustParse("100m"),
+					apiv1.ResourceMemory: resource.MustParse("200Mi"),
+				},
+			},
+		},
+		{
+			name: "missing cpu limits yields requirements without cpu limits",
+			containerConfig: &ContainerConfig{
+				RequestConfig: ResourceConfig{
+					CPU:    "100m",
+					Memory: "200Mi",
+				},
+				LimitConfig: ResourceConfig{
+					Memory: "200Mi",
+				},
+			},
+			want: apiv1.ResourceRequirements{
+				Requests: apiv1.ResourceList{
+					apiv1.ResourceCPU:    resource.MustParse("100m"),
+					apiv1.ResourceMemory: resource.MustParse("200Mi"),
+				},
+				Limits: apiv1.ResourceList{
+					apiv1.ResourceMemory: resource.MustParse("200Mi"),
+				},
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := tc.containerConfig.ToResourceRequirements()
+
+			if tc.wantErrMsg != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.wantErrMsg)
+			} else {
+				require.NoError(t, err)
+			}
+
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}
 
 func TestResourceConfig_ParseResources(t *testing.T) {
 	tt := []struct {
@@ -75,154 +222,6 @@ func TestResourceConfig_ParseResources(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			got, err := tc.resConf.ParseResources()
-
-			if tc.wantErrMsg != "" {
-				require.Error(t, err)
-				assert.Contains(t, err.Error(), tc.wantErrMsg)
-			} else {
-				require.NoError(t, err)
-			}
-
-			assert.Equal(t, tc.want, got)
-		})
-	}
-}
-
-func TestJobDetails_ToResourceRequirements(t *testing.T) {
-	tt := []struct {
-		name       string
-		jobDetails *JobConfig
-		want       apiv1.ResourceRequirements
-		wantErrMsg string
-	}{
-		{
-			name:       "empty resources yields empty requirements",
-			jobDetails: &JobConfig{},
-			want:       apiv1.ResourceRequirements{},
-		},
-		{
-			name: "invalid request CPU yields error",
-			jobDetails: &JobConfig{
-				RequestConfig: ResourceConfig{
-					CPU: "test",
-				},
-			},
-			wantErrMsg: "unable to generate container requests",
-		},
-		{
-			name: "invalid request mem yields error",
-			jobDetails: &JobConfig{
-				RequestConfig: ResourceConfig{
-					Memory: "test",
-				},
-			},
-			wantErrMsg: "unable to generate container requests",
-		},
-		{
-			name: "valid requests yields requests only",
-			jobDetails: &JobConfig{
-				RequestConfig: ResourceConfig{
-					CPU:    "100m",
-					Memory: "200Mi",
-				},
-			},
-			want: apiv1.ResourceRequirements{
-				Requests: apiv1.ResourceList{
-					apiv1.ResourceCPU:    resource.MustParse("100m"),
-					apiv1.ResourceMemory: resource.MustParse("200Mi"),
-				},
-			},
-		},
-		{
-			name: "valid requests & invalid cpu limits yields error",
-			jobDetails: &JobConfig{
-				RequestConfig: ResourceConfig{
-					CPU:    "100m",
-					Memory: "200Mi",
-				},
-			},
-			want: apiv1.ResourceRequirements{
-				Requests: apiv1.ResourceList{
-					apiv1.ResourceCPU:    resource.MustParse("100m"),
-					apiv1.ResourceMemory: resource.MustParse("200Mi"),
-				},
-			},
-		},
-		{
-			name: "valid requests & invalid memory limits yields error",
-			jobDetails: &JobConfig{
-				RequestConfig: ResourceConfig{
-					CPU:    "100m",
-					Memory: "200Mi",
-				},
-				LimitConfig: ResourceConfig{
-					CPU: "test",
-				},
-			},
-			wantErrMsg: "unable to generate container limits",
-		},
-		{
-			name: "valid requests & invalid memory limits yields error",
-			jobDetails: &JobConfig{
-				RequestConfig: ResourceConfig{
-					CPU:    "100m",
-					Memory: "200Mi",
-				},
-				LimitConfig: ResourceConfig{
-					Memory: "test",
-				},
-			},
-			wantErrMsg: "unable to generate container limits",
-		},
-		{
-			name: "valid requests & memory yields both correctly",
-			jobDetails: &JobConfig{
-				RequestConfig: ResourceConfig{
-					CPU:    "100m",
-					Memory: "200Mi",
-				},
-				LimitConfig: ResourceConfig{
-					CPU:    "100m",
-					Memory: "200Mi",
-				},
-			},
-			want: apiv1.ResourceRequirements{
-				Requests: apiv1.ResourceList{
-					apiv1.ResourceCPU:    resource.MustParse("100m"),
-					apiv1.ResourceMemory: resource.MustParse("200Mi"),
-				},
-				Limits: apiv1.ResourceList{
-					apiv1.ResourceCPU:    resource.MustParse("100m"),
-					apiv1.ResourceMemory: resource.MustParse("200Mi"),
-				},
-			},
-		},
-		{
-			name: "missing cpu limits yields requirements without cpu limits",
-			jobDetails: &JobConfig{
-				RequestConfig: ResourceConfig{
-					CPU:    "100m",
-					Memory: "200Mi",
-				},
-				LimitConfig: ResourceConfig{
-					Memory: "200Mi",
-				},
-			},
-			want: apiv1.ResourceRequirements{
-				Requests: apiv1.ResourceList{
-					apiv1.ResourceCPU:    resource.MustParse("100m"),
-					apiv1.ResourceMemory: resource.MustParse("200Mi"),
-				},
-				Limits: apiv1.ResourceList{
-					apiv1.ResourceMemory: resource.MustParse("200Mi"),
-				},
-			},
-		},
-	}
-
-	for _, tc := range tt {
-		t.Run(tc.name, func(t *testing.T) {
-			got, err := tc.jobDetails.ToResourceRequirements()
 
 			if tc.wantErrMsg != "" {
 				require.Error(t, err)

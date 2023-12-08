@@ -8,6 +8,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"os/exec"
@@ -43,7 +44,7 @@ func NewMockAsyncProfilerManager() MockAsyncProfilerManager {
 func (m *mockAsyncProfilerManager) removeTmpDir() error {
 	m.removeTmpDirInvokedTimes++
 	if m.withRemoveTmpDirResultError {
-		return fmt.Errorf("fake removeTmpDir with error")
+		return errors.New("fake removeTmpDir with error")
 	}
 	fmt.Println("fake removeTmpDir")
 	return nil
@@ -52,7 +53,7 @@ func (m *mockAsyncProfilerManager) removeTmpDir() error {
 func (m *mockAsyncProfilerManager) linkTmpDirToTargetTmpDir(string) error {
 	m.linkTmpDirToTargetTmpDirInvokedTimes++
 	if m.withLinkTmpDirToTargetTmpDirResultError {
-		return fmt.Errorf("fake linkTmpDirToTargetTmpDir with error")
+		return errors.New("fake linkTmpDirToTargetTmpDir with error")
 	}
 	fmt.Println("fake linkTmpDirToTargetTmpDir")
 	return nil
@@ -64,7 +65,7 @@ func (m *mockAsyncProfilerManager) copyProfilerToTmpDir() error {
 	return nil
 }
 
-func (m *mockAsyncProfilerManager) publishResult(compressor.Type, string, api.EventType) error {
+func (m *mockAsyncProfilerManager) publishResult(compressor.Type, string, api.OutputType) error {
 	fmt.Println("fake publish result")
 	m.publishResultInvokedTimes++
 	return nil

@@ -2,7 +2,8 @@ package job
 
 import (
 	"github.com/josepdcs/kubectl-prof/api"
-	config2 "github.com/josepdcs/kubectl-prof/internal/cli/config"
+	"github.com/josepdcs/kubectl-prof/internal/cli/config"
+	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	batchv1 "k8s.io/api/batch/v1"
@@ -24,12 +25,12 @@ func Test_perfCreate_create(t *testing.T) {
 			NodeName: "NodeName",
 		},
 	}
-	cfg := &config2.ProfilerConfig{
-		Target: &config2.TargetConfig{
+	cfg := &config.ProfilerConfig{
+		Target: &config.TargetConfig{
 			Namespace:            "Namespace",
 			PodName:              "PodName",
 			ContainerName:        "ContainerName",
-			ContainerId:          "ContainerId",
+			ContainerID:          "ContainerID",
 			Event:                "Event",
 			Duration:             100,
 			Id:                   "ID",
@@ -45,17 +46,19 @@ func Test_perfCreate_create(t *testing.T) {
 			ServiceAccountName:   "ServiceAccountName",
 			ImagePullPolicy:      apiv1.PullAlways,
 		},
-		Job: &config2.JobConfig{
-			RequestConfig: config2.ResourceConfig{
-				CPU:    "100m",
-				Memory: "100Mi",
+		Job: &config.JobConfig{
+			ContainerConfig: config.ContainerConfig{
+				RequestConfig: config.ResourceConfig{
+					CPU:    "100m",
+					Memory: "100Mi",
+				},
+				LimitConfig: config.ResourceConfig{
+					CPU:    "200m",
+					Memory: "200Mi",
+				},
+				Privileged: false,
 			},
-			LimitConfig: config2.ResourceConfig{
-				CPU:    "200m",
-				Memory: "200Mi",
-			},
-			Namespace:  "Namespace",
-			Privileged: false,
+			Namespace: "Namespace",
 		},
 	}
 	b := &perfCreator{}
@@ -103,7 +106,7 @@ func Test_perfCreate_create(t *testing.T) {
 							Name:            ContainerName,
 							Image:           cfg.Target.Image,
 							Command:         []string{"/app/agent"},
-							Args:            getArgs(targetPod, cfg, id),
+							Args:            kubernetes.GetArgs(targetPod, cfg, id),
 							VolumeMounts: []apiv1.VolumeMount{
 								{
 									Name:      "target-filesystem",
@@ -111,10 +114,9 @@ func Test_perfCreate_create(t *testing.T) {
 								},
 							},
 							SecurityContext: &apiv1.SecurityContext{
-								// Perf works fine if it runs in privileged mode, SYS_ADMIN may not be enough
 								Privileged: &cfg.Job.Privileged,
 								Capabilities: &apiv1.Capabilities{
-									Add: []apiv1.Capability{"SYS_ADMIN", "PERFMON", "SYS_PTRACE", "SYSLOG"},
+									Add: []apiv1.Capability{"SYS_ADMIN"},
 								},
 							},
 							Resources: resources,
@@ -144,12 +146,12 @@ func Test_perfCreate_shouldFailWhenUnableGenerateResources(t *testing.T) {
 			NodeName: "NodeName",
 		},
 	}
-	cfg := &config2.ProfilerConfig{
-		Target: &config2.TargetConfig{
+	cfg := &config.ProfilerConfig{
+		Target: &config.TargetConfig{
 			Namespace:            "Namespace",
 			PodName:              "PodName",
 			ContainerName:        "ContainerName",
-			ContainerId:          "ContainerId",
+			ContainerID:          "ContainerID",
 			Event:                "Event",
 			Duration:             100,
 			Id:                   "ID",
@@ -164,17 +166,19 @@ func Test_perfCreate_shouldFailWhenUnableGenerateResources(t *testing.T) {
 			ImagePullSecret:      "ImagePullSecret",
 			ServiceAccountName:   "ServiceAccountName",
 		},
-		Job: &config2.JobConfig{
-			RequestConfig: config2.ResourceConfig{
-				CPU:    "error",
-				Memory: "100Mi",
+		Job: &config.JobConfig{
+			ContainerConfig: config.ContainerConfig{
+				RequestConfig: config.ResourceConfig{
+					CPU:    "error",
+					Memory: "100Mi",
+				},
+				LimitConfig: config.ResourceConfig{
+					CPU:    "error",
+					Memory: "200Mi",
+				},
+				Privileged: false,
 			},
-			LimitConfig: config2.ResourceConfig{
-				CPU:    "error",
-				Memory: "200Mi",
-			},
-			Namespace:  "Namespace",
-			Privileged: false,
+			Namespace: "Namespace",
 		},
 	}
 	b := &perfCreator{}
@@ -189,7 +193,7 @@ func Test_perfCreate_shouldFailWhenUnableGenerateResources(t *testing.T) {
 
 func Test_perfCreator_getImageName(t *testing.T) {
 	type args struct {
-		cfg *config2.TargetConfig
+		cfg *config.TargetConfig
 	}
 	tests := []struct {
 		name string
@@ -199,7 +203,7 @@ func Test_perfCreator_getImageName(t *testing.T) {
 		{
 			name: "Get image name from TargetConfig",
 			args: args{
-				cfg: &config2.TargetConfig{
+				cfg: &config.TargetConfig{
 					Image: "Image",
 				},
 			},
@@ -208,7 +212,7 @@ func Test_perfCreator_getImageName(t *testing.T) {
 		{
 			name: "Get default image",
 			args: args{
-				cfg: &config2.TargetConfig{
+				cfg: &config.TargetConfig{
 					Image: "",
 				},
 			},

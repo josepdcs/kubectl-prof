@@ -12,7 +12,7 @@ type TargetConfig struct {
 	Namespace            string
 	PodName              string
 	ContainerName        string
-	ContainerId          string
+	ContainerID          string
 	Event                api.ProfilingEvent
 	Duration             time.Duration
 	Interval             time.Duration
@@ -28,13 +28,16 @@ type TargetConfig struct {
 	ImagePullSecret      string
 	ServiceAccountName   string
 	ProfilingTool        api.ProfilingTool
-	OutputType           api.EventType
+	OutputType           api.OutputType
 	ImagePullPolicy      apiv1.PullPolicy
 
 	ExtraTargetOptions
 }
 
 type ExtraTargetOptions struct {
-	PrintLogs         bool
-	GracePeriodEnding time.Duration
+	PrintLogs                bool
+	GracePeriodEnding        time.Duration
+	HeapDumpSplitInChunkSize string
+	PoolSizeRetrieveChunks   int
+	RetrieveFileRetries      int
 }

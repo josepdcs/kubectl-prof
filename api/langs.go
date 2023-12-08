@@ -1,5 +1,7 @@
 package api
 
+import "github.com/samber/lo"
+
 type ProgrammingLanguage string
 
 const (
@@ -10,11 +12,12 @@ const (
 	Node          ProgrammingLanguage = "node"
 	Clang         ProgrammingLanguage = "clang"
 	ClangPlusPlus ProgrammingLanguage = "clang++"
+	Rust          ProgrammingLanguage = "rust"
 	FakeLang      ProgrammingLanguage = "fake"
 )
 
 var (
-	supportedLangs = []ProgrammingLanguage{Java, Go, Python, Ruby, Node, Clang, ClangPlusPlus}
+	supportedLangs = []ProgrammingLanguage{Java, Go, Python, Ruby, Node, Clang, ClangPlusPlus, Rust}
 )
 
 func AvailableLanguages() []ProgrammingLanguage {
@@ -25,15 +28,5 @@ func IsSupportedLanguage(lang string) bool {
 	if lang == string(FakeLang) {
 		return true
 	}
-	return containsLang(ProgrammingLanguage(lang), AvailableLanguages())
-}
-
-func containsLang(l ProgrammingLanguage, langs []ProgrammingLanguage) bool {
-	for _, current := range langs {
-		if l == current {
-			return true
-		}
-	}
-
-	return false
+	return lo.Contains(AvailableLanguages(), ProgrammingLanguage(lang))
 }

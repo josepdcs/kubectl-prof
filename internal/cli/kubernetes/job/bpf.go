@@ -3,8 +3,10 @@ package job
 import (
 	"fmt"
 	"github.com/josepdcs/kubectl-prof/api"
-	config2 "github.com/josepdcs/kubectl-prof/internal/cli/config"
+	"github.com/josepdcs/kubectl-prof/internal/cli/config"
+	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
 	"github.com/josepdcs/kubectl-prof/internal/cli/version"
+	"github.com/pkg/errors"
 	batchv1 "k8s.io/api/batch/v1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,7 +15,7 @@ import (
 
 type bpfCreator struct{}
 
-func (b *bpfCreator) Create(targetPod *apiv1.Pod, cfg *config2.ProfilerConfig) (string, *batchv1.Job, error) {
+func (b *bpfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
 	id := string(uuid.NewUUID())
 	imageName := b.getImageName(cfg.Target)
 
@@ -26,7 +28,7 @@ func (b *bpfCreator) Create(targetPod *apiv1.Pod, cfg *config2.ProfilerConfig) (
 
 	resources, err := cfg.Job.ToResourceRequirements()
 	if err != nil {
-		return "", nil, fmt.Errorf("unable to generate resource requirements: %w", err)
+		return "", nil, errors.Wrap(err, "unable to generate resource requirements")
 	}
 
 	job := &batchv1.Job{
@@ -54,14 +56,6 @@ func (b *bpfCreator) Create(targetPod *apiv1.Pod, cfg *config2.ProfilerConfig) (
 							},
 						},
 						{
-							Name: "sys",
-							VolumeSource: apiv1.VolumeSource{
-								HostPath: &apiv1.HostPathVolumeSource{
-									Path: "/sys",
-								},
-							},
-						},
-						{
 							Name: "modules",
 							VolumeSource: apiv1.VolumeSource{
 								HostPath: &apiv1.HostPathVolumeSource{
@@ -78,15 +72,11 @@ func (b *bpfCreator) Create(targetPod *apiv1.Pod, cfg *config2.ProfilerConfig) (
 							Name:            ContainerName,
 							Image:           imageName,
 							Command:         []string{command},
-							Args:            getArgs(targetPod, cfg, id),
+							Args:            kubernetes.GetArgs(targetPod, cfg, id),
 							VolumeMounts: []apiv1.VolumeMount{
 								{
 									Name:      "target-filesystem",
 									MountPath: api.GetContainerRuntimeRootPath[cfg.Target.ContainerRuntime],
-								},
-								{
-									Name:      "sys",
-									MountPath: "/sys",
 								},
 								{
 									Name:      "modules",
@@ -117,7 +107,7 @@ func (b *bpfCreator) Create(targetPod *apiv1.Pod, cfg *config2.ProfilerConfig) (
 }
 
 // getImageName if image name is provider from config.TargetConfig this one is returned otherwise a new one is built
-func (b *bpfCreator) getImageName(t *config2.TargetConfig) string {
+func (b *bpfCreator) getImageName(t *config.TargetConfig) string {
 	var imageName string
 	if t.Image != "" {
 		imageName = t.Image
@@ -127,7 +117,7 @@ func (b *bpfCreator) getImageName(t *config2.TargetConfig) string {
 	return imageName
 }
 
-func (b *bpfCreator) getObjectMeta(id string, cfg *config2.ProfilerConfig) metav1.ObjectMeta {
+func (b *bpfCreator) getObjectMeta(id string, cfg *config.ProfilerConfig) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
 		Name:      fmt.Sprintf("%s-%s-bpf-%s", ContainerName, cfg.Target.Language, id),
 		Namespace: cfg.Job.Namespace,

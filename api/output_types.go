@@ -1,16 +1,39 @@
 package api
 
-import jsoniter "github.com/json-iterator/go"
+import (
+	jsoniter "github.com/json-iterator/go"
+	"github.com/samber/lo"
+)
 
-// GetOutputTypesByProfilingTool Gets the list of EventType related to the ProfilingTool that they will be considered as output types.
+type OutputType string
+
+const (
+	FlameGraph    OutputType = "flamegraph"
+	SpeedScope    OutputType = "speedscope"
+	Jfr           OutputType = "jfr"
+	ThreadDump    OutputType = "threaddump"
+	HeapDump      OutputType = "heapdump"
+	HeapHistogram OutputType = "heaphistogram"
+	Flat          OutputType = "flat"
+	Traces        OutputType = "traces"
+	Collapsed     OutputType = "collapsed"
+	Tree          OutputType = "tree"
+	Callgrind     OutputType = "callgrind"
+	Raw           OutputType = "raw"
+	Pprof         OutputType = "pprof"
+	Summary       OutputType = "summary"
+	SummaryByLine OutputType = "summary-by-line"
+)
+
+// GetOutputTypesByProfilingTool Gets the list of OutputType related to the ProfilingTool that they will be considered as output types.
 // The first one is considered the default
-var GetOutputTypesByProfilingTool = map[ProfilingTool][]EventType{
-	AsyncProfiler: {FlameGraph, Jfr, Flat, Traces, Collapsed, Tree},
+var GetOutputTypesByProfilingTool = map[ProfilingTool][]OutputType{
+	AsyncProfiler: {FlameGraph, Jfr, Flat, Traces, Collapsed, Tree, Raw},
 	Jcmd:          {Jfr, ThreadDump, HeapDump, HeapHistogram},
-	Pyspy:         {FlameGraph, SpeedScope, ThreadDump},
-	Bpf:           {FlameGraph},
-	Perf:          {FlameGraph},
-	Rbspy:         {FlameGraph},
+	Pyspy:         {FlameGraph, SpeedScope, ThreadDump, Raw},
+	Bpf:           {FlameGraph, Raw},
+	Perf:          {FlameGraph, Raw},
+	Rbspy:         {FlameGraph, SpeedScope, Callgrind},
 	FakeTool:      {FlameGraph},
 }
 
@@ -20,7 +43,7 @@ func AvailableOutputTypesString() string {
 }
 
 var (
-	supportedOutputTypes = []EventType{
+	supportedOutputTypes = []OutputType{
 		FlameGraph,
 		SpeedScope,
 		Jfr,
@@ -31,30 +54,23 @@ var (
 		Traces,
 		Collapsed,
 		Tree,
+		Callgrind,
+		Raw,
 	}
 )
 
-func AvailableOutputTypes() []EventType {
+func AvailableOutputTypes() []OutputType {
 	return supportedOutputTypes
 }
 
 func IsSupportedOutputType(outputType string) bool {
-	return containsOutputType(EventType(outputType), AvailableOutputTypes())
+	return lo.Contains(AvailableOutputTypes(), OutputType(outputType))
 }
 
-func containsOutputType(eventType EventType, eventTypes []EventType) bool {
-	for _, current := range eventTypes {
-		if eventType == current {
-			return true
-		}
-	}
-	return false
-}
-
-// IsValidOutputType Identifies if given EventType is valid for the also given ProfilingTool
-func IsValidOutputType(eventType EventType, profilingTool ProfilingTool) bool {
+// IsValidOutputType Identifies if given OutputType is valid for the also given ProfilingTool
+func IsValidOutputType(OutputType OutputType, profilingTool ProfilingTool) bool {
 	for _, current := range GetOutputTypesByProfilingTool[profilingTool] {
-		if eventType == current {
+		if OutputType == current {
 			return true
 		}
 	}

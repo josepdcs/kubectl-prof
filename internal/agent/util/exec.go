@@ -1,6 +1,7 @@
 package util
 
 import (
+	"errors"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
 	"os/exec"
 	"strings"
@@ -36,7 +37,8 @@ func ExecuteCommand(cmd *exec.Cmd) (int, string, error) {
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok {
+		var exitError *exec.ExitError
+		if errors.As(err, &exitError) {
 			exitCode = exitError.ExitCode()
 		}
 	}

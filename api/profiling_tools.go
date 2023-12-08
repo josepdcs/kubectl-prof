@@ -1,6 +1,9 @@
 package api
 
-import jsoniter "github.com/json-iterator/go"
+import (
+	jsoniter "github.com/json-iterator/go"
+	"github.com/samber/lo"
+)
 
 type ProfilingTool string
 
@@ -15,40 +18,33 @@ const (
 )
 
 var (
-	ProfilingTools = []ProfilingTool{AsyncProfiler, Jcmd, Pyspy, Bpf, Perf, Rbspy}
+	profilingTools = []ProfilingTool{AsyncProfiler, Jcmd, Pyspy, Bpf, Perf, Rbspy}
 )
 
 func AvailableProfilingTools() []ProfilingTool {
-	return ProfilingTools
+	return profilingTools
 }
 
 func IsSupportedProfilingTool(profilingTool string) bool {
-	return containsProfilingTool(ProfilingTool(profilingTool), AvailableProfilingTools())
-}
-
-func containsProfilingTool(profilingTool ProfilingTool, profilingTools []ProfilingTool) bool {
-	for _, current := range profilingTools {
-		if profilingTool == current {
-			return true
-		}
-	}
-	return false
+	return lo.Contains(AvailableProfilingTools(), ProfilingTool(profilingTool))
 }
 
 // GetProfilingTool Gets profiling tool related to the programming language and output event type.
-var GetProfilingTool = func(l ProgrammingLanguage, e EventType) ProfilingTool {
+var GetProfilingTool = func(l ProgrammingLanguage, o OutputType) ProfilingTool {
 	switch l {
 	case Java:
-		switch e {
+		switch o {
 		case Jfr, ThreadDump, HeapDump, HeapHistogram:
 			return Jcmd
-		case FlameGraph, Flat, Traces, Collapsed, Tree:
+		case FlameGraph, Flat, Traces, Collapsed, Tree, Raw:
 			return AsyncProfiler
 		}
 	case Python:
 		return Pyspy
-	case Go, Node, Clang, ClangPlusPlus:
+	case Go, Node:
 		return Bpf
+	case Clang, ClangPlusPlus:
+		return Perf
 	case Ruby:
 		return Rbspy
 	}
@@ -64,9 +60,10 @@ var GetProfilingToolsByProgrammingLanguage = map[ProgrammingLanguage][]Profiling
 	Python:        {Pyspy},
 	Go:            {Bpf},
 	Node:          {Bpf, Perf},
-	Clang:         {Bpf, Perf},
-	ClangPlusPlus: {Bpf, Perf},
+	Clang:         {Perf, Bpf},
+	ClangPlusPlus: {Perf, Bpf},
 	Ruby:          {Rbspy},
+	Rust:          {Bpf, Perf},
 	FakeLang:      {FakeTool},
 }
 

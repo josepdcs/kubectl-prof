@@ -1,17 +1,21 @@
-FROM golang:1.19.6-bullseye as agentbuild
+FROM golang:1.21.3-bullseye AS agentbuild
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof
 ADD . /go/src/github.com/josepdcs/kubectl-prof
 RUN go get -d -v ./...
-RUN cd cmd/agent && go build -o /go/bin/agent
+WORKDIR /go/src/github.com/josepdcs/kubectl-prof/cmd/agent
+RUN go build -o /go/bin/agent
 
-FROM rust:1.67.1 AS rbspybuild
+FROM rust:1.74-bullseye AS rbspybuild
 WORKDIR /
-RUN git clone --depth 1 --branch v0.16.0 https://github.com/rbspy/rbspy
-RUN cd rbspy && cargo build --release
+RUN git clone https://github.com/brendangregg/FlameGraph
+RUN git clone --depth 1 --branch v0.17.1 https://github.com/rbspy/rbspy
+WORKDIR /rbspy
+RUN cargo build --release
 
-FROM bitnami/minideb:stretch
+FROM bitnami/minideb:bullseye
 RUN apt-get update && apt-get install -y procps strace
-RUN mkdir /app
+RUN mkdir -p /app/FlameGraph
+COPY --from=rbspybuild /FlameGraph /app/FlameGraph
 COPY --from=agentbuild /go/bin/agent /app/agent
 COPY --from=rbspybuild /rbspy/target/release/rbspy /app/rbspy
 

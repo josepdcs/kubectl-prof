@@ -2,46 +2,51 @@ package pod
 
 import (
 	"bytes"
-	"fmt"
-	apiv1 "k8s.io/api/core/v1"
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/genericiooptions"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubectl/pkg/cmd/exec"
 )
 
+// Executor interface for execute command on pod
+type Executor interface {
+	Execute(namespace, podName, containerName string, command []string) (*bytes.Buffer, *bytes.Buffer, *bytes.Buffer, error)
+}
+
+// Exec struct for execute command on pod
 type Exec struct {
 	RestConfig *rest.Config
 	ClientSet  kubernetes.Interface
-	Pod        *apiv1.Pod
 }
 
-func NewExec(config *rest.Config, client kubernetes.Interface, pod *apiv1.Pod) *Exec {
+// NewExec create new Exec
+func NewExec(config *rest.Config, client kubernetes.Interface) *Exec {
 	config.APIPath = "/api"
 	config.GroupVersion = &schema.GroupVersion{Version: "v1"}
 	config.NegotiatedSerializer = serializer.WithoutConversionCodecFactory{CodecFactory: scheme.Codecs}
 	return &Exec{
 		RestConfig: config,
 		ClientSet:  client,
-		Pod:        pod,
 	}
 }
 
-// ExecCmd execute command on current Exec.Pod
-func (p *Exec) ExecCmd(command []string) (*bytes.Buffer, *bytes.Buffer, *bytes.Buffer, error) {
-	ioStreams, in, out, errOut := genericclioptions.NewTestIOStreams()
+// Execute execute command on current podName and containerName
+func (p *Exec) Execute(namespace, podName, containerName string, command []string) (*bytes.Buffer, *bytes.Buffer, *bytes.Buffer, error) {
+	ioStreams, in, out, errOut := genericiooptions.NewTestIOStreams()
 	options := &exec.ExecOptions{
 		StreamOptions: exec.StreamOptions{
-			Namespace:       p.Pod.Namespace,
-			PodName:         p.Pod.Name,
+			Namespace:       namespace,
+			PodName:         podName,
 			Stdin:           true,
 			TTY:             false,
 			Quiet:           false,
 			InterruptParent: nil,
 			IOStreams:       ioStreams,
+			ContainerName:   containerName,
 		},
 		Command:       command,
 		Executor:      &exec.DefaultRemoteExecutor{},
@@ -52,7 +57,7 @@ func (p *Exec) ExecCmd(command []string) (*bytes.Buffer, *bytes.Buffer, *bytes.B
 
 	err := options.Run()
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("could not run exec operation: %v", err)
+		return in, out, errOut, errors.Wrap(err, "could not run exec operation")
 	}
 
 	return in, out, errOut, nil

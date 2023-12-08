@@ -1,5 +1,7 @@
 package api
 
+import "github.com/samber/lo"
+
 type ContainerRuntime string
 
 const (
@@ -28,15 +30,5 @@ func IsSupportedContainerRuntime(runtime string) bool {
 		runtime == string(FakeContainerWithPIDResultError) {
 		return true
 	}
-	return containsContainerRuntime(ContainerRuntime(runtime), AvailableContainerRuntimes())
-}
-
-func containsContainerRuntime(cl ContainerRuntime, runtimes []ContainerRuntime) bool {
-	for _, current := range runtimes {
-		if cl == current {
-			return true
-		}
-	}
-
-	return false
+	return lo.Contains(AvailableContainerRuntimes(), ContainerRuntime(runtime))
 }

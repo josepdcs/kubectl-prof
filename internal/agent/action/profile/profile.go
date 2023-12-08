@@ -9,25 +9,33 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/agent/util"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
+	"github.com/pkg/errors"
 	"time"
 )
 
 // arguments passed to the agent
 const (
-	JobId                  string = "job-id"
-	TargetContainerRuntime        = "target-container-runtime"
-	TargetPodUID                  = "target-pod-uid"
-	TargetContainerID             = "target-container-id"
-	Duration                      = "duration"
-	Interval                      = "interval"
-	Lang                          = "lang"
-	EventType                     = "event-type"
-	CompressorType                = "compressor-type"
-	ProfilingTool                 = "profiling-tool"
-	OutputType                    = "output-type"
-	Filename                      = "filename"
-	PrintLogs                     = "print-logs"
-	GracePeriodForEnding          = "grace-period-ending"
+	JobId                    string = "job-id"
+	TargetContainerRuntime          = "target-container-runtime"
+	TargetPodUID                    = "target-pod-uid"
+	TargetContainerID               = "target-container-id"
+	Duration                        = "duration"
+	Interval                        = "interval"
+	Lang                            = "lang"
+	EventType                       = "event-type"
+	CompressorType                  = "compressor-type"
+	ProfilingTool                   = "profiling-tool"
+	OutputType                      = "output-type"
+	Filename                        = "filename"
+	PrintLogs                       = "print-logs"
+	GracePeriodForEnding            = "grace-period-ending"
+	HeapDumpSplitInChunkSize        = "heap-dump-split-in-chunk-size"
+
+	defaultDuration                 = 60 * time.Second
+	defaultContainerRuntime         = api.Containerd
+	defaultCompressor               = compressor.Gzip
+	defaultEventType                = api.Itimer
+	defaultHeapDumpSplitInChunkSize = "50M"
 )
 
 func NewAction(args map[string]interface{}) (profiler.Profiler, *job.ProfilingJob, error) {
@@ -72,7 +80,7 @@ func getProfilingJob(args map[string]interface{}) (*job.ProfilingJob, error) {
 	j := &job.ProfilingJob{}
 
 	// duration is set as mandatory
-	j.Duration = 60 * time.Second
+	j.Duration = defaultDuration
 	if stringUtils.IsNotBlank(args[Duration].(string)) {
 		duration, err := time.ParseDuration(args[Duration].(string))
 		if err != nil {
@@ -93,15 +101,15 @@ func getProfilingJob(args map[string]interface{}) (*job.ProfilingJob, error) {
 	}
 
 	if j.Interval > j.Duration {
-		return nil, fmt.Errorf("interval cannot be greater than duration (duration %d, interval: %d)", j.Duration, j.Interval)
+		return nil, errors.Errorf("interval cannot be greater than duration (duration %d, interval: %d)", j.Duration, j.Interval)
 	}
 
 	containerRuntime := args[TargetContainerRuntime].(string)
 	if stringUtils.IsBlank(containerRuntime) {
-		j.ContainerRuntime = api.Crio // default is crio
+		j.ContainerRuntime = defaultContainerRuntime
 	}
 	if !api.IsSupportedContainerRuntime(containerRuntime) {
-		return nil, fmt.Errorf("unsupported container runtime, choose one of %s", api.AvailableContainerRuntimes())
+		return nil, errors.Errorf("unsupported container runtime, choose one of %s", api.AvailableContainerRuntimes())
 	}
 	j.ContainerRuntime = api.ContainerRuntime(containerRuntime)
 	j.UID = args[JobId].(string)
@@ -112,30 +120,38 @@ func getProfilingJob(args map[string]interface{}) (*job.ProfilingJob, error) {
 	// TODO improve validations (maybe applying the chain of responsibility pattern)
 	lang := args[Lang].(string)
 	if !api.IsSupportedLanguage(lang) {
-		return nil, fmt.Errorf("unsupported language, choose one of %s", api.AvailableLanguages())
+		return nil, errors.Errorf("unsupported language, choose one of %s", api.AvailableLanguages())
 	}
 	j.Language = api.ProgrammingLanguage(lang)
 
 	event := args[EventType].(string)
 	if stringUtils.IsBlank(event) {
-		event = string(api.Itimer)
+		event = string(defaultEventType)
 	}
 	if !api.IsSupportedEvent(event) {
-		return nil, fmt.Errorf("unsupported event, choose one of %s", api.AvailableEvents())
+		return nil, errors.Errorf("unsupported event, choose one of %s", api.AvailableEvents())
 	}
 	j.Event = api.ProfilingEvent(event)
 
 	co := args[CompressorType].(string)
 	if stringUtils.IsBlank(co) {
-		co = compressor.Gzip
+		co = defaultCompressor
 	}
 	if !compressor.IsSupportedCompressor(co) {
-		return nil, fmt.Errorf("unsupported compressor, choose one of %s", compressor.AvailableCompressors())
+		return nil, errors.Errorf("unsupported compressor, choose one of %s", compressor.AvailableCompressors())
 	}
 	j.Compressor = compressor.Type(co)
 
 	validateProfilingTool(args[ProfilingTool].(string), args[OutputType].(string), j)
 	validateOutputType(args[OutputType].(string), j)
+
+	// set heap dump split in chunk size
+	if j.OutputType == api.HeapDump {
+		j.HeapDumpSplitInChunkSize = defaultHeapDumpSplitInChunkSize
+		if args[HeapDumpSplitInChunkSize] != nil && stringUtils.IsNotBlank(args[HeapDumpSplitInChunkSize].(string)) {
+			j.HeapDumpSplitInChunkSize = args[HeapDumpSplitInChunkSize].(string)
+		}
+	}
 
 	log.DebugLogLn(j.String())
 
@@ -145,7 +161,7 @@ func getProfilingJob(args map[string]interface{}) (*job.ProfilingJob, error) {
 // validateProfilingTool validates the given profiling tool and sets the default tool if needed
 func validateProfilingTool(profilingTool string, outputType string, job *job.ProfilingJob) {
 	if stringUtils.IsBlank(profilingTool) {
-		job.Tool = api.GetProfilingTool(job.Language, api.EventType(outputType))
+		job.Tool = api.GetProfilingTool(job.Language, api.OutputType(outputType))
 		log.InfoLogLn(fmt.Sprintf("Default profiling tool %s will be used", job.Tool))
 		return
 	}
@@ -184,12 +200,12 @@ func validateOutputType(outputType string, job *job.ProfilingJob) {
 		return
 	}
 
-	if !api.IsValidOutputType(api.EventType(outputType), job.Tool) {
+	if !api.IsValidOutputType(api.OutputType(outputType), job.Tool) {
 		log.WarningLogLn(fmt.Sprintf("Unsupported output type %s for profiling tool %s, default %s will be used",
 			outputType, job.Tool, defaultOutputType))
 		job.OutputType = defaultOutputType
 		return
 	}
 
-	job.OutputType = api.EventType(outputType)
+	job.OutputType = api.OutputType(outputType)
 }

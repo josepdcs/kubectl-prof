@@ -1,8 +1,14 @@
 package result
 
-import "time"
+import (
+	"github.com/josepdcs/kubectl-prof/api"
+	"time"
+)
 
 type File struct {
-	FileName  string
-	Timestamp time.Time
+	FileName        string
+	FileSizeInBytes int64
+	Checksum        string
+	Chunks          []api.ChunkData
+	Timestamp       time.Time
 }

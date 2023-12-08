@@ -19,45 +19,31 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-type connector struct {
-}
-
-// NewConnector returns new implementation of Connector
-func NewConnector() *connector {
-	return &connector{}
-}
-
-type KubeContext struct {
+type ConnectionInfo struct {
 	ClientSet  kubernetes.Interface
 	RestConfig *rest.Config
+	Namespace  string
 }
 
-type ConnectionContext struct {
-	KubeContext
-	Namespace string
-}
-
-func (c connector) Connect(clientGetter genericclioptions.RESTClientGetter) (ConnectionContext, error) {
+func Connect(clientGetter genericclioptions.RESTClientGetter) (ConnectionInfo, error) {
 	restConfig, err := clientGetter.ToRESTConfig()
 	if err != nil {
-		return ConnectionContext{}, err
+		return ConnectionInfo{}, err
 	}
 
-	clientset, err := kubernetes.NewForConfig(restConfig)
+	client, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
-		return ConnectionContext{}, err
+		return ConnectionInfo{}, err
 	}
 
 	ns, _, err := clientGetter.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
-		return ConnectionContext{}, err
+		return ConnectionInfo{}, err
 	}
 
-	return ConnectionContext{
-		KubeContext: KubeContext{
-			ClientSet:  clientset,
-			RestConfig: restConfig,
-		},
-		Namespace: ns,
+	return ConnectionInfo{
+		ClientSet:  client,
+		RestConfig: restConfig,
+		Namespace:  ns,
 	}, nil
 }

@@ -3,11 +3,14 @@ package cmd
 import (
 	"fmt"
 	"github.com/agrison/go-commons-lang/stringUtils"
+	"github.com/josepdcs/kubectl-prof/internal/cli"
+	"github.com/josepdcs/kubectl-prof/internal/cli/adapter"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
 	"github.com/josepdcs/kubectl-prof/internal/cli/profiler"
 	"github.com/josepdcs/kubectl-prof/internal/cli/version"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	apiv1 "k8s.io/api/core/v1"
 	"os"
@@ -19,13 +22,17 @@ import (
 )
 
 const (
-	defaultGracePeriodEnding = 5 * time.Minute
-	defaultContainerRuntime  = string(api.Containerd)
-	defaultEvent             = string(api.Itimer)
-	defaultLogLevel          = string(api.InfoLevel)
-	defaultCompressor        = string(compressor.Gzip)
-	defaultOutputType        = string(api.FlameGraph)
-	longDescription          = `Profiling on existing applications with low-overhead.
+	defaultGracePeriodEnding      = 5 * time.Minute
+	defaultContainerRuntime       = string(api.Containerd)
+	defaultEvent                  = string(api.Itimer)
+	defaultLogLevel               = string(api.InfoLevel)
+	defaultCompressor             = string(compressor.Gzip)
+	defaultOutputType             = string(api.FlameGraph)
+	defaultImagePullPolicy        = string(apiv1.PullIfNotPresent)
+	defaultHeapDumpSplitSize      = "50M"
+	defaultPoolSizeRetrieveChunks = 5
+	defaultRetrieveFileRetries    = 3
+	longDescription               = `Profiling on existing applications with low-overhead.
 
 These commands help you identify application performance issues.
 `
@@ -49,8 +56,9 @@ These commands help you identify application performance issues.
 
 var imagePullPolicies = []apiv1.PullPolicy{apiv1.PullNever, apiv1.PullAlways, apiv1.PullIfNotPresent}
 
+// Profiler defines the profile method.
 type Profiler interface {
-	Profile(cfg *config.ProfilerConfig)
+	Profile(cfg *config.ProfilerConfig) error
 }
 
 type ProfileOptions struct {
@@ -67,17 +75,20 @@ func NewProfileOptions(streams genericclioptions.IOStreams) *ProfileOptions {
 
 func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	var (
-		target          config.TargetConfig
-		job             config.JobConfig
-		showVersion     bool
-		runtime         string
-		lang            string
-		event           string
-		logLevel        string
-		compressorType  string
-		profilingTool   string
-		outputType      string
-		imagePullPolicy string
+		target                config.TargetConfig
+		job                   config.JobConfig
+		ephemeralContainer    config.EphemeralContainerConfig
+		showVersion           bool
+		runtime               string
+		lang                  string
+		event                 string
+		logLevel              string
+		compressorType        string
+		profilingTool         string
+		outputType            string
+		imagePullPolicy       string
+		privileged            bool
+		useEphemeralContainer = false // disabled
 	)
 
 	options := NewProfileOptions(streams)
@@ -117,23 +128,40 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 			}
 
 			// Prepare profiler
-			cfg := config.NewProfilerConfig(&target, &job).WithLogLevel(api.LogLevel(logLevel))
+			cfg, err := getProfilerConfig(target, job, ephemeralContainer, useEphemeralContainer, logLevel, privileged)
+			if err != nil {
+				log.Fatalf("Failed configure profiler: %v\n", err)
+			}
 
-			connector := kubernetes.NewConnector()
-			connectionContext, err := connector.Connect(options.configFlags)
+			connectionInfo, err := kubernetes.Connect(options.configFlags)
 			if err != nil {
 				log.Fatalf("Failed connecting to kubernetes cluster: %v\n", err)
 			}
 
 			if cfg.Target.Namespace == "" {
-				cfg.Target.Namespace = connectionContext.Namespace
+				cfg.Target.Namespace = connectionInfo.Namespace
 			}
-			cfg.Job.Namespace = connectionContext.Namespace
 
-			getter := kubernetes.NewGetter(connectionContext.KubeContext)
-			creator := kubernetes.NewJobCreator(connectionContext.ClientSet)
-			deleter := kubernetes.NewDeleter(connectionContext.ClientSet)
-			profiler.NewProfiler(getter, creator, deleter).Profile(cfg)
+			if useEphemeralContainer {
+				err = profiler.NewEphemeralProfiler(
+					adapter.NewPodAdapter(connectionInfo),
+					adapter.NewProfilingEphemeralContainerAdapter(connectionInfo),
+					adapter.NewProfilingContainerAdapter(connectionInfo),
+				).Profile(cfg)
+			} else {
+				cfg.Job.Namespace = connectionInfo.Namespace
+				err = profiler.NewJobProfiler(
+					adapter.NewPodAdapter(connectionInfo),
+					adapter.NewProfilingJobAdapter(connectionInfo),
+					adapter.NewProfilingContainerAdapter(connectionInfo),
+				).Profile(cfg)
+			}
+
+			if err != nil {
+				printer := cli.NewPrinter(cfg.Target.DryRun)
+				printer.PrintError()
+				log.Fatalf(err.Error())
+			}
 		},
 	}
 
@@ -165,35 +193,51 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.Flags().StringVar(&target.ImagePullSecret, "image-pull-secret", "", "imagePullSecret for agent docker image")
 	cmd.Flags().StringVar(&target.ServiceAccountName, "service-account", "", "serviceAccountName to be used for profiling container")
 
-	cmd.Flags().BoolVar(&job.Privileged, "privileged", true, "Run agent container in privileged mode")
+	cmd.Flags().BoolVar(&privileged, "privileged", true, "Run agent container in privileged mode")
 	cmd.Flags().StringVar(&logLevel, "log-level", defaultLogLevel,
 		fmt.Sprintf("Log level, choose one of %v", api.AvailableLogLevels()))
-	cmd.Flags().StringVarP(&compressorType, "compressor", "c", defaultCompressor,
-		fmt.Sprintf("Compressor for compressing generated profiling result, choose one of %v", compressor.AvailableCompressors()))
+	/*cmd.Flags().StringVarP(&compressorType, "compressor", "c", defaultCompressor,
+	fmt.Sprintf("Compressor for compressing generated profiling result, choose one of %v", compressor.AvailableCompressors()))*/
 	cmd.Flags().StringVar(&profilingTool, "tool", "", fmt.Sprintf("Profiling tool, choose one accorfing language %v", api.AvailableProfilingToolsString()))
 	cmd.Flags().StringVarP(&outputType, "output", "o", defaultOutputType,
 		fmt.Sprintf("Output type, choose one accorting tool %v", api.AvailableOutputTypesString()))
 	cmd.Flags().BoolVar(&target.PrintLogs, "print-logs", true, "Force agent to print the log messages type to standard output")
 	cmd.Flags().DurationVar(&target.GracePeriodEnding, "grace-period-ending", defaultGracePeriodEnding, "The grace period to spend before to end the agent")
-	cmd.Flags().StringVar(&imagePullPolicy, "image-pull-policy", string(apiv1.PullAlways), fmt.Sprintf("Image pull policy, choose one of %v", imagePullPolicies))
+	cmd.Flags().StringVar(&imagePullPolicy, "image-pull-policy", defaultImagePullPolicy, fmt.Sprintf("Image pull policy, choose one of %v", imagePullPolicies))
+	cmd.Flags().StringVar(&target.ContainerName, "target-container-name", "", "The target container name to be profiled")
+	cmd.Flags().StringVar(&target.HeapDumpSplitInChunkSize, "heap-dump-split-size", defaultHeapDumpSplitSize, "The heap dump will be split into chunks of given size following the split command valid format.")
+	cmd.Flags().IntVar(&target.PoolSizeRetrieveChunks, "pool-size-retrieve-chunks", defaultPoolSizeRetrieveChunks, "The pool size of go routines to retrieve chunks of the obtained heap dump from the agent.")
+	cmd.Flags().IntVar(&target.RetrieveFileRetries, "retrieve-file-retries", defaultRetrieveFileRetries, "The number of retries to retrieve a file from the remote container.")
+	//cmd.Flags().BoolVar(&useEphemeralContainer, "use-ephemeral-container", false, "Launching profiling agent into ephemeral container instead into Job (experimental)")
 
 	options.configFlags.AddFlags(cmd.Flags())
 
 	return cmd
 }
 
+func getProfilerConfig(target config.TargetConfig, job config.JobConfig, ephemeralContainer config.EphemeralContainerConfig,
+	useEphemeralContainer bool, logLevel string, privileged bool) (*config.ProfilerConfig, error) {
+	if useEphemeralContainer {
+		ephemeralContainer = config.EphemeralContainerConfig{Privileged: privileged}
+		return config.NewProfilerConfig(&target, config.WithEphemeralContainer(&ephemeralContainer), config.WithLogLevel(api.LogLevel(logLevel)))
+	}
+
+	job.Privileged = privileged
+	return config.NewProfilerConfig(&target, config.WithJob(&job), config.WithLogLevel(api.LogLevel(logLevel)))
+}
+
 func validateFlags(runtime string, lang string, event string, logLevel string, compressorType string, profilingTool string,
 	outputType string, imagePullPolicy string, target *config.TargetConfig, job *config.JobConfig) error {
 	if lang == "" {
-		return fmt.Errorf("use -l flag to select one of the supported languages %s", api.AvailableLanguages())
+		return errors.Errorf("use -l flag to select one of the supported languages %s", api.AvailableLanguages())
 	}
 
 	if !api.IsSupportedLanguage(lang) {
-		return fmt.Errorf("unsupported language, choose one of %s", api.AvailableLanguages())
+		return errors.Errorf("unsupported language, choose one of %s", api.AvailableLanguages())
 	}
 
 	if stringUtils.IsNotBlank(runtime) && !api.IsSupportedContainerRuntime(runtime) {
-		return fmt.Errorf("unsupported container runtime, choose one of %s", api.AvailableContainerRuntimes())
+		return errors.Errorf("unsupported container runtime, choose one of %s", api.AvailableContainerRuntimes())
 	}
 	if stringUtils.IsBlank(runtime) {
 		runtime = defaultContainerRuntime
@@ -201,22 +245,31 @@ func validateFlags(runtime string, lang string, event string, logLevel string, c
 	}
 
 	if stringUtils.IsNotBlank(event) && !api.IsSupportedEvent(event) {
-		return fmt.Errorf("unsupported event, choose one of %s", api.AvailableEvents())
+		return errors.Errorf("unsupported event, choose one of %s", api.AvailableEvents())
 	}
 	if stringUtils.IsBlank(event) {
 		event = defaultEvent
 	}
 
-	if logLevel != "" && !api.IsSupportedLogLevel(logLevel) {
-		return fmt.Errorf("unsupported log level, choose one of %s", api.AvailableLogLevels())
+	if stringUtils.IsNotBlank(logLevel) && !api.IsSupportedLogLevel(logLevel) {
+		return errors.Errorf("unsupported log level, choose one of %s", api.AvailableLogLevels())
+	}
+	if stringUtils.IsBlank(logLevel) {
+		logLevel = defaultLogLevel
 	}
 
-	if compressorType != "" && !compressor.IsSupportedCompressor(compressorType) {
-		return fmt.Errorf("unsupported compressor, choose one of %s", compressor.AvailableCompressors())
+	/*if stringUtils.IsNotBlank(compressorType) && !compressor.IsSupportedCompressor(compressorType) {
+		return errors.Errorf("unsupported compressor, choose one of %s", compressor.AvailableCompressors())
+	}*/
+	if stringUtils.IsBlank(compressorType) {
+		compressorType = defaultCompressor
 	}
 
-	if imagePullPolicy != "" && !isSupportedImagePullPolicy(imagePullPolicy) {
-		return fmt.Errorf("unsupported image pull policy, choose one of %s", imagePullPolicies)
+	if stringUtils.IsNotBlank(imagePullPolicy) && !isSupportedImagePullPolicy(imagePullPolicy) {
+		return errors.Errorf("unsupported image pull policy, choose one of %s", imagePullPolicies)
+	}
+	if stringUtils.IsBlank(imagePullPolicy) {
+		imagePullPolicy = defaultImagePullPolicy
 	}
 
 	target.ImagePullPolicy = apiv1.PullPolicy(imagePullPolicy)
@@ -230,11 +283,11 @@ func validateFlags(runtime string, lang string, event string, logLevel string, c
 	validateOutputType(outputType, target)
 
 	if _, err := job.RequestConfig.ParseResources(); err != nil {
-		return fmt.Errorf("unable to parse resource requests: %w", err)
+		return errors.Wrapf(err, "unable to parse resource requests")
 	}
 
 	if _, err := job.LimitConfig.ParseResources(); err != nil {
-		return fmt.Errorf("unable to parse resourse limits: %w", err)
+		return errors.Wrapf(err, "unable to parse resource limits")
 	}
 
 	return nil
@@ -242,7 +295,7 @@ func validateFlags(runtime string, lang string, event string, logLevel string, c
 
 func validateProfilingTool(profilingTool string, outputType string, target *config.TargetConfig) {
 	if stringUtils.IsBlank(profilingTool) {
-		target.ProfilingTool = api.GetProfilingTool(target.Language, api.EventType(outputType))
+		target.ProfilingTool = api.GetProfilingTool(target.Language, api.OutputType(outputType))
 		fmt.Printf("Default profiling tool %s will be used ... ✔\n", target.ProfilingTool)
 		return
 	}
@@ -278,14 +331,14 @@ func validateOutputType(outputType string, target *config.TargetConfig) {
 		return
 	}
 
-	if !api.IsValidOutputType(api.EventType(outputType), target.ProfilingTool) {
+	if !api.IsValidOutputType(api.OutputType(outputType), target.ProfilingTool) {
 		fmt.Printf("Unsupported output type %s for profiling tool %s, default %s will be used ... ✔\n",
 			outputType, target.ProfilingTool, defaultOutputType)
 		target.OutputType = defaultOutputType
 		return
 	}
 
-	target.OutputType = api.EventType(outputType)
+	target.OutputType = api.OutputType(outputType)
 }
 
 func isSupportedImagePullPolicy(imagePullPolicy string) bool {

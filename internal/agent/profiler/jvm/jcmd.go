@@ -12,6 +12,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
+	"github.com/pkg/errors"
 	"io"
 	"os"
 	"os/exec"
@@ -21,9 +22,10 @@ import (
 )
 
 const (
-	jcmd                             = "/opt/jdk-17/bin/jcmd"
-	contprofJFRSettingsImageFilePath = "/app/jfr/settings/contprof-profile.jfc"
-	contprofJFRSettingsTmpFilePath   = "/tmp/contprof-profile.jfc"
+	jcmd                     = "/opt/jdk/bin/jcmd"
+	jfrSettingsImageFilePath = "/app/jfr/settings/jfr-profile.jfc"
+	jfrSettingsTmpFilePath   = "/tmp/jfr-profile.jfc"
+	invocationName           = "name=pid_"
 )
 
 var stopJcmdRecording chan bool
@@ -43,7 +45,7 @@ var jcmdCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec
 
 	// default api.Jfr
 	interval := strconv.Itoa(int(job.Interval.Seconds()))
-	args := []string{pid, "JFR.start", "duration=" + interval + "s", "filename=" + fileName, "name=pid_" + pid + "_" + string(job.OutputType)}
+	args := []string{pid, "JFR.start", "duration=" + interval + "s", "filename=" + fileName, invocationName + pid + "_" + string(job.OutputType), "settings=" + jfrSettingsTmpFilePath}
 	return util.Command(jcmd, args...)
 }
 
@@ -51,7 +53,7 @@ var jcmdStopCommand = func(job *job.ProfilingJob, pid string) *exec.Cmd {
 	if job.OutputType != api.Jfr {
 		return nil
 	}
-	return util.Command(jcmd, pid, "JFR.stop", "name=pid_"+pid+"_"+string(job.OutputType))
+	return util.Command(jcmd, pid, "JFR.stop", invocationName+pid+"_"+string(job.OutputType))
 }
 
 type JcmdProfiler struct {
@@ -65,7 +67,7 @@ type JcmdManager interface {
 	copyJfrSettingsToTmpDir() error
 	handleProfilingResult(job *job.ProfilingJob, fileName string, out bytes.Buffer, targetPID string) error
 	handleJcmdRecording(targetPID string, outputType string)
-	publishResult(compressor compressor.Type, fileName string, outputType api.EventType) error
+	publishResult(compressor compressor.Type, fileName string, outputType api.OutputType, heapDumpSplitInChunkSize string) error
 }
 
 type jcmdManager struct {
@@ -103,12 +105,12 @@ func (j *JcmdProfiler) SetUp(job *job.ProfilingJob) error {
 	log.DebugLogLn(fmt.Sprintf("The PID to be profiled: %s", pid))
 	j.targetPID = pid
 
-	return nil
+	return j.copyJfrSettingsToTmpDir()
 }
 
 func (j *JcmdProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	start := time.Now()
-	fileName := common.GetResultFile(common.TmpDir(), job)
+	fileName := common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType)
 
 	var out bytes.Buffer
 	var stderr bytes.Buffer
@@ -119,7 +121,7 @@ func (j *JcmdProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	err := cmd.Run()
 	if err != nil {
 		log.ErrorLogLn(out.String())
-		return fmt.Errorf("could not launch profiler: %w; detail: %s", err, stderr.String()), time.Since(start)
+		return errors.Wrapf(err, "could not launch profiler: %s", stderr.String()), time.Since(start)
 	}
 
 	err = j.handleProfilingResult(job, fileName, out, j.targetPID)
@@ -127,7 +129,7 @@ func (j *JcmdProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 		return err, time.Since(start)
 	}
 
-	return j.publishResult(job.Compressor, fileName, job.OutputType), time.Since(start)
+	return j.publishResult(job.Compressor, fileName, job.OutputType, job.HeapDumpSplitInChunkSize), time.Since(start)
 }
 
 func (j *JcmdProfiler) CleanUp(job *job.ProfilingJob) error {
@@ -163,7 +165,7 @@ func (j *jcmdManager) linkTmpDirToTargetTmpDir(targetTmpDir string) error {
 }
 
 func (j *jcmdManager) copyJfrSettingsToTmpDir() error {
-	cmd := util.Command("cp", contprofJFRSettingsImageFilePath, common.TmpDir())
+	cmd := util.Command("cp", jfrSettingsImageFilePath, common.TmpDir())
 	return cmd.Run()
 }
 
@@ -174,7 +176,7 @@ func (j *jcmdManager) handleProfilingResult(job *job.ProfilingJob, fileName stri
 	case api.ThreadDump, api.HeapHistogram:
 		err := os.WriteFile(fileName, out.Bytes(), 0644)
 		if err != nil {
-			return fmt.Errorf("could not save dump to file: %w", err)
+			return errors.Wrap(err, "could not save dump to file")
 		}
 	default:
 		log.DebugLogLn(out.String())
@@ -183,7 +185,7 @@ func (j *jcmdManager) handleProfilingResult(job *job.ProfilingJob, fileName stri
 	return nil
 }
 
-func (j *jcmdManager) handleJcmdRecording(targetPID string, outputTYpe string) {
+func (j *jcmdManager) handleJcmdRecording(targetPID string, outputType string) {
 	stopJcmdRecording = make(chan bool, 1)
 	done := make(chan bool)
 
@@ -197,7 +199,7 @@ func (j *jcmdManager) handleJcmdRecording(targetPID string, outputTYpe string) {
 			default:
 				var out bytes.Buffer
 				var stderr bytes.Buffer
-				cmd := util.SilentCommand(jcmd, targetPID, "JFR.check", "name=pid_"+targetPID+"_"+outputTYpe)
+				cmd := util.SilentCommand(jcmd, targetPID, "JFR.check", "name=pid_"+targetPID+"_"+outputType)
 				cmd.Stdout = &out
 				cmd.Stderr = &stderr
 				err := cmd.Run()
@@ -224,6 +226,9 @@ func (j *jcmdManager) handleJcmdRecording(targetPID string, outputTYpe string) {
 	<-done
 }
 
-func (j *jcmdManager) publishResult(c compressor.Type, fileName string, outputType api.EventType) error {
+func (j *jcmdManager) publishResult(c compressor.Type, fileName string, outputType api.OutputType, heapDumpSplitInChunkSize string) error {
+	if outputType == api.HeapDump {
+		return util.PublishWithNativeGzipAndSplit(fileName, heapDumpSplitInChunkSize, outputType)
+	}
 	return util.Publish(c, fileName, outputType)
 }

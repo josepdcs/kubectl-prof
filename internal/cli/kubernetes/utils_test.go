@@ -1,19 +1,103 @@
-package job
+package kubernetes
 
 import (
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/stretchr/testify/assert"
-	apiv1 "k8s.io/api/core/v1"
+	"github.com/stretchr/testify/require"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 	"time"
 )
 
-func Test_getArgs(t *testing.T) {
+func TestToContainerId(t *testing.T) {
 	type args struct {
-		targetPod *apiv1.Pod
+		containerName string
+		pod           *v1.Pod
+	}
+	tests := []struct {
+		name  string
+		given func() args
+		when  func(args) (string, error)
+		then  func(t *testing.T, result string, err error)
+	}{
+		{
+			name: "should return ContainerID",
+			given: func() args {
+				return args{
+					containerName: "ContainerName",
+					pod: &v1.Pod{
+						TypeMeta:   metav1.TypeMeta{},
+						ObjectMeta: metav1.ObjectMeta{},
+						Spec:       v1.PodSpec{},
+						Status: v1.PodStatus{
+							ContainerStatuses: []v1.ContainerStatus{
+								{
+									Name:        "ContainerName",
+									ContainerID: "ContainerID",
+								},
+							},
+						},
+					},
+				}
+			},
+			when: func(args args) (string, error) {
+				return ToContainerId(args.containerName, args.pod)
+			},
+			then: func(t *testing.T, result string, err error) {
+				require.NoError(t, err)
+				assert.Equal(t, "ContainerID", result)
+			},
+		},
+		{
+			name: "should not return ContainerID",
+			given: func() args {
+				return args{
+					containerName: "ContainerName",
+					pod: &v1.Pod{
+						TypeMeta:   metav1.TypeMeta{},
+						ObjectMeta: metav1.ObjectMeta{},
+						Spec:       v1.PodSpec{},
+						Status: v1.PodStatus{
+							ContainerStatuses: []v1.ContainerStatus{
+								{
+									Name:        "OtherContainerName",
+									ContainerID: "ContainerID",
+								},
+							},
+						},
+					},
+				}
+			},
+			when: func(args args) (string, error) {
+				return ToContainerId(args.containerName, args.pod)
+			},
+			then: func(t *testing.T, result string, err error) {
+				require.Error(t, err)
+				assert.EqualError(t, err, "Could not find container id for ContainerName")
+				assert.Empty(t, result)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Given
+			args := tt.given()
+
+			// When
+			result, err := tt.when(args)
+
+			// Then
+			tt.then(t, result, err)
+		})
+	}
+}
+
+func TestGetArgs(t *testing.T) {
+	type args struct {
+		targetPod *v1.Pod
 		cfg       *config.ProfilerConfig
 		id        string
 	}
@@ -25,12 +109,12 @@ func Test_getArgs(t *testing.T) {
 		{
 			name: "With default arguments",
 			args: args{
-				targetPod: &apiv1.Pod{
+				targetPod: &v1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
 						UID:  "UID",
 						Name: "PodName",
 					},
-					Spec: apiv1.PodSpec{
+					Spec: v1.PodSpec{
 						NodeName: "NodeName",
 					},
 				},
@@ -39,7 +123,7 @@ func Test_getArgs(t *testing.T) {
 						Namespace:            "",
 						PodName:              "",
 						ContainerName:        "",
-						ContainerId:          "ContainerID",
+						ContainerID:          "ContainerID",
 						Event:                api.Cpu,
 						Duration:             60 * time.Second,
 						Id:                   "",
@@ -64,7 +148,6 @@ func Test_getArgs(t *testing.T) {
 				id: "ID",
 			},
 			want: []string{
-				"--job-id", "ID",
 				"--target-container-runtime", "crio",
 				"--target-pod-uid", "UID",
 				"--target-container-id", "ContainerID",
@@ -74,18 +157,19 @@ func Test_getArgs(t *testing.T) {
 				"--profiling-tool", "async-profiler",
 				"--output-type", "flamegraph",
 				"--grace-period-ending", "5m0s",
+				"--job-id", "ID",
 				"--duration", "1m0s",
 			},
 		},
 		{
 			name: "With rest of arguments",
 			args: args{
-				targetPod: &apiv1.Pod{
+				targetPod: &v1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
 						UID:  "UID",
 						Name: "PodName",
 					},
-					Spec: apiv1.PodSpec{
+					Spec: v1.PodSpec{
 						NodeName: "NodeName",
 					},
 				},
@@ -94,9 +178,10 @@ func Test_getArgs(t *testing.T) {
 						Namespace:            "",
 						PodName:              "",
 						ContainerName:        "",
-						ContainerId:          "ContainerID",
+						ContainerID:          "ContainerID",
 						Event:                api.Cpu,
 						Duration:             60 * time.Second,
+						Interval:             10 * time.Second,
 						Id:                   "",
 						LocalPath:            "LocalPath",
 						DryRun:               false,
@@ -107,37 +192,41 @@ func Test_getArgs(t *testing.T) {
 						Compressor:           compressor.Gzip,
 						ImagePullSecret:      "",
 						ServiceAccountName:   "",
-						ProfilingTool:        api.AsyncProfiler,
-						OutputType:           api.FlameGraph,
+						ProfilingTool:        api.Jcmd,
+						OutputType:           api.HeapDump,
 						ExtraTargetOptions: config.ExtraTargetOptions{
-							PrintLogs:         true,
-							GracePeriodEnding: 5 * time.Minute,
+							PrintLogs:                true,
+							GracePeriodEnding:        5 * time.Minute,
+							HeapDumpSplitInChunkSize: "10M",
 						},
 					},
-					Job:      nil,
-					LogLevel: "",
+					Job:                nil,
+					LogLevel:           "",
+					EphemeralContainer: &config.EphemeralContainerConfig{Privileged: true},
 				},
 				id: "ID",
 			},
 			want: []string{
-				"--job-id", "ID",
 				"--target-container-runtime", "crio",
 				"--target-pod-uid", "UID",
 				"--target-container-id", "ContainerID",
 				"--lang", "java",
 				"--event-type", "cpu",
 				"--compressor-type", "gzip",
-				"--profiling-tool", "async-profiler",
-				"--output-type", "flamegraph",
+				"--profiling-tool", "jcmd",
+				"--output-type", "heapdump",
 				"--grace-period-ending", "5m0s",
+				"--job-id", "ID",
 				"--duration", "1m0s",
+				"--interval", "10s",
 				"--print-logs",
+				"--heap-dump-split-in-chunk-size", "10M",
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equalf(t, tt.want, getArgs(tt.args.targetPod, tt.args.cfg, tt.args.id), "getArgs(%v, %v, %v)", tt.args.targetPod, tt.args.cfg, tt.args.id)
+			assert.Equalf(t, tt.want, GetArgs(tt.args.targetPod, tt.args.cfg, tt.args.id), "getArgs(%v, %v, %v)", tt.args.targetPod, tt.args.cfg, tt.args.id)
 		})
 	}
 }
