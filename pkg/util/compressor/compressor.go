@@ -1,7 +1,7 @@
 package compressor
 
 import (
-	"fmt"
+	"github.com/pkg/errors"
 )
 
 type Compressor interface {
@@ -22,6 +22,6 @@ func Get(c Type) (Compressor, error) {
 	case Zstd:
 		return NewZstdCompressor(), nil
 	default:
-		return nil, fmt.Errorf("could not find compressor for %s", c)
+		return nil, errors.Errorf("could not find compressor for %s", c)
 	}
 }

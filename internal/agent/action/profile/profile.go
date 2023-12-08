@@ -9,6 +9,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/agent/util"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
+	"github.com/pkg/errors"
 	"time"
 )
 
@@ -100,7 +101,7 @@ func getProfilingJob(args map[string]interface{}) (*job.ProfilingJob, error) {
 	}
 
 	if j.Interval > j.Duration {
-		return nil, fmt.Errorf("interval cannot be greater than duration (duration %d, interval: %d)", j.Duration, j.Interval)
+		return nil, errors.Errorf("interval cannot be greater than duration (duration %d, interval: %d)", j.Duration, j.Interval)
 	}
 
 	containerRuntime := args[TargetContainerRuntime].(string)
@@ -108,7 +109,7 @@ func getProfilingJob(args map[string]interface{}) (*job.ProfilingJob, error) {
 		j.ContainerRuntime = defaultContainerRuntime
 	}
 	if !api.IsSupportedContainerRuntime(containerRuntime) {
-		return nil, fmt.Errorf("unsupported container runtime, choose one of %s", api.AvailableContainerRuntimes())
+		return nil, errors.Errorf("unsupported container runtime, choose one of %s", api.AvailableContainerRuntimes())
 	}
 	j.ContainerRuntime = api.ContainerRuntime(containerRuntime)
 	j.UID = args[JobId].(string)
@@ -119,7 +120,7 @@ func getProfilingJob(args map[string]interface{}) (*job.ProfilingJob, error) {
 	// TODO improve validations (maybe applying the chain of responsibility pattern)
 	lang := args[Lang].(string)
 	if !api.IsSupportedLanguage(lang) {
-		return nil, fmt.Errorf("unsupported language, choose one of %s", api.AvailableLanguages())
+		return nil, errors.Errorf("unsupported language, choose one of %s", api.AvailableLanguages())
 	}
 	j.Language = api.ProgrammingLanguage(lang)
 
@@ -128,7 +129,7 @@ func getProfilingJob(args map[string]interface{}) (*job.ProfilingJob, error) {
 		event = string(defaultEventType)
 	}
 	if !api.IsSupportedEvent(event) {
-		return nil, fmt.Errorf("unsupported event, choose one of %s", api.AvailableEvents())
+		return nil, errors.Errorf("unsupported event, choose one of %s", api.AvailableEvents())
 	}
 	j.Event = api.ProfilingEvent(event)
 
@@ -137,7 +138,7 @@ func getProfilingJob(args map[string]interface{}) (*job.ProfilingJob, error) {
 		co = defaultCompressor
 	}
 	if !compressor.IsSupportedCompressor(co) {
-		return nil, fmt.Errorf("unsupported compressor, choose one of %s", compressor.AvailableCompressors())
+		return nil, errors.Errorf("unsupported compressor, choose one of %s", compressor.AvailableCompressors())
 	}
 	j.Compressor = compressor.Type(co)
 

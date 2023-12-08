@@ -10,6 +10,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/cli/profiler"
 	"github.com/josepdcs/kubectl-prof/internal/cli/version"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	apiv1 "k8s.io/api/core/v1"
 	"os"
@@ -228,15 +229,15 @@ func getProfilerConfig(target config.TargetConfig, job config.JobConfig, ephemer
 func validateFlags(runtime string, lang string, event string, logLevel string, compressorType string, profilingTool string,
 	outputType string, imagePullPolicy string, target *config.TargetConfig, job *config.JobConfig) error {
 	if lang == "" {
-		return fmt.Errorf("use -l flag to select one of the supported languages %s", api.AvailableLanguages())
+		return errors.Errorf("use -l flag to select one of the supported languages %s", api.AvailableLanguages())
 	}
 
 	if !api.IsSupportedLanguage(lang) {
-		return fmt.Errorf("unsupported language, choose one of %s", api.AvailableLanguages())
+		return errors.Errorf("unsupported language, choose one of %s", api.AvailableLanguages())
 	}
 
 	if stringUtils.IsNotBlank(runtime) && !api.IsSupportedContainerRuntime(runtime) {
-		return fmt.Errorf("unsupported container runtime, choose one of %s", api.AvailableContainerRuntimes())
+		return errors.Errorf("unsupported container runtime, choose one of %s", api.AvailableContainerRuntimes())
 	}
 	if stringUtils.IsBlank(runtime) {
 		runtime = defaultContainerRuntime
@@ -244,28 +245,28 @@ func validateFlags(runtime string, lang string, event string, logLevel string, c
 	}
 
 	if stringUtils.IsNotBlank(event) && !api.IsSupportedEvent(event) {
-		return fmt.Errorf("unsupported event, choose one of %s", api.AvailableEvents())
+		return errors.Errorf("unsupported event, choose one of %s", api.AvailableEvents())
 	}
 	if stringUtils.IsBlank(event) {
 		event = defaultEvent
 	}
 
 	if stringUtils.IsNotBlank(logLevel) && !api.IsSupportedLogLevel(logLevel) {
-		return fmt.Errorf("unsupported log level, choose one of %s", api.AvailableLogLevels())
+		return errors.Errorf("unsupported log level, choose one of %s", api.AvailableLogLevels())
 	}
 	if stringUtils.IsBlank(logLevel) {
 		logLevel = defaultLogLevel
 	}
 
 	/*if stringUtils.IsNotBlank(compressorType) && !compressor.IsSupportedCompressor(compressorType) {
-		return fmt.Errorf("unsupported compressor, choose one of %s", compressor.AvailableCompressors())
+		return errors.Errorf("unsupported compressor, choose one of %s", compressor.AvailableCompressors())
 	}*/
 	if stringUtils.IsBlank(compressorType) {
 		compressorType = defaultCompressor
 	}
 
 	if stringUtils.IsNotBlank(imagePullPolicy) && !isSupportedImagePullPolicy(imagePullPolicy) {
-		return fmt.Errorf("unsupported image pull policy, choose one of %s", imagePullPolicies)
+		return errors.Errorf("unsupported image pull policy, choose one of %s", imagePullPolicies)
 	}
 	if stringUtils.IsBlank(imagePullPolicy) {
 		imagePullPolicy = defaultImagePullPolicy
@@ -282,11 +283,11 @@ func validateFlags(runtime string, lang string, event string, logLevel string, c
 	validateOutputType(outputType, target)
 
 	if _, err := job.RequestConfig.ParseResources(); err != nil {
-		return fmt.Errorf("unable to parse resource requests: %w", err)
+		return errors.Wrapf(err, "unable to parse resource requests")
 	}
 
 	if _, err := job.LimitConfig.ParseResources(); err != nil {
-		return fmt.Errorf("unable to parse resource limits: %w", err)
+		return errors.Wrapf(err, "unable to parse resource limits")
 	}
 
 	return nil

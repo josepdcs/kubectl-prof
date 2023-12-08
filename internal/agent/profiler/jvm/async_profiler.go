@@ -11,6 +11,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
+	"github.com/pkg/errors"
 	"io"
 	"os"
 	"os/exec"
@@ -103,7 +104,7 @@ func (j *AsyncProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	if err != nil {
 		log.ErrorLogLn(out.String())
 		log.ErrorLogLn(stderr.String())
-		return fmt.Errorf("could not launch profiler: %w; detail: %s", err, stderr.String()), time.Since(start)
+		return errors.Wrapf(err, "could not launch profiler: %s", stderr.String()), time.Since(start)
 	}
 	log.DebugLogLn(out.String())
 

@@ -2,12 +2,11 @@ package adapter
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes/ephemeral"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	kuberrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,7 +44,7 @@ func NewProfilingEphemeralContainerAdapter(connectionInfo kubernetes.ConnectionI
 func (p *profilingEphemeralContainerAdapter) AddEphemeralContainer(targetPod *v1.Pod, cfg *config.ProfilerConfig, ctx context.Context, timeout time.Duration) (*v1.Pod, error) {
 	j, err := ephemeral.Get(cfg.Target.Language)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get the ephemeral container type: %w", err)
+		return nil, errors.Wrap(err, "unable to get the ephemeral container type")
 	}
 	ephemeralContainer := j.Create(targetPod, cfg)
 	p.containerName = ephemeralContainer.Name
@@ -61,17 +60,17 @@ func (p *profilingEphemeralContainerAdapter) AddEphemeralContainer(targetPod *v1
 
 	targetPodJS, err := jsoniter.Marshal(targetPod)
 	if err != nil {
-		return nil, fmt.Errorf("error creating JSON for original target pod: %v", err)
+		return nil, errors.Wrap(err, "error creating JSON for original target pod")
 	}
 
 	copiedJS, err := jsoniter.Marshal(copied)
 	if err != nil {
-		return nil, fmt.Errorf("error creating JSON for copied pod: %v", err)
+		return nil, errors.Wrap(err, "error creating JSON for copied pod: %v")
 	}
 
 	patch, err := strategicpatch.CreateTwoWayMergePatch(targetPodJS, copiedJS, targetPod)
 	if err != nil {
-		return nil, fmt.Errorf("error creating patch to add ephemeral container: %v", err)
+		return nil, errors.Wrap(err, "error creating patch to add ephemeral container")
 	}
 
 	patchedPod, err := p.connectionInfo.ClientSet.
@@ -82,7 +81,7 @@ func (p *profilingEphemeralContainerAdapter) AddEphemeralContainer(targetPod *v1
 	if err != nil {
 		var serr *kuberrors.StatusError
 		if errors.As(err, &serr) && serr.Status().Reason == metav1.StatusReasonNotFound && serr.ErrStatus.Details.Name == "" {
-			return nil, fmt.Errorf("ephemeral containers are disabled for this cluster (error from server: %q)", err)
+			return nil, errors.Wrap(err, "ephemeral containers are disabled for this cluster")
 		}
 
 		return nil, err
@@ -121,7 +120,7 @@ func (p *profilingEphemeralContainerAdapter) waitForEphemeralContainer(targetPod
 			pod = &podList.Items[0]
 			switch pod.Status.Phase {
 			case v1.PodFailed:
-				return false, fmt.Errorf("target pod now is failed: %s", targetPod.GetName())
+				return false, errors.Errorf("target pod now is failed: %s", targetPod.GetName())
 			case v1.PodRunning:
 				s := getEphemeralContainerStatusByName(pod, p.GetEphemeralContainerName())
 				if s != nil && (s.State.Running != nil || s.State.Terminated != nil) {

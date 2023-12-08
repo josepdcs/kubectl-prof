@@ -5,11 +5,11 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"github.com/alitto/pond"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
+	"github.com/pkg/errors"
 	"golang.org/x/exp/slices"
 	"io"
 	"os"
@@ -117,19 +117,19 @@ func (p profilingContainerAdapter) GetRemoteFile(pod *v1.Pod, containerName stri
 
 	comp, err := compressor.Get(target.Compressor)
 	if err != nil {
-		return "", fmt.Errorf("could not get compressor: %v\n", err)
+		return "", errors.Wrap(err, "could not get compressor")
 	}
 
 	decoded, err := comp.Decode(fileBuff)
 	if err != nil {
-		return "", fmt.Errorf("could not decode remote file: %v\n", err)
+		return "", errors.Wrap(err, "could not decode remote file")
 	}
 
 	fileName := filepath.Join(target.LocalPath, renameResultFileName(remoteFile.FileName, remoteFile.Timestamp))
 
 	err = os.WriteFile(fileName, decoded, 0644)
 	if err != nil {
-		return "", fmt.Errorf("could not write result file: %w", err)
+		return "", errors.Wrap(err, "could not write result file")
 	}
 
 	return fileName, nil
@@ -170,7 +170,7 @@ func retrieveFileOrRetry(pod *v1.Pod, containerName string, exec podexec.Executo
 		for (remoteFile.FileSizeInBytes - int64(n)) > 0 {
 			_, out, errOut, err := exec.Execute(pod.Namespace, pod.Name, containerName, []string{"sh", "-c", fmt.Sprintf("tail -c+%d %s", n, remoteFile.FileName)})
 			if err != nil {
-				return nil, fmt.Errorf("could not download profiler result file from pod: %v (reason: %s)", err, errOut.String())
+				return nil, errors.Wrapf(err, "could not download profiler result file from pod: %s", errOut.String())
 			}
 			n += out.Len() + 1
 			fileBuff = append(fileBuff, out.Bytes()...)
@@ -187,7 +187,7 @@ func retrieveFileOrRetry(pod *v1.Pod, containerName string, exec podexec.Executo
 	}
 
 	// if the checksum does not match after the last retry, return an error
-	return nil, fmt.Errorf("checksum does not match for file %s", remoteFile.FileName)
+	return nil, errors.Errorf("checksum does not match for file %s", remoteFile.FileName)
 }
 
 func retrieveChunkOrRetry(chunk api.ChunkData, pod *v1.Pod, containerName string, exec podexec.Executor, target *config.TargetConfig, timestamp time.Time) (string, error) {
@@ -208,7 +208,7 @@ func retrieveChunkOrRetry(chunk api.ChunkData, pod *v1.Pod, containerName string
 			fileName := filepath.Join(target.LocalPath, renameChunkFileName(chunk.File, timestamp))
 			err = os.WriteFile(fileName, fileBuff, 0644)
 			if err != nil {
-				return "", fmt.Errorf("could not write chunk file: %w", err)
+				return "", errors.Wrap(err, "could not write chunk file")
 			}
 
 			return fileName, nil
@@ -217,7 +217,7 @@ func retrieveChunkOrRetry(chunk api.ChunkData, pod *v1.Pod, containerName string
 	}
 
 	// if the checksum does not match after the last retry, return an error
-	return "", fmt.Errorf("checksum does not match for chunk file %s", chunk.File)
+	return "", errors.Errorf("checksum does not match for chunk file %s", chunk.File)
 }
 
 // retrieveChunk retrieves the chunk of the remote file from the pod's container
@@ -228,7 +228,7 @@ func retrieveChunk(chunk api.ChunkData, pod *v1.Pod, containerName string, exec 
 	for (chunk.FileSizeInBytes - int64(n)) > 0 {
 		_, out, errOut, err := exec.Execute(pod.Namespace, pod.Name, containerName, []string{"sh", "-c", fmt.Sprintf("tail -c+%d %s", n, chunk.File)})
 		if err != nil {
-			return nil, fmt.Errorf("could not download profiler chunk file from pod: %v (reason: %s)", err, errOut.String())
+			return nil, errors.Wrapf(err, "could not download profiler chunk file from pod: %s", errOut.String())
 		}
 		n += out.Len() + 1
 		fileBuff = append(fileBuff, out.Bytes()...)
@@ -245,13 +245,13 @@ func readChunks(downloadChunks []string, fileBuffSize int64) ([]byte, error) {
 	for _, downloadChunk := range downloadChunks {
 		chunkFile, err := os.Open(downloadChunk)
 		if err != nil {
-			return nil, fmt.Errorf("could not open chunk file: %w", err)
+			return nil, errors.Wrap(err, "could not open chunk file")
 		}
 
 		reader := bufio.NewReader(chunkFile)
 		content, err := io.ReadAll(reader)
 		if err != nil {
-			return nil, fmt.Errorf("could not read chunk file: %w", err)
+			return nil, errors.Wrap(err, "could not read chunk file")
 		}
 
 		fileBuff = append(fileBuff, content...)
@@ -260,7 +260,7 @@ func readChunks(downloadChunks []string, fileBuffSize int64) ([]byte, error) {
 
 		err = os.Remove(downloadChunk)
 		if err != nil {
-			return nil, fmt.Errorf("could not remove chunk file: %w", err)
+			return nil, errors.Wrapf(err, "could not remove chunk file")
 		}
 	}
 	return fileBuff, nil

@@ -63,6 +63,7 @@ var GetProfilingToolsByProgrammingLanguage = map[ProgrammingLanguage][]Profiling
 	Clang:         {Perf, Bpf},
 	ClangPlusPlus: {Perf, Bpf},
 	Ruby:          {Rbspy},
+	Rust:          {Bpf, Perf},
 	FakeLang:      {FakeTool},
 }
 

@@ -2,6 +2,7 @@ package profiler
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/config"
@@ -42,7 +43,7 @@ func NewMockBpfManager() MockBpfManager {
 func (m *mockBpfManager) handleProfilingResult(*job.ProfilingJob, flamegraph.FrameGrapher, string, bytes.Buffer) error {
 	m.handleProfilingResultInvokedTimes++
 	if m.withHandleProfilingResultError {
-		return fmt.Errorf("fake handleProfilingResult with error")
+		return errors.New("fake handleProfilingResult with error")
 	}
 	fmt.Println("fake handleProfilingResult")
 	return nil

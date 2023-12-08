@@ -1,7 +1,7 @@
 package config
 
 import (
-	"fmt"
+	"github.com/pkg/errors"
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
@@ -31,12 +31,12 @@ func (c *ContainerConfig) ToResourceRequirements() (apiv1.ResourceRequirements, 
 
 	requests, err := c.RequestConfig.ParseResources()
 	if err != nil {
-		return out, fmt.Errorf("unable to generate container requests: %w", err)
+		return out, errors.Wrap(err, "unable to generate container requests")
 	}
 
 	limits, err := c.LimitConfig.ParseResources()
 	if err != nil {
-		return out, fmt.Errorf("unable to generate container limits: %w", err)
+		return out, errors.Wrap(err, "unable to generate container limits")
 	}
 
 	out.Requests = requests
@@ -57,7 +57,7 @@ func (rc ResourceConfig) ParseResources() (apiv1.ResourceList, error) {
 	if rc.CPU != "" {
 		cpu, err := resource.ParseQuantity(rc.CPU)
 		if err != nil {
-			return nil, fmt.Errorf("unable to parse CPU value %q: %w", rc.CPU, err)
+			return nil, errors.Wrapf(err, "unable to parse CPU value %q", rc.CPU)
 		}
 
 		list[apiv1.ResourceCPU] = cpu
@@ -66,7 +66,7 @@ func (rc ResourceConfig) ParseResources() (apiv1.ResourceList, error) {
 	if rc.Memory != "" {
 		mem, err := resource.ParseQuantity(rc.Memory)
 		if err != nil {
-			return nil, fmt.Errorf("unable to parse memory value %q: %w", rc.Memory, err)
+			return nil, errors.Wrapf(err, "unable to parse memory value %q", rc.Memory)
 		}
 
 		list[apiv1.ResourceMemory] = mem

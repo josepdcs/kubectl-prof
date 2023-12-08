@@ -10,6 +10,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/flamegraph"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"os"
@@ -42,7 +43,7 @@ func NewMockPythonManager() MockPythonManager {
 func (m *mockPythonManager) handleProfilingResult(*job.ProfilingJob, flamegraph.FrameGrapher, string, bytes.Buffer) error {
 	m.handleProfilingResultInvokedTimes++
 	if m.withHandleProfilingResultError {
-		return fmt.Errorf("fake handleProfilingResult with error")
+		return errors.New("fake handleProfilingResult with error")
 	}
 	fmt.Println("fake handleProfilingResult")
 	return nil

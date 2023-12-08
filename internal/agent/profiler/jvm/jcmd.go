@@ -12,6 +12,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
+	"github.com/pkg/errors"
 	"io"
 	"os"
 	"os/exec"
@@ -120,7 +121,7 @@ func (j *JcmdProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	err := cmd.Run()
 	if err != nil {
 		log.ErrorLogLn(out.String())
-		return fmt.Errorf("could not launch profiler: %w; detail: %s", err, stderr.String()), time.Since(start)
+		return errors.Wrapf(err, "could not launch profiler: %s", stderr.String()), time.Since(start)
 	}
 
 	err = j.handleProfilingResult(job, fileName, out, j.targetPID)
@@ -175,7 +176,7 @@ func (j *jcmdManager) handleProfilingResult(job *job.ProfilingJob, fileName stri
 	case api.ThreadDump, api.HeapHistogram:
 		err := os.WriteFile(fileName, out.Bytes(), 0644)
 		if err != nil {
-			return fmt.Errorf("could not save dump to file: %w", err)
+			return errors.Wrap(err, "could not save dump to file")
 		}
 	default:
 		log.DebugLogLn(out.String())

@@ -1,8 +1,8 @@
 package log
 
 import (
-	"fmt"
 	"github.com/josepdcs/kubectl-prof/api"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -85,11 +85,11 @@ func TestEventLn(t *testing.T) {
 
 func TestLogger_ErrorLn(t *testing.T) {
 	l := &Logger{}
-	l.ErrorLn(fmt.Errorf("my error"))
+	l.ErrorLn(errors.New("my error"))
 }
 
 func TestErrorLn(t *testing.T) {
-	ErrorLn(fmt.Errorf("my error"))
+	ErrorLn(errors.New("my error"))
 }
 
 func TestLogger_PrintLogLn(t *testing.T) {

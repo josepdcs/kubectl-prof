@@ -12,11 +12,12 @@ const (
 	Node          ProgrammingLanguage = "node"
 	Clang         ProgrammingLanguage = "clang"
 	ClangPlusPlus ProgrammingLanguage = "clang++"
+	Rust          ProgrammingLanguage = "rust"
 	FakeLang      ProgrammingLanguage = "fake"
 )
 
 var (
-	supportedLangs = []ProgrammingLanguage{Java, Go, Python, Ruby, Node, Clang, ClangPlusPlus}
+	supportedLangs = []ProgrammingLanguage{Java, Go, Python, Ruby, Node, Clang, ClangPlusPlus, Rust}
 )
 
 func AvailableLanguages() []ProgrammingLanguage {

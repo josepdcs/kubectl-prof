@@ -3,10 +3,10 @@ package adapter
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	podexec "github.com/josepdcs/kubectl-prof/pkg/util/pod"
+	"github.com/pkg/errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -300,7 +300,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 							connectionInfo: kubernetes.ConnectionInfo{
 								ClientSet: testclient.NewSimpleClientset(),
 							},
-							executor: podexec.NewExecFake(nil, errOutFake, fmt.Errorf("error")),
+							executor: podexec.NewExecFake(nil, errOutFake, errors.New("error")),
 						},
 					},
 					args{
@@ -327,7 +327,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 			},
 			then: func(t *testing.T, r result, f fields) {
 				require.Error(t, r.err)
-				assert.EqualError(t, r.err, "could not download profiler result file from pod: error (reason: error message)")
+				assert.EqualError(t, r.err, "could not download profiler result file from pod: error message: error")
 			},
 		},
 		{
@@ -454,7 +454,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 			},
 			then: func(t *testing.T, r result, f fields) {
 				require.Error(t, r.err)
-				assert.EqualError(t, r.err, "could not get compressor: could not find compressor for other\n")
+				assert.EqualError(t, r.err, "could not get compressor: could not find compressor for other")
 			},
 		},
 		{
@@ -516,7 +516,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 			},
 			then: func(t *testing.T, r result, f fields) {
 				require.Error(t, r.err)
-				assert.EqualError(t, r.err, "could not decode remote file: unexpected EOF\n")
+				assert.EqualError(t, r.err, "could not decode remote file: unexpected EOF")
 			},
 		},
 		{
@@ -685,7 +685,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 							connectionInfo: kubernetes.ConnectionInfo{
 								ClientSet: testclient.NewSimpleClientset(),
 							},
-							executor: podexec.NewExecFake(nil, errOutFake, fmt.Errorf("error")),
+							executor: podexec.NewExecFake(nil, errOutFake, errors.New("error")),
 						},
 					},
 					args{
@@ -719,7 +719,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 			},
 			then: func(t *testing.T, r result, f fields) {
 				require.Error(t, r.err)
-				assert.EqualError(t, r.err, "could not download profiler chunk file from pod: error (reason: error message)")
+				assert.EqualError(t, r.err, "could not download profiler chunk file from pod: error message: error")
 			},
 		},
 		{

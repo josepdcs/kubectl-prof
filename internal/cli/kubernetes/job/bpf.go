@@ -6,6 +6,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
 	"github.com/josepdcs/kubectl-prof/internal/cli/version"
+	"github.com/pkg/errors"
 	batchv1 "k8s.io/api/batch/v1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,7 +28,7 @@ func (b *bpfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 
 	resources, err := cfg.Job.ToResourceRequirements()
 	if err != nil {
-		return "", nil, fmt.Errorf("unable to generate resource requirements: %w", err)
+		return "", nil, errors.Wrap(err, "unable to generate resource requirements")
 	}
 
 	job := &batchv1.Job{

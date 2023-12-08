@@ -114,10 +114,9 @@ func Test_perfCreate_create(t *testing.T) {
 								},
 							},
 							SecurityContext: &apiv1.SecurityContext{
-								// Perf works fine if it runs in privileged mode, SYS_ADMIN may not be enough
 								Privileged: &cfg.Job.Privileged,
 								Capabilities: &apiv1.Capabilities{
-									Add: []apiv1.Capability{"SYS_ADMIN", "PERFMON", "SYS_PTRACE", "SYSLOG"},
+									Add: []apiv1.Capability{"SYS_ADMIN"},
 								},
 							},
 							Resources: resources,

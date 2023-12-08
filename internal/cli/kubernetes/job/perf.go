@@ -6,6 +6,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
 	"github.com/josepdcs/kubectl-prof/internal/cli/version"
+	"github.com/pkg/errors"
 	batchv1 "k8s.io/api/batch/v1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,7 +29,7 @@ func (p *perfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (
 
 	resources, err := cfg.Job.ToResourceRequirements()
 	if err != nil {
-		return "", nil, fmt.Errorf("unable to generate resource requirements: %w", err)
+		return "", nil, errors.Wrap(err, "unable to generate resource requirements")
 	}
 
 	job := &batchv1.Job{
@@ -72,10 +73,9 @@ func (p *perfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (
 								},
 							},
 							SecurityContext: &apiv1.SecurityContext{
-								// Perf works fine if it runs in privileged mode, SYS_ADMIN may not be enough
 								Privileged: &cfg.Job.Privileged,
 								Capabilities: &apiv1.Capabilities{
-									Add: []apiv1.Capability{"SYS_ADMIN", "PERFMON", "SYS_PTRACE", "SYSLOG"},
+									Add: []apiv1.Capability{"SYS_ADMIN"},
 								},
 							},
 							Resources: resources,

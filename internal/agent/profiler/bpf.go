@@ -13,6 +13,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
+	"github.com/pkg/errors"
 	"os"
 	"os/exec"
 	"strconv"
@@ -70,7 +71,7 @@ func (b *BpfProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	err := b.cmd.Run()
 	if err != nil {
 		log.ErrorLogLn(out.String())
-		return fmt.Errorf("could not launch profiler: %w; detail: %s", err, stderr.String()), time.Since(start)
+		return errors.Wrapf(err, "could not launch profiler: %s", stderr.String()), time.Since(start)
 	}
 
 	err = b.handleProfilingResult(job, flamegraph.Get(job), common.GetResultFile(common.TmpDir(), job.Tool, api.Raw), out)
@@ -92,16 +93,16 @@ func (b *BpfProfiler) CleanUp(*job.ProfilingJob) error {
 func (b *bpfManager) handleProfilingResult(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher, fileName string, out bytes.Buffer) error {
 	err := os.WriteFile(fileName, out.Bytes(), 0644)
 	if err != nil {
-		return fmt.Errorf("could not save thread dump: %w", err)
+		return errors.Wrapf(err, "could not save file: %s", fileName)
 	}
 	if job.OutputType == api.FlameGraph {
 		if stringUtils.IsBlank(out.String()) {
-			return fmt.Errorf("unable to generate flamegraph: no stacks found (maybe due low cpu load)")
+			return errors.New("unable to generate flamegraph: no stacks found (maybe due low cpu load)")
 		}
 		// convert raw format to flamegraph
 		err = flameGrapher.StackSamplesToFlameGraph(fileName, common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType))
 		if err != nil {
-			return fmt.Errorf("could not convert raw format to flamegraph: %w", err)
+			return errors.Wrap(err, "could not convert raw format to flamegraph")
 		}
 	}
 	return nil

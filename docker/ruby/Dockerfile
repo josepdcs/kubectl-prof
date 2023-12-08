@@ -8,7 +8,7 @@ RUN go build -o /go/bin/agent
 FROM rust:1.74-bullseye AS rbspybuild
 WORKDIR /
 RUN git clone https://github.com/brendangregg/FlameGraph
-RUN git clone --depth 1 --branch v0.17.0 https://github.com/rbspy/rbspy
+RUN git clone --depth 1 --branch v0.17.1 https://github.com/rbspy/rbspy
 WORKDIR /rbspy
 RUN cargo build --release
 

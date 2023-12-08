@@ -12,6 +12,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
+	"github.com/pkg/errors"
 	"os"
 	"strconv"
 	"time"
@@ -51,23 +52,23 @@ func (p *PerfProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	start := time.Now()
 	err := p.runPerfRecord(job)
 	if err != nil {
-		return fmt.Errorf("perf record failed: %s", err), time.Since(start)
+		return errors.Wrap(err, "perf record failed"), time.Since(start)
 	}
 
 	err = p.runPerfScript(job)
 	if err != nil {
-		return fmt.Errorf("perf script failed: %s", err), time.Since(start)
+		return errors.Wrap(err, "perf script failed"), time.Since(start)
 	}
 
 	err = p.foldPerfOutput(job)
 	if err != nil {
-		return fmt.Errorf("folding perf output failed: %s", err), time.Since(start)
+		return errors.Wrap(err, "folding perf output failed"), time.Since(start)
 	}
 
 	if job.OutputType == api.FlameGraph {
 		err = p.generateFlameGraph(job)
 		if err != nil {
-			return fmt.Errorf("flamegraph generation failed: %s", err), time.Since(start)
+			return errors.Wrap(err, "flamegraph generation failed"), time.Since(start)
 		}
 	}
 
@@ -156,7 +157,7 @@ func (b *perfUtil) generateFlameGraph(job *job.ProfilingJob) error {
 	err := flameGrapher.StackSamplesToFlameGraph(common.GetResultFile(common.TmpDir(), job.Tool, api.Raw),
 		common.GetResultFile(common.TmpDir(), job.Tool, api.FlameGraph))
 	if err != nil {
-		return fmt.Errorf("could not convert folded format to flamegraph: %w", err)
+		return errors.Wrap(err, "could not convert raw format to flamegraph")
 	}
 	return nil
 }

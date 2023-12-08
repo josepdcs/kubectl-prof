@@ -10,6 +10,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/agent/testdata"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"os/exec"
@@ -51,7 +52,7 @@ func NewMockJcmdManager() MockJcmdManager {
 func (m *mockJcmdManager) removeTmpDir() error {
 	m.removeTmpDirInvokedTimes++
 	if m.withRemoveTmpDirResultError {
-		return fmt.Errorf("fake removeTmpDir with error")
+		return errors.New("fake removeTmpDir with error")
 	}
 	fmt.Println("fake removeTmpDir")
 	return nil
@@ -60,7 +61,7 @@ func (m *mockJcmdManager) removeTmpDir() error {
 func (m *mockJcmdManager) linkTmpDirToTargetTmpDir(string) error {
 	m.linkTmpDirToTargetTmpDirInvokedTimes++
 	if m.withLinkTmpDirToTargetTmpDirResultError {
-		return fmt.Errorf("fake linkTmpDirToTargetTmpDir with error")
+		return errors.New("fake linkTmpDirToTargetTmpDir with error")
 	}
 	fmt.Println("fake linkTmpDirToTargetTmpDir")
 	return nil
@@ -75,7 +76,7 @@ func (m *mockJcmdManager) copyJfrSettingsToTmpDir() error {
 func (m *mockJcmdManager) handleProfilingResult(*job.ProfilingJob, string, bytes.Buffer, string) error {
 	m.handleProfilingResultInvokedTimes++
 	if m.withHandleProfilingResultError {
-		return fmt.Errorf("fake handleProfilingResult with error")
+		return errors.New("fake handleProfilingResult with error")
 	}
 	fmt.Println("fake handleProfilingResult")
 	return nil

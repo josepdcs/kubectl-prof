@@ -6,6 +6,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes/job"
+	"github.com/pkg/errors"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,11 +43,11 @@ func NewProfilingJobAdapter(connectionInfo kubernetes.ConnectionInfo) ProfilingJ
 func (p profilingJobAdapter) CreateProfilingJob(targetPod *v1.Pod, cfg *config.ProfilerConfig, ctx context.Context) (string, *batchv1.Job, error) {
 	j, err := job.Get(cfg.Target.Language, cfg.Target.ProfilingTool)
 	if err != nil {
-		return "", nil, fmt.Errorf("unable to get the job type: %w", err)
+		return "", nil, errors.Wrap(err, "unable to get the job type")
 	}
 	id, profilingJob, err := j.Create(targetPod, cfg)
 	if err != nil {
-		return "", nil, fmt.Errorf("unable to create job: %w", err)
+		return "", nil, errors.Wrap(err, "unable to create job")
 	}
 
 	if cfg.Target.DryRun {
@@ -94,7 +95,7 @@ func (p profilingJobAdapter) GetProfilingPod(cfg *config.ProfilerConfig, ctx con
 			pod = &podList.Items[0]
 			switch pod.Status.Phase {
 			case v1.PodFailed:
-				return false, fmt.Errorf("profiling pod failed")
+				return false, errors.New("profiling pod failed")
 			case v1.PodSucceeded:
 				fallthrough
 			case v1.PodRunning:

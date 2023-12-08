@@ -2,7 +2,7 @@ package pod
 
 import (
 	"bytes"
-	"fmt"
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/cli-runtime/pkg/genericiooptions"
@@ -57,7 +57,7 @@ func (p *Exec) Execute(namespace, podName, containerName string, command []strin
 
 	err := options.Run()
 	if err != nil {
-		return in, out, errOut, fmt.Errorf("could not run exec operation: %v", err)
+		return in, out, errOut, errors.Wrap(err, "could not run exec operation")
 	}
 
 	return in, out, errOut, nil
