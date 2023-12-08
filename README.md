@@ -266,6 +266,10 @@ following tools according the programming language:
   * For generating raw use the option: `-o raw`. 
   * Note: Default output is flame graphs if no option `-o/--output` is given.
 * For Ruby: [rbspy](https://rbspy.github.io/).
+  * For generating flame graphs use the option: `-o flamegraph`.
+  * For generating speed scope use the option : `-o speedscope`.
+  * For generating callgrind use the option: `-o callgrind`.
+  * Note: Default output is flame graphs if no option `-o/--output` is given.
 * For Node.js: [ebpf profiling](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter) and [perf](https://perf.wiki.kernel.org/index.php/Main_Page) but last one is not recommended.
   * For generating flame graphs use the option: `-o flamegraph`.
   * For generating raw use the option: `-o raw`.
