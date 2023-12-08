@@ -30,13 +30,10 @@ archives:
       {{- end -}}
     builds:
       - kubectl-prof
-    replacements:
-      386: i386
-      amd64: x86_64
     format_overrides:
       - goos: windows
         format: zip
-    files: [ "LICENSE" ]
+    files: [ "LICENSE", "README.md" ]
 checksum:
   name_template: 'checksums.txt'
   algorithm: sha256
