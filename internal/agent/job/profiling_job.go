@@ -26,6 +26,8 @@ type ProfilingJob struct {
 	OutputType               api.OutputType
 	FileName                 string
 	HeapDumpSplitInChunkSize string
+	PID                      string
+	Pgrep                    string
 	AdditionalArguments      map[string]string
 }
 

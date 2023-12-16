@@ -30,6 +30,8 @@ const (
 	PrintLogs                       = "print-logs"
 	GracePeriodForEnding            = "grace-period-ending"
 	HeapDumpSplitInChunkSize        = "heap-dump-split-in-chunk-size"
+	Pid                             = "pid"
+	Pgrep                           = "pgrep"
 
 	defaultDuration                 = 60 * time.Second
 	defaultContainerRuntime         = api.Containerd
@@ -142,20 +144,45 @@ func getProfilingJob(args map[string]interface{}) (*job.ProfilingJob, error) {
 	}
 	j.Compressor = compressor.Type(co)
 
+	// validate profiling tool
 	validateProfilingTool(args[ProfilingTool].(string), args[OutputType].(string), j)
+
+	// validate output type
 	validateOutputType(args[OutputType].(string), j)
 
 	// set heap dump split in chunk size
+	setHeapDumpSplitChunkSize(args, j)
+
+	// set pid for testing purposes
+	setPid(args, j)
+
+	// set pgrep for testing purposes
+	setPgrep(args, j)
+
+	log.DebugLogLn(j.String())
+
+	return j, nil
+}
+
+func setHeapDumpSplitChunkSize(args map[string]interface{}, j *job.ProfilingJob) {
 	if j.OutputType == api.HeapDump {
 		j.HeapDumpSplitInChunkSize = defaultHeapDumpSplitInChunkSize
 		if args[HeapDumpSplitInChunkSize] != nil && stringUtils.IsNotBlank(args[HeapDumpSplitInChunkSize].(string)) {
 			j.HeapDumpSplitInChunkSize = args[HeapDumpSplitInChunkSize].(string)
 		}
 	}
+}
 
-	log.DebugLogLn(j.String())
+func setPid(args map[string]interface{}, j *job.ProfilingJob) {
+	if args[Pid] != nil && stringUtils.IsNotBlank(args[Pid].(string)) {
+		j.PID = args[Pid].(string)
+	}
+}
 
-	return j, nil
+func setPgrep(args map[string]interface{}, j *job.ProfilingJob) {
+	if args[Pgrep] != nil && stringUtils.IsNotBlank(args[Pgrep].(string)) {
+		j.Pgrep = args[Pgrep].(string)
+	}
 }
 
 // validateProfilingTool validates the given profiling tool and sets the default tool if needed

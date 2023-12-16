@@ -36,6 +36,7 @@ func GetArgs(targetPod *apiv1.Pod, cfg *config.ProfilerConfig, id string) []stri
 	args = appendArgument(args, "--interval", cfg.Target.Interval.String(), func() bool { return cfg.Target.Interval > 0 })
 	args = appendArgument(args, "--print-logs", "", func() bool { return cfg.Target.PrintLogs })
 	args = appendArgument(args, "--heap-dump-split-in-chunk-size", cfg.Target.HeapDumpSplitInChunkSize, func() bool { return cfg.Target.OutputType == api.HeapDump })
+	args = appendArgument(args, "--pid", cfg.Target.PID, func() bool { return stringUtils.IsNotBlank(cfg.Target.PID) })
 
 	return args
 }

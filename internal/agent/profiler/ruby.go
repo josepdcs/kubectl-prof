@@ -3,6 +3,7 @@ package profiler
 import (
 	"bytes"
 	"fmt"
+	"github.com/agrison/go-commons-lang/stringUtils"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/config"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
@@ -52,12 +53,16 @@ func NewRubyProfiler() *RubyProfiler {
 }
 
 func (r *RubyProfiler) SetUp(job *job.ProfilingJob) error {
-	pid, err := util.ContainerPID(job)
-	if err != nil {
-		return err
+	if stringUtils.IsNotBlank(job.PID) {
+		r.targetPID = job.PID
+	} else {
+		pid, err := util.ContainerPID(job)
+		if err != nil {
+			return err
+		}
+		r.targetPID = pid
 	}
-	log.DebugLogLn(fmt.Sprintf("The PID to be profiled: %s", pid))
-	r.targetPID = pid
+	log.DebugLogLn(fmt.Sprintf("The PID to be profiled: %s", r.targetPID))
 
 	return nil
 }
