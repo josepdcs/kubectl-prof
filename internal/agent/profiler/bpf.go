@@ -50,12 +50,16 @@ func NewBpfProfiler() *BpfProfiler {
 }
 
 func (b *BpfProfiler) SetUp(job *job.ProfilingJob) error {
-	pid, err := util.ContainerPID(job)
-	if err != nil {
-		return err
+	if stringUtils.IsNotBlank(job.PID) {
+		b.targetPID = job.PID
+	} else {
+		pid, err := util.ContainerPID(job)
+		if err != nil {
+			return err
+		}
+		b.targetPID = pid
 	}
-	log.DebugLogLn(fmt.Sprintf("The PID to be profiled: %s", pid))
-	b.targetPID = pid
+	log.DebugLogLn(fmt.Sprintf("The PID to be profiled: %s", b.targetPID))
 
 	return nil
 }

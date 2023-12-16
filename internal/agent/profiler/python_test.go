@@ -115,6 +115,30 @@ func TestPythonProfiler_SetUp(t *testing.T) {
 			},
 		},
 		{
+			name: "should setup when PID is given",
+			given: func() (fields, args) {
+				return fields{
+						PythonProfiler: &PythonProfiler{
+							PythonManager: NewMockPythonManager(),
+						},
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							PID:              "PID_ContainerID",
+						},
+					}
+			},
+			when: func(fields fields, args args) error {
+				return fields.PythonProfiler.SetUp(args.job)
+			},
+			then: func(t *testing.T, err error, fields fields) {
+				assert.Nil(t, err)
+				assert.Equal(t, "PID_ContainerID", fields.PythonProfiler.targetPID)
+			},
+		},
+		{
 			name: "should fail when container PID not found",
 			given: func() (fields, args) {
 				return fields{

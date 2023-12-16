@@ -40,4 +40,6 @@ type ExtraTargetOptions struct {
 	HeapDumpSplitInChunkSize string
 	PoolSizeRetrieveChunks   int
 	RetrieveFileRetries      int
+	PID                      string
+	Pgrep                    string
 }

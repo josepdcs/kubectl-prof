@@ -98,12 +98,16 @@ func (j *JcmdProfiler) SetUp(job *job.ProfilingJob) error {
 		return err
 	}
 
-	pid, err := util.ContainerPID(job)
-	if err != nil {
-		return err
+	if stringUtils.IsNotBlank(job.PID) {
+		j.targetPID = job.PID
+	} else {
+		pid, err := util.ContainerPID(job)
+		if err != nil {
+			return err
+		}
+		j.targetPID = pid
 	}
-	log.DebugLogLn(fmt.Sprintf("The PID to be profiled: %s", pid))
-	j.targetPID = pid
+	log.DebugLogLn(fmt.Sprintf("The PID to be profiled: %s", j.targetPID))
 
 	return j.copyJfrSettingsToTmpDir()
 }

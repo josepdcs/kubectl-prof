@@ -25,8 +25,8 @@ import (
 	"time"
 )
 
-// gracePeriod default grace period so that the cli will be able to retrieve the result file
-// also used in case of error for remaining before definitely ending the agent
+// gracePeriod is the default grace period so that the cli will be able to retrieve the result file,
+// and also used in case of error for remaining before definitely ending the agent
 var gracePeriod = 5 * time.Minute
 
 // p profiler to be run
@@ -143,6 +143,16 @@ func runApp() error {
 				Usage:    "size of the chunks used to split the heap dump",
 				Required: false,
 			},
+			&cli.StringFlag{
+				Name:     profile.Pid,
+				Usage:    "the PID of the target process to be profiled",
+				Required: false,
+			},
+			&cli.StringFlag{
+				Name:     profile.Pgrep,
+				Usage:    "the name of the process to be profiled",
+				Required: false,
+			},
 		},
 		Action: func(c *cli.Context) error {
 			period, errParse := time.ParseDuration(c.String(profile.GracePeriodForEnding))
@@ -181,6 +191,8 @@ func toArgs(c *cli.Context) map[string]interface{} {
 		profile.PrintLogs:                c.Bool(profile.PrintLogs),
 		profile.GracePeriodForEnding:     c.String(profile.GracePeriodForEnding),
 		profile.HeapDumpSplitInChunkSize: c.String(profile.HeapDumpSplitInChunkSize),
+		profile.Pid:                      c.String(profile.Pid),
+		profile.Pgrep:                    c.String(profile.Pgrep),
 	}
 }
 

@@ -208,6 +208,8 @@ func NewProfileCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.Flags().StringVar(&target.HeapDumpSplitInChunkSize, "heap-dump-split-size", defaultHeapDumpSplitSize, "The heap dump will be split into chunks of given size following the split command valid format.")
 	cmd.Flags().IntVar(&target.PoolSizeRetrieveChunks, "pool-size-retrieve-chunks", defaultPoolSizeRetrieveChunks, "The pool size of go routines to retrieve chunks of the obtained heap dump from the agent.")
 	cmd.Flags().IntVar(&target.RetrieveFileRetries, "retrieve-file-retries", defaultRetrieveFileRetries, "The number of retries to retrieve a file from the remote container.")
+	cmd.Flags().StringVar(&target.PID, "pid", "", "The PID of target process if it is known")
+	//cmd.Flags().StringVarP(&target.Pgrep, "pgrep", "p", "", "Name of the target process")
 	//cmd.Flags().BoolVar(&useEphemeralContainer, "use-ephemeral-container", false, "Launching profiling agent into ephemeral container instead into Job (experimental)")
 
 	options.configFlags.AddFlags(cmd.Flags())
@@ -228,20 +230,16 @@ func getProfilerConfig(target config.TargetConfig, job config.JobConfig, ephemer
 
 func validateFlags(runtime string, lang string, event string, logLevel string, compressorType string, profilingTool string,
 	outputType string, imagePullPolicy string, target *config.TargetConfig, job *config.JobConfig) error {
-	if lang == "" {
-		return errors.Errorf("use -l flag to select one of the supported languages %s", api.AvailableLanguages())
+	var err error
+
+	err = validateLang(lang)
+	if err != nil {
+		return err
 	}
 
-	if !api.IsSupportedLanguage(lang) {
-		return errors.Errorf("unsupported language, choose one of %s", api.AvailableLanguages())
-	}
-
-	if stringUtils.IsNotBlank(runtime) && !api.IsSupportedContainerRuntime(runtime) {
-		return errors.Errorf("unsupported container runtime, choose one of %s", api.AvailableContainerRuntimes())
-	}
-	if stringUtils.IsBlank(runtime) {
-		runtime = defaultContainerRuntime
-		target.ContainerRuntimePath = api.GetContainerRuntimeRootPath[api.ContainerRuntime(defaultContainerRuntime)]
+	runtime, err = validateRuntime(runtime, target)
+	if err != nil {
+		return err
 	}
 
 	if stringUtils.IsNotBlank(event) && !api.IsSupportedEvent(event) {
@@ -290,6 +288,35 @@ func validateFlags(runtime string, lang string, event string, logLevel string, c
 		return errors.Wrapf(err, "unable to parse resource limits")
 	}
 
+	return validatePid(target.PID)
+}
+
+func validatePid(pid string) error {
+	if !stringUtils.IsNumeric(pid) {
+		return errors.New("pid must be numeric")
+	}
+	return nil
+}
+
+func validateRuntime(runtime string, target *config.TargetConfig) (string, error) {
+	if stringUtils.IsNotBlank(runtime) && !api.IsSupportedContainerRuntime(runtime) {
+		return "", errors.Errorf("unsupported container runtime, choose one of %s", api.AvailableContainerRuntimes())
+	}
+	if stringUtils.IsBlank(runtime) {
+		runtime = defaultContainerRuntime
+		target.ContainerRuntimePath = api.GetContainerRuntimeRootPath[api.ContainerRuntime(defaultContainerRuntime)]
+	}
+	return runtime, nil
+}
+
+func validateLang(lang string) error {
+	if lang == "" {
+		return errors.Errorf("use -l flag to select one of the supported languages %s", api.AvailableLanguages())
+	}
+
+	if !api.IsSupportedLanguage(lang) {
+		return errors.Errorf("unsupported language, choose one of %s", api.AvailableLanguages())
+	}
 	return nil
 }
 

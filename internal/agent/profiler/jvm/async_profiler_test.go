@@ -143,6 +143,34 @@ func TestAsyncProfiler_SetUp(t *testing.T) {
 			},
 		},
 		{
+			name: "should setup when PID is given",
+			given: func() (fields, args) {
+				return fields{
+						AsyncProfiler: &AsyncProfiler{
+							AsyncProfilerManager: NewMockAsyncProfilerManager(),
+						},
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							PID:              "PID_ContainerID",
+						},
+					}
+			},
+			when: func(fields fields, args args) error {
+				return fields.AsyncProfiler.SetUp(args.job)
+			},
+			then: func(t *testing.T, err error, fields fields) {
+				mock := fields.AsyncProfiler.AsyncProfilerManager.(MockAsyncProfilerManager)
+				assert.Nil(t, err)
+				assert.Equal(t, "PID_ContainerID", fields.AsyncProfiler.targetPID)
+				assert.Equal(t, 1, mock.RemoveTmpDirInvokedTimes())
+				assert.Equal(t, 1, mock.LinkTmpDirToTargetTmpDirInvokedTimes())
+				assert.Equal(t, 1, mock.CopyProfilerToTmpDirInvokedTimes())
+			},
+		},
+		{
 			name: "should fail when getting target filesystem fail",
 			given: func() (fields, args) {
 				return fields{

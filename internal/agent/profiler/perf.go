@@ -3,6 +3,7 @@ package profiler
 import (
 	"bytes"
 	"fmt"
+	"github.com/agrison/go-commons-lang/stringUtils"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/config"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
@@ -82,9 +83,15 @@ func (p *PerfProfiler) CleanUp(job *job.ProfilingJob) error {
 }
 
 func (b *perfUtil) runPerfRecord(job *job.ProfilingJob) error {
-	pid, err := util.ContainerPID(job)
-	if err != nil {
-		return err
+	var pid string
+	var err error
+	if stringUtils.IsNotBlank(job.PID) {
+		pid = job.PID
+	} else {
+		pid, err = util.ContainerPID(job)
+		if err != nil {
+			return err
+		}
 	}
 	log.DebugLogLn(fmt.Sprintf("The PID to be profiled: %s", pid))
 

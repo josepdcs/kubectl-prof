@@ -109,7 +109,30 @@ func TestBpfProfiler_SetUp(t *testing.T) {
 				return fields.BpfProfiler.SetUp(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
-				//mock := fields.BpfProfiler.BpfManager.(MockBpfManager)
+				assert.Nil(t, err)
+				assert.Equal(t, "PID_ContainerID", fields.BpfProfiler.targetPID)
+			},
+		},
+		{
+			name: "should setup when PID is provided",
+			given: func() (fields, args) {
+				return fields{
+						BpfProfiler: &BpfProfiler{
+							BpfManager: NewMockBpfManager(),
+						},
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							PID:              "PID_ContainerID",
+						},
+					}
+			},
+			when: func(fields fields, args args) error {
+				return fields.BpfProfiler.SetUp(args.job)
+			},
+			then: func(t *testing.T, err error, fields fields) {
 				assert.Nil(t, err)
 				assert.Equal(t, "PID_ContainerID", fields.BpfProfiler.targetPID)
 			},

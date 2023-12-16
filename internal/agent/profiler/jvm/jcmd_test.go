@@ -172,6 +172,34 @@ func TestJcmdProfiler_SetUp(t *testing.T) {
 			},
 		},
 		{
+			name: "should setup when PID is given",
+			given: func() (fields, args) {
+				return fields{
+						JcmdProfiler: &JcmdProfiler{
+							JcmdManager: NewMockJcmdManager(),
+						},
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							PID:              "PID_ContainerID",
+						},
+					}
+			},
+			when: func(fields fields, args args) error {
+				return fields.JcmdProfiler.SetUp(args.job)
+			},
+			then: func(t *testing.T, err error, fields fields) {
+				mock := fields.JcmdProfiler.JcmdManager.(MockJcmdManager)
+				assert.Nil(t, err)
+				assert.Equal(t, "PID_ContainerID", fields.JcmdProfiler.targetPID)
+				assert.Equal(t, 1, mock.RemoveTmpDirInvokedTimes())
+				assert.Equal(t, 1, mock.LinkTmpDirToTargetTmpDirInvokedTimes())
+				assert.Equal(t, 1, mock.CopyJfrSettingsToTmpDirInvokedTimes())
+			},
+		},
+		{
 			name: "should fail when getting target filesystem fail",
 			given: func() (fields, args) {
 				return fields{
