@@ -58,6 +58,8 @@ func TestProfilingJob_ToMap(t *testing.T) {
 		OutputType:               "OutputType",
 		FileName:                 "FileName",
 		HeapDumpSplitInChunkSize: "100M",
+		PID:                      "PID",
+		Pgrep:                    "PGREP",
 		AdditionalArguments: map[string]string{
 			"maxsize":  "1024M",
 			"settings": "custom",
@@ -67,7 +69,7 @@ func TestProfilingJob_ToMap(t *testing.T) {
 	out := p.ToMap()
 
 	assert.NotEmpty(t, out)
-	assert.Len(t, out, 14)
+	assert.Len(t, out, 16)
 	assert.Equal(t, float64(10), out["Duration"])
 	assert.Equal(t, float64(5), out["Interval"])
 	assert.Equal(t, "ID", out["UID"])
@@ -81,6 +83,8 @@ func TestProfilingJob_ToMap(t *testing.T) {
 	assert.Equal(t, "OutputType", out["OutputType"])
 	assert.Equal(t, "FileName", out["FileName"])
 	assert.Equal(t, "100M", out["HeapDumpSplitInChunkSize"])
+	assert.Equal(t, "PID", out["PID"])
+	assert.Equal(t, "PGREP", out["Pgrep"])
 	assert.Equal(t, map[string]interface{}{
 		"maxsize":  "1024M",
 		"settings": "custom",
