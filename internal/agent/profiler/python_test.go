@@ -42,7 +42,7 @@ func NewMockPythonManager() MockPythonManager {
 	return &mockPythonManager{}
 }
 
-func (m *mockPythonManager) invoke(job *job.ProfilingJob, pid string) (error, string, time.Duration) {
+func (m *mockPythonManager) invoke(*job.ProfilingJob, string, string) (error, string, time.Duration) {
 	m.invokeInvokedTimes++
 	fmt.Println("fake invoke")
 	return nil, "", 0
@@ -338,8 +338,9 @@ func Test_pythonManager_invoke(t *testing.T) {
 		PythonProfiler *PythonProfiler
 	}
 	type args struct {
-		job *job.ProfilingJob
-		pid string
+		job      *job.ProfilingJob
+		pid      string
+		fileName string
 	}
 	tests := []struct {
 		name  string
@@ -364,15 +365,16 @@ func Test_pythonManager_invoke(t *testing.T) {
 							OutputType:       api.FlameGraph,
 							Language:         api.FakeLang,
 						},
-						pid: "1000",
+						pid:      "1000",
+						fileName: filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"),
 					}
 			},
 			when: func(fields fields, args args) (error, string, time.Duration) {
-				return fields.PythonProfiler.invoke(args.job, args.pid)
+				return fields.PythonProfiler.invoke(args.job, args.pid, args.fileName)
 			},
 			then: func(t *testing.T, err error, fileName string) {
 				assert.Nil(t, err)
-				assert.Equal(t, filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.svg.1000"), fileName)
+				assert.Equal(t, filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt.1000"), fileName)
 			},
 		},
 		{
@@ -391,15 +393,16 @@ func Test_pythonManager_invoke(t *testing.T) {
 							OutputType:       api.ThreadDump,
 							Language:         api.FakeLang,
 						},
-						pid: "1000",
+						pid:      "1000",
+						fileName: filepath.Join(common.TmpDir(), config.ProfilingPrefix+"threaddump.txt"),
 					}
 			},
 			when: func(fields fields, args args) (error, string, time.Duration) {
-				return fields.PythonProfiler.invoke(args.job, args.pid)
+				return fields.PythonProfiler.invoke(args.job, args.pid, args.fileName)
 			},
 			then: func(t *testing.T, err error, fileName string) {
 				assert.Nil(t, err)
-				assert.Equal(t, filepath.Join(common.TmpDir(), config.ProfilingPrefix+"threaddump.svg.1000"), fileName)
+				assert.Equal(t, filepath.Join(common.TmpDir(), config.ProfilingPrefix+"threaddump.txt.1000"), fileName)
 			},
 		},
 		{
@@ -418,11 +421,12 @@ func Test_pythonManager_invoke(t *testing.T) {
 							OutputType:       api.FlameGraph,
 							Language:         api.FakeLang,
 						},
-						pid: "1000",
+						pid:      "1000",
+						fileName: filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"),
 					}
 			},
 			when: func(fields fields, args args) (error, string, time.Duration) {
-				return fields.PythonProfiler.invoke(args.job, args.pid)
+				return fields.PythonProfiler.invoke(args.job, args.pid, args.fileName)
 			},
 			then: func(t *testing.T, err error, fileName string) {
 				require.Error(t, err)

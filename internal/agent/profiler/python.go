@@ -55,7 +55,7 @@ type PythonProfiler struct {
 }
 
 type PythonManager interface {
-	invoke(job *job.ProfilingJob, pid string) (error, string, time.Duration)
+	invoke(job *job.ProfilingJob, pid string, fileName string) (error, string, time.Duration)
 	handleProfilingResult(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher, fileName string) error
 	publishResult(compressor compressor.Type, fileName string, outputType api.OutputType) error
 	cleanUp(cmd *exec.Cmd)
@@ -91,6 +91,17 @@ func (p *PythonProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 
 	files := make([]string, 0, len(p.targetPIDs))
 
+	// override output type when flamegraph: it will be generated in two steps
+	// 1 - get raw format
+	// 2 - convert to flamegraph with Brendan Gregg's tool: flamegraph.pl
+	// the flamegraph format of py-spy will be ignored since the size of this one cannot be adjusted, and we want it
+	var fileName string
+	if job.OutputType == api.FlameGraph {
+		fileName = common.GetResultFile(common.TmpDir(), job.Tool, api.Raw)
+	} else {
+		fileName = common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType)
+	}
+
 	pool := pond.New(len(p.targetPIDs), 0, pond.MinWorkers(len(p.targetPIDs)))
 	defer pool.StopAndWait()
 
@@ -101,7 +112,7 @@ func (p *PythonProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	for _, pid := range p.targetPIDs {
 		pid := pid
 		group.Submit(func() error {
-			err, f, _ := p.invoke(job, pid)
+			err, f, _ := p.invoke(job, pid, fileName)
 			if err == nil {
 				files = append(files, f)
 			}
@@ -117,17 +128,6 @@ func (p *PythonProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 		return err, time.Since(start)
 	}
 
-	// override output type when flamegraph: it will be generated in two steps
-	// 1 - get raw format
-	// 2 - convert to flamegraph with Brendan Gregg's tool: flamegraph.pl
-	// the flamegraph format of py-spy will be ignored since the size of this one cannot be adjusted, and we want it
-	var fileName string
-	if job.OutputType == api.FlameGraph {
-		fileName = common.GetResultFile(common.TmpDir(), job.Tool, api.Raw)
-	} else {
-		fileName = common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType)
-	}
-
 	// merge all files
 	file.MergeFiles(fileName, files)
 
@@ -139,20 +139,13 @@ func (p *PythonProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	return p.publishResult(job.Compressor, common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType), job.OutputType), time.Since(start)
 }
 
-func (p *pythonManager) invoke(job *job.ProfilingJob, pid string) (error, string, time.Duration) {
+func (p *pythonManager) invoke(job *job.ProfilingJob, pid string, fileName string) (error, string, time.Duration) {
 	start := time.Now()
 
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 
-	// out file name is composed by the job info and the pid
-	var fileName string
-	if job.OutputType == api.FlameGraph {
-		fileName = common.GetResultFile(common.TmpDir(), job.Tool, api.Raw) + "." + pid
-	} else {
-		fileName = common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType) + "." + pid
-	}
-
+	fileName = fileName + "." + pid
 	cmd := pythonCommand(job, pid, fileName)
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
