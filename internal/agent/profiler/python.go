@@ -2,8 +2,10 @@ package profiler
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"github.com/agrison/go-commons-lang/stringUtils"
+	"github.com/alitto/pond"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/config"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
@@ -14,14 +16,14 @@ import (
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
 	"github.com/pkg/errors"
-	"os"
 	"os/exec"
 	"strconv"
 	"time"
 )
 
 const (
-	pySpyLocation = "/app/py-spy"
+	pySpyLocation         = "/app/py-spy"
+	pySpyDelayBetweenJobs = 2 * time.Second
 )
 
 var pythonCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
@@ -46,13 +48,15 @@ var pythonCommand = func(job *job.ProfilingJob, pid string, fileName string) *ex
 }
 
 type PythonProfiler struct {
-	targetPID string
-	cmd       *exec.Cmd
+	targetPIDs []string
+	delay      time.Duration
+	cmd        *exec.Cmd
 	PythonManager
 }
 
 type PythonManager interface {
-	handleProfilingResult(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher, fileName string, out bytes.Buffer) error
+	invoke(job *job.ProfilingJob, pid string) (error, string, time.Duration)
+	handleProfilingResult(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher, fileName string) error
 	publishResult(compressor compressor.Type, fileName string, outputType api.OutputType) error
 	cleanUp(cmd *exec.Cmd)
 }
@@ -62,27 +66,57 @@ type pythonManager struct {
 
 func NewPythonProfiler() *PythonProfiler {
 	return &PythonProfiler{
+		delay:         pySpyDelayBetweenJobs,
 		PythonManager: &pythonManager{},
 	}
 }
 
 func (p *PythonProfiler) SetUp(job *job.ProfilingJob) error {
 	if stringUtils.IsNotBlank(job.PID) {
-		p.targetPID = job.PID
-	} else {
-		pid, err := util.ContainerPID(job)
-		if err != nil {
-			return err
-		}
-		p.targetPID = pid
+		p.targetPIDs = []string{job.PID}
+		return nil
 	}
-	log.DebugLogLn(fmt.Sprintf("The PID to be profiled: %s", p.targetPID))
+	pids, err := util.GetCandidatePIDs(job)
+	if err != nil {
+		return err
+	}
+	log.DebugLogLn(fmt.Sprintf("The PIDs to be profiled: %s", pids))
+	p.targetPIDs = pids
 
 	return nil
 }
 
 func (p *PythonProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	start := time.Now()
+
+	files := make([]string, 0, len(p.targetPIDs))
+
+	pool := pond.New(len(p.targetPIDs), 0, pond.MinWorkers(len(p.targetPIDs)))
+	defer pool.StopAndWait()
+
+	// create a task group associated to a context
+	group, _ := pool.GroupContext(context.Background())
+
+	// submit tasks to profile
+	for _, pid := range p.targetPIDs {
+		pid := pid
+		group.Submit(func() error {
+			err, f, _ := p.invoke(job, pid)
+			if err == nil {
+				files = append(files, f)
+			}
+			return err
+		})
+		// wait a bit between jobs for not overloading the system
+		time.Sleep(p.delay)
+	}
+
+	// wait for all tasks to finish
+	err := group.Wait()
+	if err != nil {
+		return err, time.Since(start)
+	}
+
 	// override output type when flamegraph: it will be generated in two steps
 	// 1 - get raw format
 	// 2 - convert to flamegraph with Brendan Gregg's tool: flamegraph.pl
@@ -94,24 +128,45 @@ func (p *PythonProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 		fileName = common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType)
 	}
 
-	var out bytes.Buffer
-	var stderr bytes.Buffer
+	// merge all files
+	file.MergeFiles(fileName, files)
 
-	p.cmd = pythonCommand(job, p.targetPID, fileName)
-	p.cmd.Stdout = &out
-	p.cmd.Stderr = &stderr
-	err := p.cmd.Run()
-	if err != nil {
-		log.ErrorLogLn(out.String())
-		return errors.Wrapf(err, "could not launch profiler: %s", stderr.String()), time.Since(start)
-	}
-
-	err = p.handleProfilingResult(job, flamegraph.Get(job), fileName, out)
+	err = p.handleProfilingResult(job, flamegraph.Get(job), fileName)
 	if err != nil {
 		return err, time.Since(start)
 	}
 
 	return p.publishResult(job.Compressor, common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType), job.OutputType), time.Since(start)
+}
+
+func (p *pythonManager) invoke(job *job.ProfilingJob, pid string) (error, string, time.Duration) {
+	start := time.Now()
+
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+
+	// out file name is composed by the job info and the pid
+	var fileName string
+	if job.OutputType == api.FlameGraph {
+		fileName = common.GetResultFile(common.TmpDir(), job.Tool, api.Raw) + "." + pid
+	} else {
+		fileName = common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType) + "." + pid
+	}
+
+	cmd := pythonCommand(job, pid, fileName)
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err != nil {
+		log.ErrorLogLn(out.String())
+		return errors.Wrapf(err, "could not launch profiler: %s", stderr.String()), "", time.Since(start)
+	}
+
+	if job.OutputType == api.ThreadDump {
+		file.Write(fileName, out.String())
+	}
+
+	return nil, fileName, time.Since(start)
 }
 
 func (p *PythonProfiler) CleanUp(*job.ProfilingJob) error {
@@ -122,13 +177,8 @@ func (p *PythonProfiler) CleanUp(*job.ProfilingJob) error {
 	return nil
 }
 
-func (p *pythonManager) handleProfilingResult(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher, fileName string, out bytes.Buffer) error {
-	if job.OutputType == api.ThreadDump {
-		err := os.WriteFile(fileName, out.Bytes(), 0644)
-		if err != nil {
-			return errors.Wrap(err, "could not save thread dump file")
-		}
-	} else if job.OutputType == api.FlameGraph {
+func (p *pythonManager) handleProfilingResult(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher, fileName string) error {
+	if job.OutputType == api.FlameGraph {
 		if file.IsEmpty(fileName) {
 			return errors.New("unable to generate flamegraph: no stacks found (maybe due low cpu load)")
 		}

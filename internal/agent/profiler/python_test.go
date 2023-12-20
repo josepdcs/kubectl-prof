@@ -22,6 +22,7 @@ import (
 
 type MockPythonManager interface {
 	PythonManager
+	InvokeInvokedTimes() int
 	HandleProfilingResultInvokedTimes() int
 	PublishResultInvokedTimes() int
 	CleanUpInvokedTimes() int
@@ -29,6 +30,7 @@ type MockPythonManager interface {
 }
 
 type mockPythonManager struct {
+	invokeInvokedTimes                int
 	handleProfilingResultInvokedTimes int
 	publishResultInvokedTimes         int
 	cleanUpInvokedTimes               int
@@ -40,7 +42,13 @@ func NewMockPythonManager() MockPythonManager {
 	return &mockPythonManager{}
 }
 
-func (m *mockPythonManager) handleProfilingResult(*job.ProfilingJob, flamegraph.FrameGrapher, string, bytes.Buffer) error {
+func (m *mockPythonManager) invoke(job *job.ProfilingJob, pid string) (error, string, time.Duration) {
+	m.invokeInvokedTimes++
+	fmt.Println("fake invoke")
+	return nil, "", 0
+}
+
+func (m *mockPythonManager) handleProfilingResult(*job.ProfilingJob, flamegraph.FrameGrapher, string) error {
 	m.handleProfilingResultInvokedTimes++
 	if m.withHandleProfilingResultError {
 		return errors.New("fake handleProfilingResult with error")
@@ -58,6 +66,10 @@ func (m *mockPythonManager) publishResult(compressor.Type, string, api.OutputTyp
 func (m *mockPythonManager) cleanUp(*exec.Cmd) {
 	m.cleanUpInvokedTimes++
 	fmt.Println("fake cleanUp")
+}
+
+func (m *mockPythonManager) InvokeInvokedTimes() int {
+	return m.invokeInvokedTimes
 }
 
 func (m *mockPythonManager) HandleProfilingResultInvokedTimes() int {
@@ -109,13 +121,12 @@ func TestPythonProfiler_SetUp(t *testing.T) {
 				return fields.PythonProfiler.SetUp(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
-				//mock := fields.PythonProfiler.PythonManager.(MockPythonManager)
 				assert.Nil(t, err)
-				assert.Equal(t, "PID_ContainerID", fields.PythonProfiler.targetPID)
+				assert.Equal(t, []string{"PID_ContainerID"}, fields.PythonProfiler.targetPIDs)
 			},
 		},
 		{
-			name: "should setup when PID is given",
+			name: "should setup with given PID",
 			given: func() (fields, args) {
 				return fields{
 						PythonProfiler: &PythonProfiler{
@@ -135,7 +146,7 @@ func TestPythonProfiler_SetUp(t *testing.T) {
 			},
 			then: func(t *testing.T, err error, fields fields) {
 				assert.Nil(t, err)
-				assert.Equal(t, "PID_ContainerID", fields.PythonProfiler.targetPID)
+				assert.Equal(t, []string{"PID_ContainerID"}, fields.PythonProfiler.targetPIDs)
 			},
 		},
 		{
@@ -158,7 +169,7 @@ func TestPythonProfiler_SetUp(t *testing.T) {
 			},
 			then: func(t *testing.T, err error, fields fields) {
 				assert.NotNil(t, err)
-				assert.Empty(t, fields.PythonProfiler.targetPID)
+				assert.Empty(t, fields.PythonProfiler.targetPIDs)
 			},
 		},
 	}
@@ -193,9 +204,6 @@ func TestPythonProfiler_Invoke(t *testing.T) {
 		{
 			name: "should publish result",
 			given: func() (fields, args) {
-				pythonCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-					return exec.Command("ls", "/tmp")
-				}
 				return fields{
 						PythonProfiler: &PythonProfiler{
 							PythonManager: NewMockPythonManager(),
@@ -210,79 +218,21 @@ func TestPythonProfiler_Invoke(t *testing.T) {
 					}
 			},
 			when: func(fields fields, args args) (error, time.Duration) {
+				fields.PythonProfiler.delay = 0
+				fields.PythonProfiler.targetPIDs = []string{"1000", "2000"}
 				return fields.PythonProfiler.Invoke(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
 				mock := fields.PythonProfiler.PythonManager.(MockPythonManager)
 				assert.Nil(t, err)
+				assert.Equal(t, 2, mock.InvokeInvokedTimes())
 				assert.Equal(t, 1, mock.HandleProfilingResultInvokedTimes())
 				assert.Equal(t, 1, mock.PublishResultInvokedTimes())
-			},
-		},
-		{
-			name: "should publish result when ThreadDump output type",
-			given: func() (fields, args) {
-				pythonCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-					return exec.Command("ls", "/tmp")
-				}
-				return fields{
-						PythonProfiler: &PythonProfiler{
-							PythonManager: NewMockPythonManager(),
-						},
-					}, args{
-						job: &job.ProfilingJob{
-							Duration:         time.Duration(1) * time.Second,
-							Interval:         time.Duration(1) * time.Second,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
-							OutputType:       api.ThreadDump,
-						},
-					}
-			},
-			when: func(fields fields, args args) (error, time.Duration) {
-				return fields.PythonProfiler.Invoke(args.job)
-			},
-			then: func(t *testing.T, err error, fields fields) {
-				mock := fields.PythonProfiler.PythonManager.(MockPythonManager)
-				assert.Nil(t, err)
-				assert.Equal(t, 1, mock.HandleProfilingResultInvokedTimes())
-				assert.Equal(t, 1, mock.PublishResultInvokedTimes())
-			},
-		},
-		{
-			name: "should fail when fail exec command",
-			given: func() (fields, args) {
-				pythonCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-					return &exec.Cmd{}
-				}
-				return fields{
-						PythonProfiler: &PythonProfiler{
-							PythonManager: NewMockPythonManager(),
-						},
-					}, args{
-						job: &job.ProfilingJob{
-							Duration:         0,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
-						},
-					}
-			},
-			when: func(fields fields, args args) (error, time.Duration) {
-				return fields.PythonProfiler.Invoke(args.job)
-			},
-			then: func(t *testing.T, err error, fields fields) {
-				mock := fields.PythonProfiler.PythonManager.(MockPythonManager)
-				assert.NotNil(t, err)
-				assert.Equal(t, 0, mock.HandleProfilingResultInvokedTimes())
-				assert.Equal(t, 0, mock.PublishResultInvokedTimes())
 			},
 		},
 		{
 			name: "should fail when handle profiling result fail",
 			given: func() (fields, args) {
-				pythonCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-					return exec.Command("ls", "/tmp")
-				}
 				return fields{
 						PythonProfiler: &PythonProfiler{
 							PythonManager: NewMockPythonManager().WithHandleProfilingResultError(),
@@ -296,69 +246,14 @@ func TestPythonProfiler_Invoke(t *testing.T) {
 					}
 			},
 			when: func(fields fields, args args) (error, time.Duration) {
+				fields.PythonProfiler.delay = 0
+				fields.PythonProfiler.targetPIDs = []string{"1000", "2000"}
 				return fields.PythonProfiler.Invoke(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
 				mock := fields.PythonProfiler.PythonManager.(MockPythonManager)
 				assert.NotNil(t, err)
-				assert.Equal(t, 0, mock.PublishResultInvokedTimes())
-			},
-		},
-		{
-			name: "should fail when profile fail for ThreadDump output type",
-			given: func() (fields, args) {
-				pythonCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-					return exec.Command("ls", "/tmp")
-				}
-				return fields{
-						PythonProfiler: &PythonProfiler{
-							PythonManager: NewMockPythonManager().WithHandleProfilingResultError(),
-						},
-					}, args{
-						job: &job.ProfilingJob{
-							Duration:         time.Duration(2) * time.Second,
-							Interval:         time.Duration(1) * time.Second,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
-							OutputType:       api.ThreadDump,
-						},
-					}
-			},
-			when: func(fields fields, args args) (error, time.Duration) {
-				return fields.PythonProfiler.Invoke(args.job)
-			},
-			then: func(t *testing.T, err error, fields fields) {
-				mock := fields.PythonProfiler.PythonManager.(MockPythonManager)
-				assert.NotNil(t, err)
-				assert.Equal(t, 0, mock.PublishResultInvokedTimes())
-			},
-		},
-		{
-			name: "should fail when profile fail for ThreadDump output type",
-			given: func() (fields, args) {
-				pythonCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-					return exec.Command("ls", "/tmp")
-				}
-				return fields{
-						PythonProfiler: &PythonProfiler{
-							PythonManager: NewMockPythonManager().WithHandleProfilingResultError(),
-						},
-					}, args{
-						job: &job.ProfilingJob{
-							Duration:         time.Duration(2) * time.Second,
-							Interval:         time.Duration(1) * time.Second,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
-							OutputType:       api.ThreadDump,
-						},
-					}
-			},
-			when: func(fields fields, args args) (error, time.Duration) {
-				return fields.PythonProfiler.Invoke(args.job)
-			},
-			then: func(t *testing.T, err error, fields fields) {
-				mock := fields.PythonProfiler.PythonManager.(MockPythonManager)
-				assert.NotNil(t, err)
+				assert.Equal(t, 2, mock.InvokeInvokedTimes())
 				assert.Equal(t, 0, mock.PublishResultInvokedTimes())
 			},
 		},
@@ -438,6 +333,121 @@ func TestPythonProfiler_CleanUp(t *testing.T) {
 	}
 }
 
+func Test_pythonManager_invoke(t *testing.T) {
+	type fields struct {
+		PythonProfiler *PythonProfiler
+	}
+	type args struct {
+		job *job.ProfilingJob
+		pid string
+	}
+	tests := []struct {
+		name  string
+		given func() (fields, args)
+		when  func(fields, args) (error, string, time.Duration)
+		then  func(t *testing.T, err error, fileName string)
+		after func()
+	}{
+		{
+			name: "should invoke",
+			given: func() (fields, args) {
+				pythonCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
+					return exec.Command("ls", "/tmp")
+				}
+				return fields{
+						PythonProfiler: NewPythonProfiler(),
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							OutputType:       api.FlameGraph,
+							Language:         api.FakeLang,
+						},
+						pid: "1000",
+					}
+			},
+			when: func(fields fields, args args) (error, string, time.Duration) {
+				return fields.PythonProfiler.invoke(args.job, args.pid)
+			},
+			then: func(t *testing.T, err error, fileName string) {
+				assert.Nil(t, err)
+				assert.Equal(t, filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.svg.1000"), fileName)
+			},
+		},
+		{
+			name: "should invoke when thread dump",
+			given: func() (fields, args) {
+				pythonCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
+					return exec.Command("ls", "/tmp")
+				}
+				return fields{
+						PythonProfiler: NewPythonProfiler(),
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							OutputType:       api.ThreadDump,
+							Language:         api.FakeLang,
+						},
+						pid: "1000",
+					}
+			},
+			when: func(fields fields, args args) (error, string, time.Duration) {
+				return fields.PythonProfiler.invoke(args.job, args.pid)
+			},
+			then: func(t *testing.T, err error, fileName string) {
+				assert.Nil(t, err)
+				assert.Equal(t, filepath.Join(common.TmpDir(), config.ProfilingPrefix+"threaddump.svg.1000"), fileName)
+			},
+		},
+		{
+			name: "should invoke fail when command fail",
+			given: func() (fields, args) {
+				pythonCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
+					return &exec.Cmd{}
+				}
+				return fields{
+						PythonProfiler: NewPythonProfiler(),
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							OutputType:       api.FlameGraph,
+							Language:         api.FakeLang,
+						},
+						pid: "1000",
+					}
+			},
+			when: func(fields fields, args args) (error, string, time.Duration) {
+				return fields.PythonProfiler.invoke(args.job, args.pid)
+			},
+			then: func(t *testing.T, err error, fileName string) {
+				require.Error(t, err)
+				assert.Equal(t, "", fileName)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Given
+			fields, args := tt.given()
+
+			// When
+			err, fileName, _ := tt.when(fields, args)
+
+			// Then
+			tt.then(t, err, fileName)
+
+			if tt.after != nil {
+				tt.after()
+			}
+		})
+	}
+}
+
 func Test_pythonManager_handleProfilingResult(t *testing.T) {
 	type fields struct {
 		PythonProfiler *PythonProfiler
@@ -455,61 +465,6 @@ func Test_pythonManager_handleProfilingResult(t *testing.T) {
 		then  func(t *testing.T, err error, fields fields)
 		after func()
 	}{
-		{
-			name: "should handle thread dump profiler result",
-			given: func() (fields, args) {
-				var b bytes.Buffer
-				b.Write([]byte("test"))
-				return fields{
-						PythonProfiler: NewPythonProfiler(),
-					}, args{
-						job: &job.ProfilingJob{
-							Duration:         0,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
-							OutputType:       api.ThreadDump,
-						},
-						fileName: filepath.Join(common.TmpDir(), config.ProfilingPrefix+"threaddump.txt"),
-						out:      b,
-					}
-			},
-			when: func(fields fields, args args) error {
-				return fields.PythonProfiler.handleProfilingResult(args.job, args.flameGrapher, args.fileName, args.out)
-			},
-			then: func(t *testing.T, err error, fields fields) {
-				b, err := os.ReadFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"threaddump.txt"))
-				assert.Equal(t, "test", string(b))
-				assert.Nil(t, err)
-			},
-			after: func() {
-				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"threaddump.txt"))
-			},
-		},
-		{
-			name: "should fail when unable write for thread dump profiler result",
-			given: func() (fields, args) {
-				var b bytes.Buffer
-				b.Write([]byte("test"))
-				return fields{
-						PythonProfiler: NewPythonProfiler(),
-					}, args{
-						job: &job.ProfilingJob{
-							Duration:         0,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
-							OutputType:       api.ThreadDump,
-						},
-						fileName: filepath.Join("/", config.ProfilingPrefix+"threaddump.txt"),
-						out:      b,
-					}
-			},
-			when: func(fields fields, args args) error {
-				return fields.PythonProfiler.handleProfilingResult(args.job, args.flameGrapher, args.fileName, args.out)
-			},
-			then: func(t *testing.T, err error, fields fields) {
-				require.Error(t, err)
-			},
-		},
 		{
 			name: "should handle flamegraph profiler result",
 			given: func() (fields, args) {
@@ -532,7 +487,7 @@ func Test_pythonManager_handleProfilingResult(t *testing.T) {
 					}
 			},
 			when: func(fields fields, args args) error {
-				return fields.PythonProfiler.handleProfilingResult(args.job, args.flameGrapher, args.fileName, args.out)
+				return fields.PythonProfiler.handleProfilingResult(args.job, args.flameGrapher, args.fileName)
 			},
 			then: func(t *testing.T, err error, fields fields) {
 				assert.Nil(t, err)
@@ -562,7 +517,7 @@ func Test_pythonManager_handleProfilingResult(t *testing.T) {
 					}
 			},
 			when: func(fields fields, args args) error {
-				return fields.PythonProfiler.handleProfilingResult(args.job, args.flameGrapher, args.fileName, args.out)
+				return fields.PythonProfiler.handleProfilingResult(args.job, args.flameGrapher, args.fileName)
 			},
 			then: func(t *testing.T, err error, fields fields) {
 				assert.EqualError(t, err, "could not convert raw format to flamegraph: StackSamplesToFlameGraph with error")
@@ -591,7 +546,7 @@ func Test_pythonManager_handleProfilingResult(t *testing.T) {
 					}
 			},
 			when: func(fields fields, args args) error {
-				return fields.PythonProfiler.handleProfilingResult(args.job, args.flameGrapher, args.fileName, args.out)
+				return fields.PythonProfiler.handleProfilingResult(args.job, args.flameGrapher, args.fileName)
 			},
 			then: func(t *testing.T, err error, fields fields) {
 				assert.EqualError(t, err, "unable to generate flamegraph: no stacks found (maybe due low cpu load)")
