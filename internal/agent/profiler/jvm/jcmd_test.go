@@ -8,6 +8,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
 	"github.com/josepdcs/kubectl-prof/internal/agent/testdata"
+	executil "github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/pkg/errors"
@@ -339,9 +340,7 @@ func TestJcmdProfiler_Invoke(t *testing.T) {
 		{
 			name: "should publish result",
 			given: func() (fields, args) {
-				jcmdCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-					return exec.Command("ls", "/tmp")
-				}
+				jcmdCommander = executil.NewFakeCommander(exec.Command("ls", "/tmp"))
 				return fields{
 						JcmdProfiler: JcmdProfiler{
 							JcmdManager: NewMockJcmdManager(),
@@ -367,9 +366,7 @@ func TestJcmdProfiler_Invoke(t *testing.T) {
 		{
 			name: "should publish result when ThreadDump output type",
 			given: func() (fields, args) {
-				jcmdCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-					return exec.Command("ls", "/tmp")
-				}
+				jcmdCommander = executil.NewFakeCommander(exec.Command("ls", "/tmp"))
 				return fields{
 						JcmdProfiler: JcmdProfiler{
 							JcmdManager: NewMockJcmdManager(),
@@ -397,9 +394,7 @@ func TestJcmdProfiler_Invoke(t *testing.T) {
 		{
 			name: "should fail when fail exec command",
 			given: func() (fields, args) {
-				jcmdCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-					return &exec.Cmd{}
-				}
+				jcmdCommander = executil.NewFakeCommander(&exec.Cmd{})
 				return fields{
 						JcmdProfiler: JcmdProfiler{
 							JcmdManager: NewMockJcmdManager(),
@@ -424,9 +419,7 @@ func TestJcmdProfiler_Invoke(t *testing.T) {
 		{
 			name: "should fail when handle profiling result fail",
 			given: func() (fields, args) {
-				jcmdCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-					return exec.Command("ls", "/tmp")
-				}
+				jcmdCommander = executil.NewFakeCommander(exec.Command("ls", "/tmp"))
 				return fields{
 						JcmdProfiler: JcmdProfiler{
 							JcmdManager: NewMockJcmdManager().WithHandleProfilingResultError(),
@@ -451,9 +444,7 @@ func TestJcmdProfiler_Invoke(t *testing.T) {
 		{
 			name: "should fail when profile fail for ThreadDump output type",
 			given: func() (fields, args) {
-				jcmdCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-					return exec.Command("ls", "/tmp")
-				}
+				jcmdCommander = executil.NewFakeCommander(exec.Command("ls", "/tmp"))
 				return fields{
 						JcmdProfiler: JcmdProfiler{
 							JcmdManager: NewMockJcmdManager().WithHandleProfilingResultError(),
@@ -480,9 +471,7 @@ func TestJcmdProfiler_Invoke(t *testing.T) {
 		{
 			name: "should fail when profile fail for ThreadDump output type",
 			given: func() (fields, args) {
-				jcmdCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-					return exec.Command("ls", "/tmp")
-				}
+				jcmdCommander = executil.NewFakeCommander(exec.Command("ls", "/tmp"))
 				return fields{
 						JcmdProfiler: JcmdProfiler{
 							JcmdManager: NewMockJcmdManager().WithHandleProfilingResultError(),

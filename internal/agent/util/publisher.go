@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"github.com/agrison/go-commons-lang/stringUtils"
 	"github.com/josepdcs/kubectl-prof/api"
+	"github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	fileutils "github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
@@ -43,7 +44,7 @@ func Publish(compressorType compressor.Type, file string, eventType api.OutputTy
 
 	// get the size of the result file from stat command
 	var outStat bytes.Buffer
-	cmd := Command("stat", "-c%s", resultFile)
+	cmd := exec.Command("stat", "-c%s", resultFile)
 	cmd.Stdout = &outStat
 	_ = cmd.Run()
 
@@ -71,7 +72,7 @@ func PublishWithNativeGzipAndSplit(file, chunkSize string, eventType api.OutputT
 	// compresses the file with gzip
 	var out bytes.Buffer
 	var stderr bytes.Buffer
-	cmd := Command("gzip", "-3", file)
+	cmd := exec.Command("gzip", "-3", file)
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 	err := cmd.Run()
@@ -80,7 +81,7 @@ func PublishWithNativeGzipAndSplit(file, chunkSize string, eventType api.OutputT
 	}
 
 	// split the result file from gzip command with split command
-	cmd = Command("split", "-b", chunkSize, "-e", "--numeric-suffixes", file+".gz", file+".gz.")
+	cmd = exec.Command("split", "-b", chunkSize, "-e", "--numeric-suffixes", file+".gz", file+".gz.")
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 	err = cmd.Run()

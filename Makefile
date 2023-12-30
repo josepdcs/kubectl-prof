@@ -206,32 +206,37 @@ minikube-build-and-push-agents:
 ## minikube-build-and-push-jvm-agent: Build image of jvm agent and load it into minikube
 .PHONY: minikube-build-and-push-jvm-agent
 minikube-build-and-push-jvm-agent:
-	@test/minikube-lab/build_and_push_agent.sh "docker/jvm" "docker" "jvm"
+	@test/minikube-lab/build_and_push_image.sh "docker/jvm" "docker" "jvm"
 
 ## minikube-build-and-push-jvm-alpine-agent: Build image of jvm alpine agent and load it into minikube
 .PHONY: minikube-build-and-push-jvm-alpine-agent
 minikube-build-and-push-jvm-alpine-agent:
-	@test/minikube-lab/build_and_push_agent.sh "docker/jvm/alpine" "docker" "jvm-alpine"
+	@test/minikube-lab/build_and_push_image.sh "docker/jvm/alpine" "docker" "jvm-alpine"
 
 ## minikube-build-and-push-bpf-agent: Build image of bpf agent and load it into minikube
 .PHONY: minikube-build-and-push-bpf-agent
 minikube-build-and-push-bpf-agent:
-	@test/minikube-lab/build_and_push_agent.sh "docker/bpf" "docker" "bpf"
+	@test/minikube-lab/build_and_push_image.sh "docker/bpf" "docker" "bpf"
 
 ## minikube-build-and-push-python-agent: Build image of python agent and load it into minikube
 .PHONY: minikube-build-and-push-python-agent
 minikube-build-and-push-python-agent:
-	@test/minikube-lab/build_and_push_agent.sh "docker/python" "docker" "python"
+	@test/minikube-lab/build_and_push_image.sh "docker/python" "docker" "python"
 
 ## minikube-build-and-push-ruby-agent: Build image of ruby agent and load it into minikube
 .PHONY: minikube-build-and-push-ruby-agent
 minikube-build-and-push-ruby-agent:
-	@test/minikube-lab/build_and_push_agent.sh "docker/ruby" "docker" "ruby"
+	@test/minikube-lab/build_and_push_image.sh "docker/ruby" "docker" "ruby"
 
 ## minikube-deploy-stupid-apps: Deploy stupid apps into minikube
 .PHONY: minikube-deploy-stupid-apps
 minikube-deploy-stupid-apps:
 	@test/minikube-lab/deploy_stupid_apps.sh
+
+## minikube-build-and-push-ruby-stupid-app: Build image of ruby agent and load it into minikube
+.PHONY: minikube-build-and-push-ruby-stupid-app
+minikube-build-and-push-ruby-stupid-app:
+	@test/minikube-lab/build_and_push_image.sh "test/stupid-apps/ruby" "stupid-apps" "ruby"
 
 ## minikube-configure-profiling: Configure all needed for profiling (service account, namespace, etc.)
 .PHONY: minikube-configure-profiling

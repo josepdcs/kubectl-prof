@@ -1,4 +1,4 @@
-FROM golang:1.19.6-bullseye as builder
+FROM golang:1.21.5-bullseye AS builder
 
 # Set necessary environmet variables needed for our image
 ENV GO111MODULE=on \

@@ -11,6 +11,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util"
+	executil "github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/flamegraph"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
@@ -26,6 +27,8 @@ const (
 	pySpyDelayBetweenJobs = 2 * time.Second
 )
 
+var pySpyCommander = executil.NewCommander()
+
 var pythonCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
 	output := job.OutputType
 	if job.OutputType == api.FlameGraph {
@@ -38,19 +41,18 @@ var pythonCommand = func(job *job.ProfilingJob, pid string, fileName string) *ex
 		interval := strconv.Itoa(int(job.Interval.Seconds()))
 		args := []string{"record"}
 		args = append(args, "-p", pid, "-o", fileName, "-d", interval, "-s", "-t", "-f", string(output))
-		return util.Command(pySpyLocation, args...)
+		return pySpyCommander.Command(pySpyLocation, args...)
 	// api.ThreadDump:
 	default:
 		args := []string{"dump"}
 		args = append(args, "-p", pid)
-		return util.Command(pySpyLocation, args...)
+		return pySpyCommander.Command(pySpyLocation, args...)
 	}
 }
 
 type PythonProfiler struct {
 	targetPIDs []string
 	delay      time.Duration
-	cmd        *exec.Cmd
 	PythonManager
 }
 
@@ -58,7 +60,6 @@ type PythonManager interface {
 	invoke(job *job.ProfilingJob, pid string, fileName string) (error, string, time.Duration)
 	handleProfilingResult(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher, fileName string) error
 	publishResult(compressor compressor.Type, fileName string, outputType api.OutputType) error
-	cleanUp(cmd *exec.Cmd)
 }
 
 type pythonManager struct {
@@ -162,14 +163,6 @@ func (p *pythonManager) invoke(job *job.ProfilingJob, pid string, fileName strin
 	return nil, fileName, time.Since(start)
 }
 
-func (p *PythonProfiler) CleanUp(*job.ProfilingJob) error {
-	p.cleanUp(p.cmd)
-
-	file.RemoveAll(common.TmpDir(), config.ProfilingPrefix)
-
-	return nil
-}
-
 func (p *pythonManager) handleProfilingResult(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher, fileName string) error {
 	if job.OutputType == api.FlameGraph {
 		if file.IsEmpty(fileName) {
@@ -188,11 +181,8 @@ func (p *pythonManager) publishResult(c compressor.Type, fileName string, output
 	return util.Publish(c, fileName, outputType)
 }
 
-func (p *pythonManager) cleanUp(cmd *exec.Cmd) {
-	if cmd != nil && cmd.ProcessState == nil {
-		err := cmd.Process.Kill()
-		if err != nil {
-			log.WarningLogLn(fmt.Sprintf("unable kill process: %s", err))
-		}
-	}
+func (p *PythonProfiler) CleanUp(*job.ProfilingJob) error {
+	file.RemoveAll(common.TmpDir(), config.ProfilingPrefix)
+
+	return nil
 }

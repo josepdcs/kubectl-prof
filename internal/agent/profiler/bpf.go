@@ -11,6 +11,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util"
+	executil "github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/flamegraph"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
@@ -24,19 +25,19 @@ import (
 const (
 	profilerLocation    = "/app/bcc-profiler/profile"
 	bpfDelayBetweenJobs = 5 * time.Second
-	minimumRawSize      = 50
 )
+
+var bpfCommander = executil.NewCommander()
 
 var bccProfilerCommand = func(job *job.ProfilingJob, pid string) *exec.Cmd {
 	interval := strconv.Itoa(int(job.Interval.Seconds()))
 	args := []string{"-df", "-U", "-p", pid, interval}
-	return util.Command(profilerLocation, args...)
+	return bpfCommander.Command(profilerLocation, args...)
 }
 
 type BpfProfiler struct {
 	targetPIDs []string
 	delay      time.Duration
-	cmd        *exec.Cmd
 	BpfManager
 }
 
@@ -44,7 +45,6 @@ type BpfManager interface {
 	invoke(job *job.ProfilingJob, pid string) (error, string, time.Duration)
 	handleProfilingResult(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher, fileName string) error
 	publishResult(compressor compressor.Type, fileName string, outputType api.OutputType) error
-	cleanUp(cmd *exec.Cmd)
 }
 
 type bpfManager struct {
@@ -75,8 +75,6 @@ func (b *BpfProfiler) SetUp(job *job.ProfilingJob) error {
 func (b *BpfProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	start := time.Now()
 
-	fileName := common.GetResultFile(common.TmpDir(), job.Tool, api.Raw)
-
 	files := make([]string, 0, len(b.targetPIDs))
 
 	pool := pond.New(len(b.targetPIDs), 0, pond.MinWorkers(len(b.targetPIDs)))
@@ -105,6 +103,7 @@ func (b *BpfProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 		return err, time.Since(start)
 	}
 
+	fileName := common.GetResultFile(common.TmpDir(), job.Tool, api.Raw)
 	// merge all files
 	file.MergeFiles(fileName, files)
 
@@ -139,17 +138,9 @@ func (b *bpfManager) invoke(job *job.ProfilingJob, pid string) (error, string, t
 	return nil, fileName, time.Since(start)
 }
 
-func (b *BpfProfiler) CleanUp(*job.ProfilingJob) error {
-	b.cleanUp(b.cmd)
-
-	file.RemoveAll(common.TmpDir(), config.ProfilingPrefix)
-
-	return nil
-}
-
 func (b *bpfManager) handleProfilingResult(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher, fileName string) error {
 	if job.OutputType == api.FlameGraph {
-		if file.GetSize(fileName) < minimumRawSize {
+		if file.GetSize(fileName) < common.MinimumRawSize {
 			return fmt.Errorf("unable to generate flamegraph: no stacks found (maybe due low cpu load)")
 		}
 		// convert raw format to flamegraph
@@ -165,11 +156,8 @@ func (b *bpfManager) publishResult(c compressor.Type, fileName string, outputTyp
 	return util.Publish(c, fileName, outputType)
 }
 
-func (b *bpfManager) cleanUp(cmd *exec.Cmd) {
-	if cmd != nil && cmd.ProcessState == nil {
-		err := cmd.Process.Kill()
-		if err != nil {
-			log.WarningLogLn(fmt.Sprintf("unable kill process: %s", err))
-		}
-	}
+func (b *BpfProfiler) CleanUp(*job.ProfilingJob) error {
+	file.RemoveAll(common.TmpDir(), config.ProfilingPrefix)
+
+	return nil
 }

@@ -6,6 +6,8 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/agent/config"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
+	"github.com/josepdcs/kubectl-prof/internal/agent/testdata"
+	executil "github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/pkg/errors"
@@ -306,9 +308,7 @@ func TestAsyncProfiler_Invoke(t *testing.T) {
 		{
 			name: "should publish result",
 			given: func() (fields, args) {
-				asyncProfilerCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-					return exec.Command("ls", "/tmp")
-				}
+				asyncProfilerCommander = executil.NewFakeCommander(exec.Command("ls", common.TmpDir()))
 				return fields{
 						AsyncProfiler: AsyncProfiler{
 							AsyncProfilerManager: NewMockAsyncProfilerManager(),
@@ -331,11 +331,35 @@ func TestAsyncProfiler_Invoke(t *testing.T) {
 			},
 		},
 		{
+			name: "should publish result when raw output type",
+			given: func() (fields, args) {
+				asyncProfilerCommander = executil.NewFakeCommander(exec.Command("ls", common.TmpDir()))
+				return fields{
+						AsyncProfiler: AsyncProfiler{
+							AsyncProfilerManager: NewMockAsyncProfilerManager(),
+						},
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							OutputType:       api.Raw,
+						},
+					}
+			},
+			when: func(fields fields, args args) (error, time.Duration) {
+				return fields.AsyncProfiler.Invoke(args.job)
+			},
+			then: func(t *testing.T, err error, fields fields) {
+				mock := fields.AsyncProfiler.AsyncProfilerManager.(MockAsyncProfilerManager)
+				assert.Nil(t, err)
+				assert.Equal(t, 1, mock.PublishResultInvokedTimes())
+			},
+		},
+		{
 			name: "should fail when fail exec command",
 			given: func() (fields, args) {
-				asyncProfilerCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-					return &exec.Cmd{}
-				}
+				asyncProfilerCommander = executil.NewFakeCommander(&exec.Cmd{})
 				return fields{
 						AsyncProfiler: AsyncProfiler{
 							AsyncProfilerManager: NewMockAsyncProfilerManager(),
@@ -434,4 +458,16 @@ func TestAsyncProfiler_CleanUp(t *testing.T) {
 			tt.then(t, err, fields)
 		})
 	}
+}
+
+func Test_asyncProfilerManager_copyProfilerToTmpDir(t *testing.T) {
+	asyncProfilerCommander = executil.NewFakeCommander(exec.Command("ls", common.TmpDir()))
+	a := NewAsyncProfiler()
+	assert.Nil(t, a.copyProfilerToTmpDir())
+}
+
+func Test_asyncProfilerManager_publishResult(t *testing.T) {
+	p := NewAsyncProfiler()
+	err := p.publishResult(compressor.Gzip, testdata.ResultTestDataDir()+"/flamegraph.svg", api.FlameGraph)
+	assert.Nil(t, err)
 }

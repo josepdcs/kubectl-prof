@@ -9,6 +9,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util"
+	executil "github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
@@ -26,6 +27,8 @@ const (
 	profilerSh       = asyncProfilerDir + "/profiler.sh"
 )
 
+var asyncProfilerCommander = executil.NewCommander()
+
 var asyncProfilerCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
 	interval := strconv.Itoa(int(job.Interval.Seconds()))
 	event := string(job.Event)
@@ -35,11 +38,11 @@ var asyncProfilerCommand = func(job *job.ProfilingJob, pid string, fileName stri
 		output = string(api.Collapsed)
 	}
 	args := []string{"-o", output, "-d", interval, "-f", fileName, "-e", event, "--fdtransfer", pid}
-	return util.Command(profilerSh, args...)
+	return asyncProfilerCommander.Command(profilerSh, args...)
 }
 
 var asyncProfilerStopCommand = func(job *job.ProfilingJob, pid string) *exec.Cmd {
-	return util.Command(profilerSh, "stop", pid)
+	return asyncProfilerCommander.Command(profilerSh, "stop", pid)
 }
 
 type AsyncProfiler struct {
@@ -146,7 +149,7 @@ func (j *asyncProfilerManager) linkTmpDirToTargetTmpDir(targetTmpDir string) err
 }
 
 func (j *asyncProfilerManager) copyProfilerToTmpDir() error {
-	cmd := util.Command("cp", "-r", "/app/async-profiler", common.TmpDir())
+	cmd := asyncProfilerCommander.Command("cp", "-r", "/app/async-profiler", common.TmpDir())
 	return cmd.Run()
 }
 

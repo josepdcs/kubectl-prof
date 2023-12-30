@@ -7,6 +7,8 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/agent/config"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
+	"github.com/josepdcs/kubectl-prof/internal/agent/testdata"
+	executil "github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/flamegraph"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
@@ -25,7 +27,6 @@ type MockPythonManager interface {
 	InvokeInvokedTimes() int
 	HandleProfilingResultInvokedTimes() int
 	PublishResultInvokedTimes() int
-	CleanUpInvokedTimes() int
 	WithHandleProfilingResultError() MockPythonManager
 }
 
@@ -33,7 +34,6 @@ type mockPythonManager struct {
 	invokeInvokedTimes                int
 	handleProfilingResultInvokedTimes int
 	publishResultInvokedTimes         int
-	cleanUpInvokedTimes               int
 	withHandleProfilingResultError    bool
 }
 
@@ -63,11 +63,6 @@ func (m *mockPythonManager) publishResult(compressor.Type, string, api.OutputTyp
 	return nil
 }
 
-func (m *mockPythonManager) cleanUp(*exec.Cmd) {
-	m.cleanUpInvokedTimes++
-	fmt.Println("fake cleanUp")
-}
-
 func (m *mockPythonManager) InvokeInvokedTimes() int {
 	return m.invokeInvokedTimes
 }
@@ -78,10 +73,6 @@ func (m *mockPythonManager) HandleProfilingResultInvokedTimes() int {
 
 func (m *mockPythonManager) PublishResultInvokedTimes() int {
 	return m.publishResultInvokedTimes
-}
-
-func (m *mockPythonManager) CleanUpInvokedTimes() int {
-	return m.cleanUpInvokedTimes
 }
 
 func (m *mockPythonManager) WithHandleProfilingResultError() MockPythonManager {
@@ -294,7 +285,6 @@ func TestPythonProfiler_CleanUp(t *testing.T) {
 				return fields{
 						PythonProfiler: &PythonProfiler{
 							PythonManager: NewMockPythonManager(),
-							cmd:           exec.Command("ls", "/tmp"),
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -308,14 +298,12 @@ func TestPythonProfiler_CleanUp(t *testing.T) {
 				return fields.PythonProfiler.CleanUp(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
-				mock := fields.PythonProfiler.PythonManager.(MockPythonManager)
 				f := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph.svg")
 				g := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph.svg"+
 					compressor.GetExtensionFileByCompressor[compressor.Gzip])
 				assert.False(t, file.Exists(f))
 				assert.False(t, file.Exists(g))
 				assert.Nil(t, err)
-				assert.Equal(t, 1, mock.CleanUpInvokedTimes())
 			},
 		},
 	}
@@ -352,9 +340,7 @@ func Test_pythonManager_invoke(t *testing.T) {
 		{
 			name: "should invoke",
 			given: func() (fields, args) {
-				pythonCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-					return exec.Command("ls", "/tmp")
-				}
+				pySpyCommander = executil.NewFakeCommander(exec.Command("ls", "/tmp"))
 				return fields{
 						PythonProfiler: NewPythonProfiler(),
 					}, args{
@@ -380,9 +366,7 @@ func Test_pythonManager_invoke(t *testing.T) {
 		{
 			name: "should invoke when thread dump",
 			given: func() (fields, args) {
-				pythonCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-					return exec.Command("ls", "/tmp")
-				}
+				pySpyCommander = executil.NewFakeCommander(exec.Command("ls", "/tmp"))
 				return fields{
 						PythonProfiler: NewPythonProfiler(),
 					}, args{
@@ -408,9 +392,7 @@ func Test_pythonManager_invoke(t *testing.T) {
 		{
 			name: "should invoke fail when command fail",
 			given: func() (fields, args) {
-				pythonCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-					return &exec.Cmd{}
-				}
+				pySpyCommander = executil.NewFakeCommander(&exec.Cmd{})
 				return fields{
 						PythonProfiler: NewPythonProfiler(),
 					}, args{
@@ -576,4 +558,10 @@ func Test_pythonManager_handleProfilingResult(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_pythonManager_publishResult(t *testing.T) {
+	p := NewPythonProfiler()
+	err := p.publishResult(compressor.Gzip, testdata.ResultTestDataDir()+"/flamegraph.svg", api.FlameGraph)
+	assert.Nil(t, err)
 }

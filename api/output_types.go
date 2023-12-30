@@ -33,7 +33,7 @@ var GetOutputTypesByProfilingTool = map[ProfilingTool][]OutputType{
 	Pyspy:         {FlameGraph, SpeedScope, ThreadDump, Raw},
 	Bpf:           {FlameGraph, Raw},
 	Perf:          {FlameGraph, Raw},
-	Rbspy:         {FlameGraph, SpeedScope, Callgrind},
+	Rbspy:         {FlameGraph, SpeedScope, Callgrind, Summary, SummaryByLine},
 	FakeTool:      {FlameGraph},
 }
 
@@ -56,6 +56,8 @@ var (
 		Tree,
 		Callgrind,
 		Raw,
+		Summary,
+		SummaryByLine,
 	}
 )
 

@@ -9,6 +9,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util"
+	executil "github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
@@ -28,32 +29,35 @@ const (
 	invocationName           = "name=pid_"
 )
 
+var jcmdCommander = executil.NewCommander()
+var silentJcmdCommander = executil.NewSilentCommander()
+
 var stopJcmdRecording chan bool
 
 var jcmdCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
 	switch job.OutputType {
 	case api.ThreadDump:
 		args := []string{pid, "Thread.print"}
-		return util.Command(jcmd, args...)
+		return jcmdCommander.Command(jcmd, args...)
 	case api.HeapDump:
 		args := []string{pid, "GC.heap_dump", fileName}
-		return util.Command(jcmd, args...)
+		return jcmdCommander.Command(jcmd, args...)
 	case api.HeapHistogram:
 		args := []string{pid, "GC.class_histogram"}
-		return util.Command(jcmd, args...)
+		return jcmdCommander.Command(jcmd, args...)
 	}
 
 	// default api.Jfr
 	interval := strconv.Itoa(int(job.Interval.Seconds()))
 	args := []string{pid, "JFR.start", "duration=" + interval + "s", "filename=" + fileName, invocationName + pid + "_" + string(job.OutputType), "settings=" + jfrSettingsTmpFilePath}
-	return util.Command(jcmd, args...)
+	return jcmdCommander.Command(jcmd, args...)
 }
 
 var jcmdStopCommand = func(job *job.ProfilingJob, pid string) *exec.Cmd {
 	if job.OutputType != api.Jfr {
 		return nil
 	}
-	return util.Command(jcmd, pid, "JFR.stop", invocationName+pid+"_"+string(job.OutputType))
+	return jcmdCommander.Command(jcmd, pid, "JFR.stop", invocationName+pid+"_"+string(job.OutputType))
 }
 
 type JcmdProfiler struct {
@@ -169,7 +173,7 @@ func (j *jcmdManager) linkTmpDirToTargetTmpDir(targetTmpDir string) error {
 }
 
 func (j *jcmdManager) copyJfrSettingsToTmpDir() error {
-	cmd := util.Command("cp", jfrSettingsImageFilePath, common.TmpDir())
+	cmd := executil.Command("cp", jfrSettingsImageFilePath, common.TmpDir())
 	return cmd.Run()
 }
 
@@ -203,7 +207,7 @@ func (j *jcmdManager) handleJcmdRecording(targetPID string, outputType string) {
 			default:
 				var out bytes.Buffer
 				var stderr bytes.Buffer
-				cmd := util.SilentCommand(jcmd, targetPID, "JFR.check", "name=pid_"+targetPID+"_"+outputType)
+				cmd := silentJcmdCommander.Command(jcmd, targetPID, "JFR.check", "name=pid_"+targetPID+"_"+outputType)
 				cmd.Stdout = &out
 				cmd.Stderr = &stderr
 				err := cmd.Run()
@@ -217,13 +221,14 @@ func (j *jcmdManager) handleJcmdRecording(targetPID string, outputType string) {
 					!stringUtils.Contains(outputTxt, "delayed") {
 					// fix: in case of any error in a previous profiling which made that jcmd remains stopped
 					if stringUtils.Contains(outputTxt, "stopped") {
-						log.ErrorLogLn("Jcmd remains stopped for unknown reason, please restart the pod to be profiled (the pod application)")
+						log.ErrorLogLn("Jcmd remains stopped for unknown reason, please restart the pod to be profiled")
 					}
 					done <- true
 					return
 				}
 
 			}
+			time.Sleep(1 * time.Second)
 		}
 	}()
 

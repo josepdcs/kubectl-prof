@@ -2,13 +2,16 @@ package profiler
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"github.com/agrison/go-commons-lang/stringUtils"
+	"github.com/alitto/pond"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/config"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util"
+	"github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/flamegraph"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
@@ -24,91 +27,128 @@ const (
 	perfRecordOutputFileName        = "/tmp/perf.data"
 	flameGraphStackCollapseLocation = "/app/FlameGraph/stackcollapse-perf.pl"
 	perfScriptOutputFileName        = "/tmp/perf.out"
+	perfDelayBetweenJobs            = 2 * time.Second
 )
 
 type PerfProfiler struct {
-	PerfUtil
+	targetPIDs []string
+	delay      time.Duration
+	PerfManager
 }
 
-type PerfUtil interface {
-	runPerfRecord(job *job.ProfilingJob) error
+type PerfManager interface {
+	invoke(job *job.ProfilingJob, pid string) (error, string, time.Duration)
+	runPerfRecord(job *job.ProfilingJob, pid string) error
 	runPerfScript(job *job.ProfilingJob) error
-	foldPerfOutput(job *job.ProfilingJob) error
-	generateFlameGraph(job *job.ProfilingJob) error
+	foldPerfOutput(job *job.ProfilingJob, pid string) (error, string)
+	handleProfilingResult(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher, fileName string) error
 	publishResult(c compressor.Type, fileName string, outputType api.OutputType) error
 }
 
-type perfUtil struct {
+type perfManager struct {
 }
 
 func NewPerfProfiler() *PerfProfiler {
-	return &PerfProfiler{&perfUtil{}}
+	return &PerfProfiler{
+		delay:       perfDelayBetweenJobs,
+		PerfManager: &perfManager{},
+	}
 }
 
-func (p *PerfProfiler) SetUp(*job.ProfilingJob) error {
+var perfCommander = exec.NewCommander()
+
+func (p *PerfProfiler) SetUp(job *job.ProfilingJob) error {
+	if stringUtils.IsNotBlank(job.PID) {
+		p.targetPIDs = []string{job.PID}
+		return nil
+	}
+	pids, err := util.GetCandidatePIDs(job)
+	if err != nil {
+		return err
+	}
+	log.DebugLogLn(fmt.Sprintf("The PIDs to be profiled: %s", pids))
+	p.targetPIDs = pids
+
 	return nil
 }
 
 func (p *PerfProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	start := time.Now()
-	err := p.runPerfRecord(job)
-	if err != nil {
-		return errors.Wrap(err, "perf record failed"), time.Since(start)
+
+	files := make([]string, 0, len(p.targetPIDs))
+
+	pool := pond.New(len(p.targetPIDs), 0, pond.MinWorkers(len(p.targetPIDs)))
+	defer pool.StopAndWait()
+
+	// create a task group associated to a context
+	group, _ := pool.GroupContext(context.Background())
+
+	// submit tasks to profile
+	for _, pid := range p.targetPIDs {
+		pid := pid
+		group.Submit(func() error {
+			err, f, _ := p.invoke(job, pid)
+			if err == nil {
+				files = append(files, f)
+			}
+			return err
+		})
+		// wait a bit between jobs for not overloading the system (bcc-profiler is a heavy tool)
+		time.Sleep(p.delay)
 	}
 
-	err = p.runPerfScript(job)
+	// wait for all tasks to finish
+	err := group.Wait()
 	if err != nil {
-		return errors.Wrap(err, "perf script failed"), time.Since(start)
+		return err, time.Since(start)
 	}
 
-	err = p.foldPerfOutput(job)
-	if err != nil {
-		return errors.Wrap(err, "folding perf output failed"), time.Since(start)
-	}
+	fileName := common.GetResultFile(common.TmpDir(), job.Tool, api.Raw)
+	// merge all files
+	file.MergeFiles(fileName, files)
 
-	if job.OutputType == api.FlameGraph {
-		err = p.generateFlameGraph(job)
-		if err != nil {
-			return errors.Wrap(err, "flamegraph generation failed"), time.Since(start)
-		}
+	err = p.handleProfilingResult(job, flamegraph.Get(job), fileName)
+	if err != nil {
+		return err, time.Since(start)
 	}
 
 	return p.publishResult(job.Compressor, common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType), job.OutputType), time.Since(start)
 }
 
-func (p *PerfProfiler) CleanUp(job *job.ProfilingJob) error {
-	file.RemoveAll(common.TmpDir(), config.ProfilingPrefix+string(job.OutputType))
+func (m *perfManager) invoke(job *job.ProfilingJob, pid string) (error, string, time.Duration) {
+	start := time.Now()
+	err := m.runPerfRecord(job, pid)
+	if err != nil {
+		return errors.Wrap(err, "perf record failed"), "", time.Since(start)
+	}
 
-	return nil
+	err = m.runPerfScript(job)
+	if err != nil {
+		return errors.Wrap(err, "perf script failed"), "", time.Since(start)
+	}
+
+	err, fileName := m.foldPerfOutput(job, pid)
+	if err != nil {
+		return errors.Wrap(err, "folding perf output failed"), "", time.Since(start)
+	}
+
+	return nil, fileName, time.Since(start)
 }
 
-func (b *perfUtil) runPerfRecord(job *job.ProfilingJob) error {
-	var pid string
-	var err error
-	if stringUtils.IsNotBlank(job.PID) {
-		pid = job.PID
-	} else {
-		pid, err = util.ContainerPID(job)
-		if err != nil {
-			return err
-		}
-	}
-	log.DebugLogLn(fmt.Sprintf("The PID to be profiled: %s", pid))
-
+func (m *perfManager) runPerfRecord(job *job.ProfilingJob, pid string) error {
 	duration := strconv.Itoa(int(job.Duration.Seconds()))
-
 	var stderr bytes.Buffer
-	cmd := util.Command(perfLocation, "record", "-p", pid, "-o", perfRecordOutputFileName, "-g", "--", "sleep", duration)
+	cmd := perfCommander.Command(perfLocation, "record", "-p", pid, "-o", perfRecordOutputFileName, "-g", "--", "sleep", duration)
 	cmd.Stderr = &stderr
 
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
 		log.ErrorLogLn(stderr.String())
 	}
 	return err
 }
 
-func (b *perfUtil) runPerfScript(*job.ProfilingJob) error {
+func (m *perfManager) runPerfScript(*job.ProfilingJob) error {
 	f, err := os.Create(perfScriptOutputFileName)
 	if err != nil {
 		return err
@@ -122,7 +162,7 @@ func (b *perfUtil) runPerfScript(*job.ProfilingJob) error {
 	}(f)
 
 	var stderr bytes.Buffer
-	cmd := util.Command(perfLocation, "script", "-i", perfRecordOutputFileName)
+	cmd := perfCommander.Command(perfLocation, "script", "-i", perfRecordOutputFileName)
 	cmd.Stdout = f
 	cmd.Stderr = &stderr
 
@@ -133,42 +173,49 @@ func (b *perfUtil) runPerfScript(*job.ProfilingJob) error {
 	return err
 }
 
-func (b *perfUtil) foldPerfOutput(job *job.ProfilingJob) error {
-	f, err := os.Create(common.GetResultFile(common.TmpDir(), job.Tool, api.Raw))
-	if err != nil {
-		return err
-	}
-	defer func(f *os.File) {
-		err := f.Close()
-		if err != nil {
-			fmt.Printf("error closing resource: %s", err)
-			return
-		}
-	}(f)
-
+func (m *perfManager) foldPerfOutput(job *job.ProfilingJob, pid string) (error, string) {
+	var out bytes.Buffer
 	var stderr bytes.Buffer
-	cmd := util.Command(flameGraphStackCollapseLocation, perfScriptOutputFileName)
-	cmd.Stdout = f
+
+	cmd := perfCommander.Command(flameGraphStackCollapseLocation, perfScriptOutputFileName)
+	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
-		log.ErrorLogLn(stderr.String())
+		log.ErrorLogLn(out.String())
+		return errors.Wrapf(err, "could not launch profiler: %s", stderr.String()), ""
 	}
-	return err
+
+	// out file name is composed by the job info and the pid
+	fileName := common.GetResultFile(common.TmpDir(), job.Tool, api.Raw) + "." + pid
+	// add process pid legend to each line of the output and write it to the file
+	file.Write(fileName, addProcessPIDLegend(out.String(), pid))
+
+	return err, fileName
 }
 
-func (b *perfUtil) generateFlameGraph(job *job.ProfilingJob) error {
-	flameGrapher := flamegraph.Get(job)
-	// convert raw format to flamegraph
-	err := flameGrapher.StackSamplesToFlameGraph(common.GetResultFile(common.TmpDir(), job.Tool, api.Raw),
-		common.GetResultFile(common.TmpDir(), job.Tool, api.FlameGraph))
-	if err != nil {
-		return errors.Wrap(err, "could not convert raw format to flamegraph")
+func (m *perfManager) handleProfilingResult(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher, fileName string) error {
+	if job.OutputType == api.FlameGraph {
+		if file.GetSize(fileName) < common.MinimumRawSize {
+			return fmt.Errorf("unable to generate flamegraph: no stacks found (maybe due low cpu load)")
+		}
+		// convert raw format to flamegraph
+		err := flameGrapher.StackSamplesToFlameGraph(fileName, common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType))
+		if err != nil {
+			return errors.Wrap(err, "could not convert raw format to flamegraph")
+		}
 	}
 	return nil
 }
 
-func (b *perfUtil) publishResult(c compressor.Type, fileName string, outputType api.OutputType) error {
+func (m *perfManager) publishResult(c compressor.Type, fileName string, outputType api.OutputType) error {
 	return util.Publish(c, fileName, outputType)
+}
+
+func (p *PerfProfiler) CleanUp(job *job.ProfilingJob) error {
+	file.RemoveAll(common.TmpDir(), "perf")
+	file.RemoveAll(common.TmpDir(), config.ProfilingPrefix+string(job.OutputType))
+
+	return nil
 }

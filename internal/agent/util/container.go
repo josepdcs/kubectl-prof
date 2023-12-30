@@ -6,6 +6,7 @@ import (
 	"github.com/agrison/go-commons-lang/stringUtils"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
+	"github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/runtime/containerd"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/runtime/crio"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/runtime/fake"
@@ -97,7 +98,7 @@ func newChildPIDGetter() ChildPIDGetter {
 func (c childPIDGetter) get(pid string) string {
 	var out bytes.Buffer
 	var stderr bytes.Buffer
-	cmd := Command("pgrep", "-P", pid)
+	cmd := exec.Command("pgrep", "-P", pid)
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 	err := cmd.Run()

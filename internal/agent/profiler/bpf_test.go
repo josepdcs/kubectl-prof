@@ -9,6 +9,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
 	"github.com/josepdcs/kubectl-prof/internal/agent/testdata"
+	executil "github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/flamegraph"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
@@ -26,7 +27,6 @@ type MockBpfManager interface {
 	InvokeInvokedTimes() int
 	HandleProfilingResultInvokedTimes() int
 	PublishResultInvokedTimes() int
-	CleanUpInvokedTimes() int
 	WithHandleProfilingResultError() MockBpfManager
 }
 
@@ -34,7 +34,6 @@ type mockBpfManager struct {
 	invokeInvokedTimes                int
 	handleProfilingResultInvokedTimes int
 	publishResultInvokedTimes         int
-	cleanUpInvokedTimes               int
 	withHandleProfilingResultError    bool
 }
 
@@ -64,11 +63,6 @@ func (m *mockBpfManager) publishResult(compressor.Type, string, api.OutputType) 
 	return nil
 }
 
-func (m *mockBpfManager) cleanUp(*exec.Cmd) {
-	m.cleanUpInvokedTimes++
-	fmt.Println("fake cleanUp")
-}
-
 func (m *mockBpfManager) InvokeInvokedTimes() int {
 	return m.invokeInvokedTimes
 }
@@ -79,10 +73,6 @@ func (m *mockBpfManager) HandleProfilingResultInvokedTimes() int {
 
 func (m *mockBpfManager) PublishResultInvokedTimes() int {
 	return m.publishResultInvokedTimes
-}
-
-func (m *mockBpfManager) CleanUpInvokedTimes() int {
-	return m.cleanUpInvokedTimes
 }
 
 func (m *mockBpfManager) WithHandleProfilingResultError() MockBpfManager {
@@ -205,9 +195,7 @@ func TestBpfProfiler_Invoke(t *testing.T) {
 		{
 			name: "should publish result",
 			given: func() (fields, args) {
-				bccProfilerCommand = func(job *job.ProfilingJob, pid string) *exec.Cmd {
-					return exec.Command("ls", "/tmp")
-				}
+				bpfCommander = executil.NewFakeCommander(exec.Command("ls", "/tmp"))
 				return fields{
 						BpfProfiler: &BpfProfiler{
 							BpfManager: NewMockBpfManager(),
@@ -237,9 +225,7 @@ func TestBpfProfiler_Invoke(t *testing.T) {
 		{
 			name: "should fail when handle profiling result fail",
 			given: func() (fields, args) {
-				bccProfilerCommand = func(job *job.ProfilingJob, pid string) *exec.Cmd {
-					return exec.Command("ls", "/tmp")
-				}
+				bpfCommander = executil.NewFakeCommander(exec.Command("ls", "/tmp"))
 				return fields{
 						BpfProfiler: &BpfProfiler{
 							BpfManager: NewMockBpfManager().WithHandleProfilingResultError(),
@@ -301,7 +287,6 @@ func TestBpfProfiler_CleanUp(t *testing.T) {
 				return fields{
 						BpfProfiler: &BpfProfiler{
 							BpfManager: NewMockBpfManager(),
-							cmd:        exec.Command("ls", "/tmp"),
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -315,14 +300,12 @@ func TestBpfProfiler_CleanUp(t *testing.T) {
 				return fields.BpfProfiler.CleanUp(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
-				mock := fields.BpfProfiler.BpfManager.(MockBpfManager)
 				f := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph.svg")
 				g := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph.svg"+
 					compressor.GetExtensionFileByCompressor[compressor.Gzip])
 				assert.False(t, file.Exists(f))
 				assert.False(t, file.Exists(g))
 				assert.Nil(t, err)
-				assert.Equal(t, 1, mock.CleanUpInvokedTimes())
 			},
 		},
 	}
@@ -358,9 +341,7 @@ func Test_bpfManager_invoke(t *testing.T) {
 		{
 			name: "should invoke",
 			given: func() (fields, args) {
-				bccProfilerCommand = func(job *job.ProfilingJob, pid string) *exec.Cmd {
-					return exec.Command("ls", "/tmp")
-				}
+				bpfCommander = executil.NewFakeCommander(exec.Command("ls", "/tmp"))
 				return fields{
 						BpfProfiler: NewBpfProfiler(),
 					}, args{
@@ -385,9 +366,7 @@ func Test_bpfManager_invoke(t *testing.T) {
 		{
 			name: "should invoke fail when command fail",
 			given: func() (fields, args) {
-				bccProfilerCommand = func(job *job.ProfilingJob, pid string) *exec.Cmd {
-					return &exec.Cmd{}
-				}
+				bpfCommander = executil.NewFakeCommander(&exec.Cmd{})
 				return fields{
 						BpfProfiler: NewBpfProfiler(),
 					}, args{
@@ -549,4 +528,10 @@ func Test_bpfManager_bccProfilerCommand(t *testing.T) {
 
 	// Then
 	assert.NotNil(t, result)
+}
+
+func Test_bpfManager_publishResult(t *testing.T) {
+	p := NewBpfProfiler()
+	err := p.publishResult(compressor.Gzip, testdata.ResultTestDataDir()+"/flamegraph.svg", api.FlameGraph)
+	assert.Nil(t, err)
 }
