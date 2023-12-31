@@ -198,6 +198,18 @@ kubectl prof --help
 
 ## Installation
 
+### Using krew
+Install [Krew](https://github.com/kubernetes-sigs/krew)
+
+Install repository and plugin:
+
+```bash
+kubectl krew index add kubectl-prof https://github.com/josepdcs/kubectl-prof
+kubectl krew search kubectl-prof
+kubectl krew install kubectl-prof/kubectl-prof
+kubectl prof --help
+```
+
 ### Pre-built binaries
 
 See the [release](https://github.com/josepdcs/kubectl-prof/releases/tag/1.1.0) page for the full list of pre-built
