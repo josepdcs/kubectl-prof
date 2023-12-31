@@ -206,7 +206,7 @@ Install repository and plugin:
 ```bash
 kubectl krew index add kubectl-prof https://github.com/josepdcs/kubectl-prof
 kubectl krew search kubectl-prof
-kubectl krew install kubectl-prof/kubectl-prof
+kubectl krew install kubectl-prof/prof
 kubectl prof --help
 ```
 
