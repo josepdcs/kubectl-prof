@@ -57,9 +57,9 @@ type PythonProfiler struct {
 }
 
 type PythonManager interface {
-	invoke(job *job.ProfilingJob, pid string, fileName string) (error, string, time.Duration)
-	handleProfilingResult(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher, fileName string) error
-	publishResult(compressor compressor.Type, fileName string, outputType api.OutputType) error
+	invoke(*job.ProfilingJob, string) (error, time.Duration)
+	handleFlamegraph(*job.ProfilingJob, flamegraph.FrameGrapher, string, string) error
+	publishResult(compressor.Type, string, api.OutputType) error
 }
 
 type pythonManager struct {
@@ -90,19 +90,6 @@ func (p *PythonProfiler) SetUp(job *job.ProfilingJob) error {
 func (p *PythonProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	start := time.Now()
 
-	files := make([]string, 0, len(p.targetPIDs))
-
-	// override output type when flamegraph: it will be generated in two steps
-	// 1 - get raw format
-	// 2 - convert to flamegraph with Brendan Gregg's tool: flamegraph.pl
-	// the flamegraph format of py-spy will be ignored since the size of this one cannot be adjusted, and we want it
-	var fileName string
-	if job.OutputType == api.FlameGraph {
-		fileName = common.GetResultFile(common.TmpDir(), job.Tool, api.Raw)
-	} else {
-		fileName = common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType)
-	}
-
 	pool := pond.New(len(p.targetPIDs), 0, pond.MinWorkers(len(p.targetPIDs)))
 	defer pool.StopAndWait()
 
@@ -113,10 +100,7 @@ func (p *PythonProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	for _, pid := range p.targetPIDs {
 		pid := pid
 		group.Submit(func() error {
-			err, f, _ := p.invoke(job, pid, fileName)
-			if err == nil {
-				files = append(files, f)
-			}
+			err, _ := p.invoke(job, pid)
 			return err
 		})
 		// wait a bit between jobs for not overloading the system
@@ -125,51 +109,51 @@ func (p *PythonProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 
 	// wait for all tasks to finish
 	err := group.Wait()
-	if err != nil {
-		return err, time.Since(start)
-	}
 
-	// merge all files
-	file.MergeFiles(fileName, files)
-
-	err = p.handleProfilingResult(job, flamegraph.Get(job), fileName)
-	if err != nil {
-		return err, time.Since(start)
-	}
-
-	return p.publishResult(job.Compressor, common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType), job.OutputType), time.Since(start)
+	return err, time.Since(start)
 }
 
-func (p *pythonManager) invoke(job *job.ProfilingJob, pid string, fileName string) (error, string, time.Duration) {
+func (p *pythonManager) invoke(job *job.ProfilingJob, pid string) (error, time.Duration) {
 	start := time.Now()
 
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 
-	fileName = fileName + "." + pid
+	resultFileName := common.GetResultFileWithPID(common.TmpDir(), job.Tool, job.OutputType, pid)
+
+	fileName := common.GetResultFileWithPID(common.TmpDir(), job.Tool, job.OutputType, pid)
+	if job.OutputType == api.FlameGraph {
+		fileName = common.GetResultFileWithPID(common.TmpDir(), job.Tool, api.Raw, pid)
+	}
 	cmd := pythonCommand(job, pid, fileName)
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if err != nil {
 		log.ErrorLogLn(out.String())
-		return errors.Wrapf(err, "could not launch profiler: %s", stderr.String()), "", time.Since(start)
+		return errors.Wrapf(err, "could not launch profiler: %s", stderr.String()), time.Since(start)
 	}
 
 	if job.OutputType == api.ThreadDump {
-		file.Write(fileName, out.String())
+		file.Write(resultFileName, out.String())
+	} else {
+		err = p.handleFlamegraph(job, flamegraph.Get(job), fileName, resultFileName)
+		if err != nil {
+			return err, time.Since(start)
+		}
 	}
 
-	return nil, fileName, time.Since(start)
+	return p.publishResult(job.Compressor, resultFileName, job.OutputType), time.Since(start)
 }
 
-func (p *pythonManager) handleProfilingResult(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher, fileName string) error {
+func (p *pythonManager) handleFlamegraph(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher,
+	rawFileName string, flameFileName string) error {
 	if job.OutputType == api.FlameGraph {
-		if file.IsEmpty(fileName) {
+		if file.IsEmpty(rawFileName) {
 			return errors.New("unable to generate flamegraph: no stacks found (maybe due low cpu load)")
 		}
 		// convert raw format to flamegraph
-		err := flameGrapher.StackSamplesToFlameGraph(fileName, common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType))
+		err := flameGrapher.StackSamplesToFlameGraph(rawFileName, flameFileName)
 		if err != nil {
 			return errors.Wrap(err, "could not convert raw format to flamegraph")
 		}

@@ -12,6 +12,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/flamegraph"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
+	"github.com/josepdcs/kubectl-prof/pkg/util/log"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,16 +26,16 @@ import (
 type MockPythonManager interface {
 	PythonManager
 	InvokeInvokedTimes() int
-	HandleProfilingResultInvokedTimes() int
+	HandleFlamegraphInvokedTimes() int
 	PublishResultInvokedTimes() int
-	WithHandleProfilingResultError() MockPythonManager
+	WithHandleFlamegraphError() MockPythonManager
 }
 
 type mockPythonManager struct {
-	invokeInvokedTimes                int
-	handleProfilingResultInvokedTimes int
-	publishResultInvokedTimes         int
-	withHandleProfilingResultError    bool
+	invokeInvokedTimes           int
+	handleFlamegraphInvokedTimes int
+	publishResultInvokedTimes    int
+	withHandleFlamegraphError    bool
 }
 
 // NewMockPythonManager instances an empty MockPythonManager util for unit tests
@@ -42,18 +43,18 @@ func NewMockPythonManager() MockPythonManager {
 	return &mockPythonManager{}
 }
 
-func (m *mockPythonManager) invoke(*job.ProfilingJob, string, string) (error, string, time.Duration) {
+func (m *mockPythonManager) invoke(*job.ProfilingJob, string) (error, time.Duration) {
 	m.invokeInvokedTimes++
 	fmt.Println("fake invoke")
-	return nil, "", 0
+	return nil, 0
 }
 
-func (m *mockPythonManager) handleProfilingResult(*job.ProfilingJob, flamegraph.FrameGrapher, string) error {
-	m.handleProfilingResultInvokedTimes++
-	if m.withHandleProfilingResultError {
-		return errors.New("fake handleProfilingResult with error")
+func (m *mockPythonManager) handleFlamegraph(*job.ProfilingJob, flamegraph.FrameGrapher, string, string) error {
+	m.handleFlamegraphInvokedTimes++
+	if m.withHandleFlamegraphError {
+		return errors.New("fake handleFlamegraph with error")
 	}
-	fmt.Println("fake handleProfilingResult")
+	fmt.Println("fake handleFlamegraph")
 	return nil
 }
 
@@ -67,16 +68,16 @@ func (m *mockPythonManager) InvokeInvokedTimes() int {
 	return m.invokeInvokedTimes
 }
 
-func (m *mockPythonManager) HandleProfilingResultInvokedTimes() int {
-	return m.handleProfilingResultInvokedTimes
+func (m *mockPythonManager) HandleFlamegraphInvokedTimes() int {
+	return m.handleFlamegraphInvokedTimes
 }
 
 func (m *mockPythonManager) PublishResultInvokedTimes() int {
 	return m.publishResultInvokedTimes
 }
 
-func (m *mockPythonManager) WithHandleProfilingResultError() MockPythonManager {
-	m.withHandleProfilingResultError = true
+func (m *mockPythonManager) WithHandleFlamegraphError() MockPythonManager {
+	m.withHandleFlamegraphError = true
 	return m
 }
 
@@ -193,7 +194,7 @@ func TestPythonProfiler_Invoke(t *testing.T) {
 		then  func(t *testing.T, err error, fields fields)
 	}{
 		{
-			name: "should publish result",
+			name: "should invoke",
 			given: func() (fields, args) {
 				return fields{
 						PythonProfiler: &PythonProfiler{
@@ -217,35 +218,6 @@ func TestPythonProfiler_Invoke(t *testing.T) {
 				mock := fields.PythonProfiler.PythonManager.(MockPythonManager)
 				assert.Nil(t, err)
 				assert.Equal(t, 2, mock.InvokeInvokedTimes())
-				assert.Equal(t, 1, mock.HandleProfilingResultInvokedTimes())
-				assert.Equal(t, 1, mock.PublishResultInvokedTimes())
-			},
-		},
-		{
-			name: "should fail when handle profiling result fail",
-			given: func() (fields, args) {
-				return fields{
-						PythonProfiler: &PythonProfiler{
-							PythonManager: NewMockPythonManager().WithHandleProfilingResultError(),
-						},
-					}, args{
-						job: &job.ProfilingJob{
-							Duration:         0,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
-						},
-					}
-			},
-			when: func(fields fields, args args) (error, time.Duration) {
-				fields.PythonProfiler.delay = 0
-				fields.PythonProfiler.targetPIDs = []string{"1000", "2000"}
-				return fields.PythonProfiler.Invoke(args.job)
-			},
-			then: func(t *testing.T, err error, fields fields) {
-				mock := fields.PythonProfiler.PythonManager.(MockPythonManager)
-				assert.NotNil(t, err)
-				assert.Equal(t, 2, mock.InvokeInvokedTimes())
-				assert.Equal(t, 0, mock.PublishResultInvokedTimes())
 			},
 		},
 	}
@@ -326,20 +298,25 @@ func Test_pythonManager_invoke(t *testing.T) {
 		PythonProfiler *PythonProfiler
 	}
 	type args struct {
-		job      *job.ProfilingJob
-		pid      string
-		fileName string
+		job *job.ProfilingJob
+		pid string
 	}
 	tests := []struct {
 		name  string
 		given func() (fields, args)
-		when  func(fields, args) (error, string, time.Duration)
-		then  func(t *testing.T, err error, fileName string)
+		when  func(fields, args) (error, time.Duration)
+		then  func(t *testing.T, err error)
 		after func()
 	}{
 		{
 			name: "should invoke",
 			given: func() (fields, args) {
+				log.SetPrintLogs(true)
+				var b bytes.Buffer
+				b.Write([]byte("test"))
+				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000.txt"), b.String())
+				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"), b.String())
+
 				pySpyCommander = executil.NewFakeCommander(exec.Command("ls", "/tmp"))
 				return fields{
 						PythonProfiler: NewPythonProfiler(),
@@ -350,17 +327,22 @@ func Test_pythonManager_invoke(t *testing.T) {
 							ContainerID:      "ContainerID",
 							OutputType:       api.FlameGraph,
 							Language:         api.FakeLang,
+							Tool:             api.Pyspy,
+							Compressor:       compressor.None,
 						},
-						pid:      "1000",
-						fileName: filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"),
+						pid: "1000",
 					}
 			},
-			when: func(fields fields, args args) (error, string, time.Duration) {
-				return fields.PythonProfiler.invoke(args.job, args.pid, args.fileName)
+			when: func(fields fields, args args) (error, time.Duration) {
+				return fields.PythonProfiler.invoke(args.job, args.pid)
 			},
-			then: func(t *testing.T, err error, fileName string) {
+			then: func(t *testing.T, err error) {
 				assert.Nil(t, err)
-				assert.Equal(t, filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt.1000"), fileName)
+				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
+			},
+			after: func() {
+				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000.txt"))
+				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"))
 			},
 		},
 		{
@@ -376,17 +358,21 @@ func Test_pythonManager_invoke(t *testing.T) {
 							ContainerID:      "ContainerID",
 							OutputType:       api.ThreadDump,
 							Language:         api.FakeLang,
+							Compressor:       compressor.None,
+							Tool:             api.Pyspy,
 						},
-						pid:      "1000",
-						fileName: filepath.Join(common.TmpDir(), config.ProfilingPrefix+"threaddump.txt"),
+						pid: "1000",
 					}
 			},
-			when: func(fields fields, args args) (error, string, time.Duration) {
-				return fields.PythonProfiler.invoke(args.job, args.pid, args.fileName)
+			when: func(fields fields, args args) (error, time.Duration) {
+				return fields.PythonProfiler.invoke(args.job, args.pid)
 			},
-			then: func(t *testing.T, err error, fileName string) {
+			then: func(t *testing.T, err error) {
 				assert.Nil(t, err)
-				assert.Equal(t, filepath.Join(common.TmpDir(), config.ProfilingPrefix+"threaddump.txt.1000"), fileName)
+				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"threaddump-1000.txt")))
+			},
+			after: func() {
+				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"threaddump-1000.txt"))
 			},
 		},
 		{
@@ -401,18 +387,43 @@ func Test_pythonManager_invoke(t *testing.T) {
 							ContainerRuntime: api.FakeContainer,
 							ContainerID:      "ContainerID",
 							OutputType:       api.FlameGraph,
-							Language:         api.FakeLang,
+							Language:         api.Python,
+							Tool:             api.Pyspy,
 						},
-						pid:      "1000",
-						fileName: filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"),
+						pid: "1000",
 					}
 			},
-			when: func(fields fields, args args) (error, string, time.Duration) {
-				return fields.PythonProfiler.invoke(args.job, args.pid, args.fileName)
+			when: func(fields fields, args args) (error, time.Duration) {
+				return fields.PythonProfiler.invoke(args.job, args.pid)
 			},
-			then: func(t *testing.T, err error, fileName string) {
+			then: func(t *testing.T, err error) {
 				require.Error(t, err)
-				assert.Equal(t, "", fileName)
+			},
+		},
+		{
+			name: "should invoke fail when fail handle flamegraph",
+			given: func() (fields, args) {
+				log.SetPrintLogs(true)
+				pySpyCommander = executil.NewFakeCommander(exec.Command("ls", "/tmp"))
+				return fields{
+						PythonProfiler: NewPythonProfiler(),
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							OutputType:       api.FlameGraph,
+							Language:         api.Python,
+							Tool:             api.Pyspy,
+						},
+						pid: "1000",
+					}
+			},
+			when: func(fields fields, args args) (error, time.Duration) {
+				return fields.PythonProfiler.invoke(args.job, args.pid)
+			},
+			then: func(t *testing.T, err error) {
+				require.Error(t, err)
 			},
 		},
 	}
@@ -422,10 +433,10 @@ func Test_pythonManager_invoke(t *testing.T) {
 			fields, args := tt.given()
 
 			// When
-			err, fileName, _ := tt.when(fields, args)
+			err, _ := tt.when(fields, args)
 
 			// Then
-			tt.then(t, err, fileName)
+			tt.then(t, err)
 
 			if tt.after != nil {
 				tt.after()
@@ -434,25 +445,26 @@ func Test_pythonManager_invoke(t *testing.T) {
 	}
 }
 
-func Test_pythonManager_handleProfilingResult(t *testing.T) {
+func Test_pythonManager_handleFlamegraph(t *testing.T) {
 	type fields struct {
 		PythonProfiler *PythonProfiler
 	}
 	type args struct {
-		job          *job.ProfilingJob
-		flameGrapher flamegraph.FrameGrapher
-		fileName     string
-		out          bytes.Buffer
+		job            *job.ProfilingJob
+		flameGrapher   flamegraph.FrameGrapher
+		fileName       string
+		resultFileName string
+		out            bytes.Buffer
 	}
 	tests := []struct {
 		name  string
 		given func() (fields, args)
 		when  func(fields, args) error
-		then  func(t *testing.T, err error, fields fields)
+		then  func(t *testing.T, err error, flameGrapher flamegraph.FrameGrapher)
 		after func()
 	}{
 		{
-			name: "should handle flamegraph profiler result",
+			name: "should handle flamegraph",
 			given: func() (fields, args) {
 				var b bytes.Buffer
 				b.Write([]byte("test"))
@@ -467,15 +479,17 @@ func Test_pythonManager_handleProfilingResult(t *testing.T) {
 							OutputType:       api.FlameGraph,
 							Language:         api.FakeLang,
 						},
-						flameGrapher: flamegraph.NewFlameGrapherFake(),
-						fileName:     filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"),
-						out:          b,
+						flameGrapher:   flamegraph.NewFlameGrapherFake(),
+						fileName:       filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"),
+						resultFileName: filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph.svg"),
+						out:            b,
 					}
 			},
 			when: func(fields fields, args args) error {
-				return fields.PythonProfiler.handleProfilingResult(args.job, args.flameGrapher, args.fileName)
+				return fields.PythonProfiler.handleFlamegraph(args.job, args.flameGrapher, args.fileName, args.resultFileName)
 			},
-			then: func(t *testing.T, err error, fields fields) {
+			then: func(t *testing.T, err error, flameGrapher flamegraph.FrameGrapher) {
+				assert.True(t, flameGrapher.(*flamegraph.FlameGrapherFake).StackSamplesToFlameGraphInvoked)
 				assert.Nil(t, err)
 			},
 			after: func() {
@@ -498,14 +512,16 @@ func Test_pythonManager_handleProfilingResult(t *testing.T) {
 							OutputType:       api.FlameGraph,
 							Language:         "other",
 						},
-						flameGrapher: flamegraph.NewFlameGrapherFakeWithError(),
-						fileName:     filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"),
+						flameGrapher:   flamegraph.NewFlameGrapherFakeWithError(),
+						fileName:       filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"),
+						resultFileName: filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph.svg"),
 					}
 			},
 			when: func(fields fields, args args) error {
-				return fields.PythonProfiler.handleProfilingResult(args.job, args.flameGrapher, args.fileName)
+				return fields.PythonProfiler.handleFlamegraph(args.job, args.flameGrapher, args.fileName, args.resultFileName)
 			},
-			then: func(t *testing.T, err error, fields fields) {
+			then: func(t *testing.T, err error, flameGrapher flamegraph.FrameGrapher) {
+				assert.True(t, flameGrapher.(*flamegraph.FlameGrapherFakeWithError).StackSamplesToFlameGraphInvoked)
 				assert.EqualError(t, err, "could not convert raw format to flamegraph: StackSamplesToFlameGraph with error")
 			},
 			after: func() {
@@ -527,14 +543,16 @@ func Test_pythonManager_handleProfilingResult(t *testing.T) {
 							OutputType:       api.FlameGraph,
 							Language:         "other",
 						},
-						flameGrapher: flamegraph.NewFlameGrapherFake(),
-						fileName:     filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"),
+						flameGrapher:   flamegraph.NewFlameGrapherFake(),
+						fileName:       filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"),
+						resultFileName: filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph.svg"),
 					}
 			},
 			when: func(fields fields, args args) error {
-				return fields.PythonProfiler.handleProfilingResult(args.job, args.flameGrapher, args.fileName)
+				return fields.PythonProfiler.handleFlamegraph(args.job, args.flameGrapher, args.fileName, args.resultFileName)
 			},
-			then: func(t *testing.T, err error, fields fields) {
+			then: func(t *testing.T, err error, flameGrapher flamegraph.FrameGrapher) {
+				assert.False(t, flameGrapher.(*flamegraph.FlameGrapherFake).StackSamplesToFlameGraphInvoked)
 				assert.EqualError(t, err, "unable to generate flamegraph: no stacks found (maybe due low cpu load)")
 			},
 			after: func() {
@@ -551,7 +569,7 @@ func Test_pythonManager_handleProfilingResult(t *testing.T) {
 			err := tt.when(fields, args)
 
 			// Then
-			tt.then(t, err, fields)
+			tt.then(t, err, args.flameGrapher)
 
 			if tt.after != nil {
 				tt.after()
