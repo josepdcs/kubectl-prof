@@ -119,8 +119,6 @@ func (p *pythonManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 
-	resultFileName := common.GetResultFileWithPID(common.TmpDir(), job.Tool, job.OutputType, pid)
-
 	fileName := common.GetResultFileWithPID(common.TmpDir(), job.Tool, job.OutputType, pid)
 	if job.OutputType == api.FlameGraph {
 		fileName = common.GetResultFileWithPID(common.TmpDir(), job.Tool, api.Raw, pid)
@@ -134,12 +132,15 @@ func (p *pythonManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 		return errors.Wrapf(err, "could not launch profiler: %s", stderr.String()), time.Since(start)
 	}
 
+	// result file name is composed by the job info and the pid
+	resultFileName := common.GetResultFileWithPID(common.TmpDir(), job.Tool, job.OutputType, pid)
 	if job.OutputType == api.ThreadDump {
 		file.Write(resultFileName, out.String())
 	} else {
 		err = p.handleFlamegraph(job, flamegraph.Get(job), fileName, resultFileName)
 		if err != nil {
-			return err, time.Since(start)
+			log.ErrorLogLn(fmt.Sprintf("could not generate flamegraph (PID: %s): %s", pid, err.Error()))
+			return nil, time.Since(start)
 		}
 	}
 

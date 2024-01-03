@@ -42,9 +42,9 @@ type BpfProfiler struct {
 }
 
 type BpfManager interface {
-	invoke(job *job.ProfilingJob, pid string) (error, string, time.Duration)
-	handleProfilingResult(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher, fileName string) error
-	publishResult(compressor compressor.Type, fileName string, outputType api.OutputType) error
+	invoke(*job.ProfilingJob, string) (error, time.Duration)
+	handleFlamegraph(*job.ProfilingJob, flamegraph.FrameGrapher, string, string) error
+	publishResult(compressor.Type, string, api.OutputType) error
 }
 
 type bpfManager struct {
@@ -75,8 +75,6 @@ func (b *BpfProfiler) SetUp(job *job.ProfilingJob) error {
 func (b *BpfProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	start := time.Now()
 
-	files := make([]string, 0, len(b.targetPIDs))
-
 	pool := pond.New(len(b.targetPIDs), 0, pond.MinWorkers(len(b.targetPIDs)))
 	defer pool.StopAndWait()
 
@@ -87,35 +85,20 @@ func (b *BpfProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	for _, pid := range b.targetPIDs {
 		pid := pid
 		group.Submit(func() error {
-			err, f, _ := b.invoke(job, pid)
-			if err == nil {
-				files = append(files, f)
-			}
+			err, _ := b.invoke(job, pid)
 			return err
 		})
-		// wait a bit between jobs for not overloading the system (bcc-profiler is a heavy tool)
+		// wait a bit between jobs for not overloading the system
 		time.Sleep(b.delay)
 	}
 
 	// wait for all tasks to finish
 	err := group.Wait()
-	if err != nil {
-		return err, time.Since(start)
-	}
 
-	fileName := common.GetResultFile(common.TmpDir(), job.Tool, api.Raw)
-	// merge all files
-	file.MergeFiles(fileName, files)
-
-	err = b.handleProfilingResult(job, flamegraph.Get(job), fileName)
-	if err != nil {
-		return err, time.Since(start)
-	}
-
-	return b.publishResult(job.Compressor, common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType), job.OutputType), time.Since(start)
+	return err, time.Since(start)
 }
 
-func (b *bpfManager) invoke(job *job.ProfilingJob, pid string) (error, string, time.Duration) {
+func (b *bpfManager) invoke(job *job.ProfilingJob, pid string) (error, time.Duration) {
 	start := time.Now()
 
 	var out bytes.Buffer
@@ -127,24 +110,32 @@ func (b *bpfManager) invoke(job *job.ProfilingJob, pid string) (error, string, t
 	err := cmd.Run()
 	if err != nil {
 		log.ErrorLogLn(out.String())
-		return errors.Wrapf(err, "could not launch profiler: %s", stderr.String()), "", time.Since(start)
+		return errors.Wrapf(err, "could not launch profiler: %s", stderr.String()), time.Since(start)
 	}
 
-	// out file name is composed by the job info and the pid
-	fileName := common.GetResultFile(common.TmpDir(), job.Tool, api.Raw) + "." + pid
+	// out file names is composed by the job info and the pid
+	resultFileName := common.GetResultFileWithPID(common.TmpDir(), job.Tool, job.OutputType, pid)
+	fileName := common.GetResultFileWithPID(common.TmpDir(), job.Tool, api.Raw, pid)
 	// add process pid legend to each line of the output and write it to the file
 	file.Write(fileName, addProcessPIDLegend(out.String(), pid))
 
-	return nil, fileName, time.Since(start)
+	err = b.handleFlamegraph(job, flamegraph.Get(job), fileName, resultFileName)
+	if err != nil {
+		log.ErrorLogLn(fmt.Sprintf("could not generate flamegraph (PID: %s): %s", pid, err.Error()))
+		return nil, time.Since(start)
+	}
+
+	return b.publishResult(job.Compressor, resultFileName, job.OutputType), time.Since(start)
 }
 
-func (b *bpfManager) handleProfilingResult(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher, fileName string) error {
+func (b *bpfManager) handleFlamegraph(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher,
+	rawFileName string, flameFileName string) error {
 	if job.OutputType == api.FlameGraph {
-		if file.GetSize(fileName) < common.MinimumRawSize {
+		if file.GetSize(rawFileName) < common.MinimumRawSize {
 			return fmt.Errorf("unable to generate flamegraph: no stacks found (maybe due low cpu load)")
 		}
 		// convert raw format to flamegraph
-		err := flameGrapher.StackSamplesToFlameGraph(fileName, common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType))
+		err := flameGrapher.StackSamplesToFlameGraph(rawFileName, flameFileName)
 		if err != nil {
 			return errors.Wrap(err, "could not convert raw format to flamegraph")
 		}

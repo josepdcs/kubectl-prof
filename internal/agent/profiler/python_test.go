@@ -401,7 +401,7 @@ func Test_pythonManager_invoke(t *testing.T) {
 			},
 		},
 		{
-			name: "should invoke fail when fail handle flamegraph",
+			name: "should invoke return nil when fail handle flamegraph",
 			given: func() (fields, args) {
 				log.SetPrintLogs(true)
 				pySpyCommander = executil.NewFakeCommander(exec.Command("ls", "/tmp"))
@@ -423,7 +423,7 @@ func Test_pythonManager_invoke(t *testing.T) {
 				return fields.PythonProfiler.invoke(args.job, args.pid)
 			},
 			then: func(t *testing.T, err error) {
-				require.Error(t, err)
+				require.NoError(t, err)
 			},
 		},
 	}
@@ -454,7 +454,6 @@ func Test_pythonManager_handleFlamegraph(t *testing.T) {
 		flameGrapher   flamegraph.FrameGrapher
 		fileName       string
 		resultFileName string
-		out            bytes.Buffer
 	}
 	tests := []struct {
 		name  string
@@ -482,7 +481,6 @@ func Test_pythonManager_handleFlamegraph(t *testing.T) {
 						flameGrapher:   flamegraph.NewFlameGrapherFake(),
 						fileName:       filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"),
 						resultFileName: filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph.svg"),
-						out:            b,
 					}
 			},
 			when: func(fields fields, args args) error {

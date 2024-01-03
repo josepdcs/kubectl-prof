@@ -233,10 +233,15 @@ minikube-build-and-push-ruby-agent:
 minikube-deploy-stupid-apps:
 	@test/minikube-lab/deploy_stupid_apps.sh
 
-## minikube-build-and-push-ruby-stupid-app: Build image of ruby agent and load it into minikube
+## minikube-build-and-push-ruby-stupid-app: Build image of ruby stupid app and load it into minikube
 .PHONY: minikube-build-and-push-ruby-stupid-app
 minikube-build-and-push-ruby-stupid-app:
 	@test/minikube-lab/build_and_push_image.sh "test/stupid-apps/ruby" "stupid-apps" "ruby"
+
+## minikube-build-and-push-node-stupid-app: Build image of node stupid app and load it into minikube
+.PHONY: minikube-build-and-push-node-stupid-app
+minikube-build-and-push-node-stupid-app:
+	@test/minikube-lab/build_and_push_image.sh "test/stupid-apps/node" "stupid-apps" "node"
 
 ## minikube-configure-profiling: Configure all needed for profiling (service account, namespace, etc.)
 .PHONY: minikube-configure-profiling

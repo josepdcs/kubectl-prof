@@ -13,6 +13,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/flamegraph"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
+	"github.com/josepdcs/kubectl-prof/pkg/util/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"os"
@@ -42,18 +43,18 @@ func NewMockBpfManager() MockBpfManager {
 	return &mockBpfManager{}
 }
 
-func (m *mockBpfManager) invoke(job *job.ProfilingJob, pid string) (error, string, time.Duration) {
+func (m *mockBpfManager) invoke(*job.ProfilingJob, string) (error, time.Duration) {
 	m.invokeInvokedTimes++
 	fmt.Println("fake invoke")
-	return nil, "", 0
+	return nil, 0
 }
 
-func (m *mockBpfManager) handleProfilingResult(*job.ProfilingJob, flamegraph.FrameGrapher, string) error {
+func (m *mockBpfManager) handleFlamegraph(*job.ProfilingJob, flamegraph.FrameGrapher, string, string) error {
 	m.handleProfilingResultInvokedTimes++
 	if m.withHandleProfilingResultError {
-		return errors.New("fake handleProfilingResult with error")
+		return errors.New("fake handleFlamegraph with error")
 	}
-	fmt.Println("fake handleProfilingResult")
+	fmt.Println("fake handleFlamegraph")
 	return nil
 }
 
@@ -193,9 +194,8 @@ func TestBpfProfiler_Invoke(t *testing.T) {
 		then  func(t *testing.T, err error, fields fields)
 	}{
 		{
-			name: "should publish result",
+			name: "should invoke",
 			given: func() (fields, args) {
-				bpfCommander = executil.NewFakeCommander(exec.Command("ls", "/tmp"))
 				return fields{
 						BpfProfiler: &BpfProfiler{
 							BpfManager: NewMockBpfManager(),
@@ -218,36 +218,6 @@ func TestBpfProfiler_Invoke(t *testing.T) {
 				mock := fields.BpfProfiler.BpfManager.(MockBpfManager)
 				assert.Nil(t, err)
 				assert.Equal(t, 2, mock.InvokeInvokedTimes())
-				assert.Equal(t, 1, mock.HandleProfilingResultInvokedTimes())
-				assert.Equal(t, 1, mock.PublishResultInvokedTimes())
-			},
-		},
-		{
-			name: "should fail when handle profiling result fail",
-			given: func() (fields, args) {
-				bpfCommander = executil.NewFakeCommander(exec.Command("ls", "/tmp"))
-				return fields{
-						BpfProfiler: &BpfProfiler{
-							BpfManager: NewMockBpfManager().WithHandleProfilingResultError(),
-						},
-					}, args{
-						job: &job.ProfilingJob{
-							Duration:         0,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
-						},
-					}
-			},
-			when: func(fields fields, args args) (error, time.Duration) {
-				fields.BpfProfiler.delay = 0
-				fields.BpfProfiler.targetPIDs = []string{"1000", "2000"}
-				return fields.BpfProfiler.Invoke(args.job)
-			},
-			then: func(t *testing.T, err error, fields fields) {
-				mock := fields.BpfProfiler.BpfManager.(MockBpfManager)
-				assert.NotNil(t, err)
-				assert.Equal(t, 2, mock.InvokeInvokedTimes())
-				assert.Equal(t, 0, mock.PublishResultInvokedTimes())
 			},
 		},
 	}
@@ -334,13 +304,19 @@ func Test_bpfManager_invoke(t *testing.T) {
 	tests := []struct {
 		name  string
 		given func() (fields, args)
-		when  func(fields, args) (error, string, time.Duration)
-		then  func(t *testing.T, err error, fileName string)
+		when  func(fields, args) (error, time.Duration)
+		then  func(t *testing.T, err error)
 		after func()
 	}{
 		{
 			name: "should invoke",
 			given: func() (fields, args) {
+				log.SetPrintLogs(true)
+				var b bytes.Buffer
+				b.Write([]byte("test"))
+				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000.txt"), b.String())
+				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"), b.String())
+
 				bpfCommander = executil.NewFakeCommander(exec.Command("ls", "/tmp"))
 				return fields{
 						BpfProfiler: NewBpfProfiler(),
@@ -351,16 +327,22 @@ func Test_bpfManager_invoke(t *testing.T) {
 							ContainerID:      "ContainerID",
 							OutputType:       api.FlameGraph,
 							Language:         api.FakeLang,
+							Tool:             api.Bpf,
+							Compressor:       compressor.None,
 						},
 						pid: "1000",
 					}
 			},
-			when: func(fields fields, args args) (error, string, time.Duration) {
+			when: func(fields fields, args args) (error, time.Duration) {
 				return fields.BpfProfiler.invoke(args.job, args.pid)
 			},
-			then: func(t *testing.T, err error, fileName string) {
+			then: func(t *testing.T, err error) {
 				assert.Nil(t, err)
-				assert.Equal(t, filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.svg.1000"), fileName)
+				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
+			},
+			after: func() {
+				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000.txt"))
+				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"))
 			},
 		},
 		{
@@ -375,17 +357,43 @@ func Test_bpfManager_invoke(t *testing.T) {
 							ContainerRuntime: api.FakeContainer,
 							ContainerID:      "ContainerID",
 							OutputType:       api.FlameGraph,
-							Language:         api.FakeLang,
+							Language:         api.Go,
+							Tool:             api.Bpf,
 						},
 						pid: "1000",
 					}
 			},
-			when: func(fields fields, args args) (error, string, time.Duration) {
+			when: func(fields fields, args args) (error, time.Duration) {
 				return fields.BpfProfiler.invoke(args.job, args.pid)
 			},
-			then: func(t *testing.T, err error, fileName string) {
+			then: func(t *testing.T, err error) {
 				require.Error(t, err)
-				assert.Equal(t, "", fileName)
+			},
+		},
+		{
+			name: "should invoke return nil when fail handle flamegraph",
+			given: func() (fields, args) {
+				log.SetPrintLogs(true)
+				bpfCommander = executil.NewFakeCommander(exec.Command("ls", "/tmp"))
+				return fields{
+						BpfProfiler: NewBpfProfiler(),
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							OutputType:       api.FlameGraph,
+							Language:         api.Go,
+							Tool:             api.Bpf,
+						},
+						pid: "1000",
+					}
+			},
+			when: func(fields fields, args args) (error, time.Duration) {
+				return fields.BpfProfiler.invoke(args.job, args.pid)
+			},
+			then: func(t *testing.T, err error) {
+				require.NoError(t, err)
 			},
 		},
 	}
@@ -395,10 +403,10 @@ func Test_bpfManager_invoke(t *testing.T) {
 			fields, args := tt.given()
 
 			// When
-			err, fileName, _ := tt.when(fields, args)
+			err, _ := tt.when(fields, args)
 
 			// Then
-			tt.then(t, err, fileName)
+			tt.then(t, err)
 
 			if tt.after != nil {
 				tt.after()
@@ -407,26 +415,29 @@ func Test_bpfManager_invoke(t *testing.T) {
 	}
 }
 
-func Test_bpfManager_handleProfilingResult(t *testing.T) {
+func Test_bpfManager_handleFlamegraph(t *testing.T) {
 	type fields struct {
 		BpfProfiler *BpfProfiler
 	}
 	type args struct {
-		job          *job.ProfilingJob
-		flameGrapher flamegraph.FrameGrapher
-		fileName     string
-		out          bytes.Buffer
+		job            *job.ProfilingJob
+		flameGrapher   flamegraph.FrameGrapher
+		fileName       string
+		resultFileName string
 	}
 	tests := []struct {
 		name  string
 		given func() (fields, args)
 		when  func(fields, args) error
-		then  func(t *testing.T, err error, fields fields)
+		then  func(t *testing.T, err error, flameGrapher flamegraph.FrameGrapher)
 		after func()
 	}{
 		{
-			name: "should handle flamegraph profiler result",
+			name: "should handle flamegraph",
 			given: func() (fields, args) {
+				var b bytes.Buffer
+				b.Write([]byte("testtesttesttesttesttesttesttesttesttesttesttesttest"))
+				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
 				return fields{
 						BpfProfiler: NewBpfProfiler(),
 					}, args{
@@ -437,22 +448,28 @@ func Test_bpfManager_handleProfilingResult(t *testing.T) {
 							OutputType:       api.FlameGraph,
 							Language:         api.FakeLang,
 						},
-						flameGrapher: flamegraph.NewFlameGrapherFake(),
-						fileName:     filepath.Join(testdata.ResultTestDataDir(), "raw.txt"),
+						flameGrapher:   flamegraph.NewFlameGrapherFake(),
+						fileName:       filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"),
+						resultFileName: filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph.svg"),
 					}
 			},
 			when: func(fields fields, args args) error {
-				return fields.BpfProfiler.handleProfilingResult(args.job, args.flameGrapher, args.fileName)
+				return fields.BpfProfiler.handleFlamegraph(args.job, args.flameGrapher, args.fileName, args.resultFileName)
 			},
-			then: func(t *testing.T, err error, fields fields) {
+			then: func(t *testing.T, err error, flameGrapher flamegraph.FrameGrapher) {
+				assert.True(t, flameGrapher.(*flamegraph.FlameGrapherFake).StackSamplesToFlameGraphInvoked)
 				assert.Nil(t, err)
+			},
+			after: func() {
+				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"))
 			},
 		},
 		{
 			name: "should fail handle flamegraph profiler result",
 			given: func() (fields, args) {
 				var b bytes.Buffer
-				b.Write([]byte("test"))
+				b.Write([]byte("testtesttesttesttesttesttesttesttesttesttesttesttest"))
+				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
 				return fields{
 						BpfProfiler: NewBpfProfiler(),
 					}, args{
@@ -463,20 +480,27 @@ func Test_bpfManager_handleProfilingResult(t *testing.T) {
 							OutputType:       api.FlameGraph,
 							Language:         "other",
 						},
-						flameGrapher: flamegraph.NewFlameGrapherFakeWithError(),
-						fileName:     filepath.Join(testdata.ResultTestDataDir(), "raw.txt"),
+						flameGrapher:   flamegraph.NewFlameGrapherFakeWithError(),
+						fileName:       filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"),
+						resultFileName: filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph.svg"),
 					}
 			},
 			when: func(fields fields, args args) error {
-				return fields.BpfProfiler.handleProfilingResult(args.job, args.flameGrapher, args.fileName)
+				return fields.BpfProfiler.handleFlamegraph(args.job, args.flameGrapher, args.fileName, args.resultFileName)
 			},
-			then: func(t *testing.T, err error, fields fields) {
+			then: func(t *testing.T, err error, flameGrapher flamegraph.FrameGrapher) {
+				assert.True(t, flameGrapher.(*flamegraph.FlameGrapherFakeWithError).StackSamplesToFlameGraphInvoked)
 				assert.EqualError(t, err, "could not convert raw format to flamegraph: StackSamplesToFlameGraph with error")
+			},
+			after: func() {
+				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"))
 			},
 		},
 		{
 			name: "should fail handle flamegraph profiler result when no stacks found",
 			given: func() (fields, args) {
+				var b bytes.Buffer
+				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
 				return fields{
 						BpfProfiler: NewBpfProfiler(),
 					}, args{
@@ -487,15 +511,20 @@ func Test_bpfManager_handleProfilingResult(t *testing.T) {
 							OutputType:       api.FlameGraph,
 							Language:         "other",
 						},
-						flameGrapher: flamegraph.NewFlameGrapherFake(),
-						fileName:     filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"),
+						flameGrapher:   flamegraph.NewFlameGrapherFake(),
+						fileName:       filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"),
+						resultFileName: filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph.svg"),
 					}
 			},
 			when: func(fields fields, args args) error {
-				return fields.BpfProfiler.handleProfilingResult(args.job, args.flameGrapher, args.fileName)
+				return fields.BpfProfiler.handleFlamegraph(args.job, args.flameGrapher, args.fileName, args.resultFileName)
 			},
-			then: func(t *testing.T, err error, fields fields) {
+			then: func(t *testing.T, err error, flameGrapher flamegraph.FrameGrapher) {
+				assert.False(t, flameGrapher.(*flamegraph.FlameGrapherFake).StackSamplesToFlameGraphInvoked)
 				assert.EqualError(t, err, "unable to generate flamegraph: no stacks found (maybe due low cpu load)")
+			},
+			after: func() {
+				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"))
 			},
 		},
 	}
@@ -508,7 +537,7 @@ func Test_bpfManager_handleProfilingResult(t *testing.T) {
 			err := tt.when(fields, args)
 
 			// Then
-			tt.then(t, err, fields)
+			tt.then(t, err, args.flameGrapher)
 
 			if tt.after != nil {
 				tt.after()
