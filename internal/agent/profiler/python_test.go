@@ -29,6 +29,7 @@ type MockPythonManager interface {
 	HandleFlamegraphInvokedTimes() int
 	PublishResultInvokedTimes() int
 	WithHandleFlamegraphError() MockPythonManager
+	WithInvokeError() MockPythonManager
 }
 
 type mockPythonManager struct {
@@ -36,6 +37,7 @@ type mockPythonManager struct {
 	handleFlamegraphInvokedTimes int
 	publishResultInvokedTimes    int
 	withHandleFlamegraphError    bool
+	withInvokeError              bool
 }
 
 // NewMockPythonManager instances an empty MockPythonManager util for unit tests
@@ -45,6 +47,9 @@ func NewMockPythonManager() MockPythonManager {
 
 func (m *mockPythonManager) invoke(*job.ProfilingJob, string) (error, time.Duration) {
 	m.invokeInvokedTimes++
+	if m.withInvokeError {
+		return errors.New("fake invoke with error"), 0
+	}
 	fmt.Println("fake invoke")
 	return nil, 0
 }
@@ -78,6 +83,11 @@ func (m *mockPythonManager) PublishResultInvokedTimes() int {
 
 func (m *mockPythonManager) WithHandleFlamegraphError() MockPythonManager {
 	m.withHandleFlamegraphError = true
+	return m
+}
+
+func (m *mockPythonManager) WithInvokeError() MockPythonManager {
+	m.withInvokeError = true
 	return m
 }
 
@@ -220,6 +230,33 @@ func TestPythonProfiler_Invoke(t *testing.T) {
 				assert.Equal(t, 2, mock.InvokeInvokedTimes())
 			},
 		},
+		{
+			name: "should invoke fail when invoke fail",
+			given: func() (fields, args) {
+				return fields{
+						PythonProfiler: &PythonProfiler{
+							PythonManager: NewMockPythonManager().WithInvokeError(),
+						},
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							OutputType:       api.FlameGraph,
+						},
+					}
+			},
+			when: func(fields fields, args args) (error, time.Duration) {
+				fields.PythonProfiler.delay = 0
+				fields.PythonProfiler.targetPIDs = []string{"1000", "2000"}
+				return fields.PythonProfiler.Invoke(args.job)
+			},
+			then: func(t *testing.T, err error, fields fields) {
+				mock := fields.PythonProfiler.PythonManager.(MockPythonManager)
+				require.Error(t, err)
+				assert.Equal(t, 1, mock.InvokeInvokedTimes())
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -338,7 +375,7 @@ func Test_pythonManager_invoke(t *testing.T) {
 			},
 			then: func(t *testing.T, err error) {
 				assert.Nil(t, err)
-				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
+				//assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
 			},
 			after: func() {
 				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000.txt"))

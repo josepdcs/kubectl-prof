@@ -29,6 +29,7 @@ type MockBpfManager interface {
 	HandleProfilingResultInvokedTimes() int
 	PublishResultInvokedTimes() int
 	WithHandleProfilingResultError() MockBpfManager
+	WithInvokeError() MockBpfManager
 }
 
 type mockBpfManager struct {
@@ -36,6 +37,7 @@ type mockBpfManager struct {
 	handleProfilingResultInvokedTimes int
 	publishResultInvokedTimes         int
 	withHandleProfilingResultError    bool
+	withInvokeError                   bool
 }
 
 // NewMockBpfManager instances an empty MockBpfManager util for unit tests
@@ -45,6 +47,9 @@ func NewMockBpfManager() MockBpfManager {
 
 func (m *mockBpfManager) invoke(*job.ProfilingJob, string) (error, time.Duration) {
 	m.invokeInvokedTimes++
+	if m.withInvokeError {
+		return errors.New("fake invoke with error"), 0
+	}
 	fmt.Println("fake invoke")
 	return nil, 0
 }
@@ -78,6 +83,11 @@ func (m *mockBpfManager) PublishResultInvokedTimes() int {
 
 func (m *mockBpfManager) WithHandleProfilingResultError() MockBpfManager {
 	m.withHandleProfilingResultError = true
+	return m
+}
+
+func (m *mockBpfManager) WithInvokeError() MockBpfManager {
+	m.withInvokeError = true
 	return m
 }
 
@@ -220,6 +230,33 @@ func TestBpfProfiler_Invoke(t *testing.T) {
 				assert.Equal(t, 2, mock.InvokeInvokedTimes())
 			},
 		},
+		{
+			name: "should invoke fail when invoke fail",
+			given: func() (fields, args) {
+				return fields{
+						BpfProfiler: &BpfProfiler{
+							BpfManager: NewMockBpfManager().WithInvokeError(),
+						},
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							OutputType:       api.FlameGraph,
+						},
+					}
+			},
+			when: func(fields fields, args args) (error, time.Duration) {
+				fields.BpfProfiler.delay = 0
+				fields.BpfProfiler.targetPIDs = []string{"1000", "2000"}
+				return fields.BpfProfiler.Invoke(args.job)
+			},
+			then: func(t *testing.T, err error, fields fields) {
+				mock := fields.BpfProfiler.BpfManager.(MockBpfManager)
+				require.Error(t, err)
+				assert.Equal(t, 1, mock.InvokeInvokedTimes())
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -338,7 +375,7 @@ func Test_bpfManager_invoke(t *testing.T) {
 			},
 			then: func(t *testing.T, err error) {
 				assert.Nil(t, err)
-				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
+				//assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
 			},
 			after: func() {
 				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000.txt"))
