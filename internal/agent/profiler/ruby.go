@@ -45,7 +45,7 @@ type RubyProfiler struct {
 }
 
 type RubyManager interface {
-	invoke(job *job.ProfilingJob, pid string, fileName string) (error, time.Duration)
+	invoke(job *job.ProfilingJob, pid string) (error, time.Duration)
 	publishResult(compressor compressor.Type, fileName string, outputType api.OutputType) error
 }
 
@@ -88,7 +88,7 @@ func (r *RubyProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	for _, pid := range r.targetPIDs {
 		pid := pid
 		group.Submit(func() error {
-			err, _ := r.invoke(job, pid, common.GetResultFileWithPID(common.TmpDir(), job.Tool, job.OutputType, pid))
+			err, _ := r.invoke(job, pid)
 			return err
 		})
 		// wait a bit between jobs for not overloading the system
@@ -101,12 +101,13 @@ func (r *RubyProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	return err, time.Since(start)
 }
 
-func (p *rubyManager) invoke(job *job.ProfilingJob, pid string, fileName string) (error, time.Duration) {
+func (p *rubyManager) invoke(job *job.ProfilingJob, pid string) (error, time.Duration) {
 	start := time.Now()
 
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 
+	fileName := common.GetResultFileWithPID(common.TmpDir(), job.Tool, job.OutputType, pid)
 	cmd := rubyCommand(job, pid, fileName)
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr

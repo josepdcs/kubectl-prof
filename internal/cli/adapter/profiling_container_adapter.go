@@ -178,7 +178,7 @@ func retrieveFileOrRetry(pod *v1.Pod, containerName string, exec podexec.Executo
 
 		// check the checksum of the downloaded file
 		checksum := getMD5Hash(fileBuff)
-		fmt.Printf("\nFile %s downloaded (local: %s | remote: %s)", remoteFile.FileName, checksum, remoteFile.Checksum)
+		//fmt.Printf("\nFile %s downloaded (local: %s | remote: %s)", remoteFile.FileName, checksum, remoteFile.Checksum)
 
 		if checksum == remoteFile.Checksum {
 			return fileBuff, nil

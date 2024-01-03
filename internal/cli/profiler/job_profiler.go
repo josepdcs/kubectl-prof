@@ -84,7 +84,7 @@ func (p JobProfiler) Profile(cfg *config.ProfilerConfig) error {
 			} else {
 				// downloaded result file
 				elapsed := time.Since(start)
-				fmt.Printf("✔\nRemote profiling file downloaded in %f seconds.\n", elapsed.Seconds())
+				fmt.Printf("Remote profiling file downloaded in %f seconds. ✔\n", elapsed.Seconds())
 
 				elapsed = time.Since(profilingStart)
 				fmt.Printf("The profiling result file [%s] was obtained in %f seconds. 🔥\n", fileName, elapsed.Seconds())

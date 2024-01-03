@@ -243,6 +243,11 @@ minikube-build-and-push-ruby-stupid-app:
 minikube-build-and-push-node-stupid-app:
 	@test/minikube-lab/build_and_push_image.sh "test/stupid-apps/node" "stupid-apps" "node"
 
+## minikube-build-and-push-python-stupid-app: Build image of python stupid app and load it into minikube
+.PHONY: minikube-build-and-push-python-stupid-app
+minikube-build-and-push-python-stupid-app:
+	@test/minikube-lab/build_and_push_image.sh "test/stupid-apps/python" "stupid-apps" "python"
+
 ## minikube-configure-profiling: Configure all needed for profiling (service account, namespace, etc.)
 .PHONY: minikube-configure-profiling
 minikube-configure-profiling:

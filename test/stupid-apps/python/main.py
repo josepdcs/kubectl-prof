@@ -11,12 +11,12 @@ async def work(n, time, function):
 
 async def fast_function():
     while True:
-        await work(100, 50, "fast_function")
+        await work(100, 25, "fast_function")
 
 
 async def slow_function():
     while True:
-        await work(100, 500, "slow_function")
+        await work(100, 150, "slow_function")
 
 
 async def launch():
