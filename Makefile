@@ -131,7 +131,7 @@ push-docker-all: push-docker-jvm push-docker-jvm-alpine push-docker-bpf push-doc
 .PHONY: test
 test:
 	$(info $(M) running tests...)
-	GOARCH=amd64 GOOS=linux go test ./... -coverprofile=coverage.out
+	GOARCH=amd64 GOOS=linux go test -p 1 ./... -coverprofile=coverage.out
 
 ## coverage: Run unit tests and show coverage
 .PHONY: coverage
