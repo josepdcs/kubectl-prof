@@ -13,6 +13,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/agent/util"
 	executil "github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/flamegraph"
+	"github.com/josepdcs/kubectl-prof/internal/agent/util/publish"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
@@ -27,12 +28,10 @@ const (
 	bpfDelayBetweenJobs = 5 * time.Second
 )
 
-var bpfCommander = executil.NewCommander()
-
-var bccProfilerCommand = func(job *job.ProfilingJob, pid string) *exec.Cmd {
+var bccProfilerCommand = func(commander executil.Commander, job *job.ProfilingJob, pid string) *exec.Cmd {
 	interval := strconv.Itoa(int(job.Interval.Seconds()))
 	args := []string{"-df", "-U", "-p", pid, interval}
-	return bpfCommander.Command(profilerLocation, args...)
+	return commander.Command(profilerLocation, args...)
 }
 
 type BpfProfiler struct {
@@ -48,12 +47,17 @@ type BpfManager interface {
 }
 
 type bpfManager struct {
+	commander executil.Commander
+	publisher publish.Publisher
 }
 
-func NewBpfProfiler() *BpfProfiler {
+func NewBpfProfiler(commander executil.Commander, publisher publish.Publisher) *BpfProfiler {
 	return &BpfProfiler{
-		delay:      bpfDelayBetweenJobs,
-		BpfManager: &bpfManager{},
+		delay: bpfDelayBetweenJobs,
+		BpfManager: &bpfManager{
+			commander: commander,
+			publisher: publisher,
+		},
 	}
 }
 
@@ -104,7 +108,7 @@ func (b *bpfManager) invoke(job *job.ProfilingJob, pid string) (error, time.Dura
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 
-	cmd := bccProfilerCommand(job, pid)
+	cmd := bccProfilerCommand(b.commander, job, pid)
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 	err := cmd.Run()
@@ -144,7 +148,7 @@ func (b *bpfManager) handleFlamegraph(job *job.ProfilingJob, flameGrapher flameg
 }
 
 func (b *bpfManager) publishResult(c compressor.Type, fileName string, outputType api.OutputType) error {
-	return util.Publish(c, fileName, outputType)
+	return b.publisher.Do(c, fileName, outputType)
 }
 
 func (b *BpfProfiler) CleanUp(*job.ProfilingJob) error {

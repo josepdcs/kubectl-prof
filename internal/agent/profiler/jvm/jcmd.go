@@ -10,6 +10,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util"
 	executil "github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
+	"github.com/josepdcs/kubectl-prof/internal/agent/util/publish"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
@@ -237,7 +238,7 @@ func (j *jcmdManager) handleJcmdRecording(targetPID string, outputType string) {
 
 func (j *jcmdManager) publishResult(c compressor.Type, fileName string, outputType api.OutputType, heapDumpSplitInChunkSize string) error {
 	if outputType == api.HeapDump {
-		return util.PublishWithNativeGzipAndSplit(fileName, heapDumpSplitInChunkSize, outputType)
+		return publish.DoWithNativeGzipAndSplit(fileName, heapDumpSplitInChunkSize, outputType)
 	}
-	return util.Publish(c, fileName, outputType)
+	return publish.Do(c, fileName, outputType)
 }

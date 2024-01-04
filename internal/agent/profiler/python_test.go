@@ -7,9 +7,9 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/agent/config"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
-	"github.com/josepdcs/kubectl-prof/internal/agent/testdata"
 	executil "github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/flamegraph"
+	"github.com/josepdcs/kubectl-prof/internal/agent/util/publish"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
@@ -354,9 +354,9 @@ func Test_pythonManager_invoke(t *testing.T) {
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000.txt"), b.String())
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"), b.String())
 
-				pySpyCommander = executil.NewFakeCommander(exec.Command("ls", "/tmp"))
 				return fields{
-						PythonProfiler: NewPythonProfiler(),
+						PythonProfiler: NewPythonProfiler(executil.NewFakeCommander(exec.Command("ls", "/tmp")),
+							publish.NewPublisherFake(nil)),
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,
@@ -375,7 +375,7 @@ func Test_pythonManager_invoke(t *testing.T) {
 			},
 			then: func(t *testing.T, err error) {
 				assert.Nil(t, err)
-				//assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
+				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
 			},
 			after: func() {
 				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000.txt"))
@@ -385,9 +385,9 @@ func Test_pythonManager_invoke(t *testing.T) {
 		{
 			name: "should invoke when thread dump",
 			given: func() (fields, args) {
-				pySpyCommander = executil.NewFakeCommander(exec.Command("ls", "/tmp"))
 				return fields{
-						PythonProfiler: NewPythonProfiler(),
+						PythonProfiler: NewPythonProfiler(executil.NewFakeCommander(exec.Command("ls", "/tmp")),
+							publish.NewPublisherFake(nil)),
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,
@@ -415,9 +415,9 @@ func Test_pythonManager_invoke(t *testing.T) {
 		{
 			name: "should invoke fail when command fail",
 			given: func() (fields, args) {
-				pySpyCommander = executil.NewFakeCommander(&exec.Cmd{})
 				return fields{
-						PythonProfiler: NewPythonProfiler(),
+						PythonProfiler: NewPythonProfiler(executil.NewFakeCommander(&exec.Cmd{}),
+							publish.NewPublisherFake(nil)),
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,
@@ -441,9 +441,9 @@ func Test_pythonManager_invoke(t *testing.T) {
 			name: "should invoke return nil when fail handle flamegraph",
 			given: func() (fields, args) {
 				log.SetPrintLogs(true)
-				pySpyCommander = executil.NewFakeCommander(exec.Command("ls", "/tmp"))
 				return fields{
-						PythonProfiler: NewPythonProfiler(),
+						PythonProfiler: NewPythonProfiler(executil.NewFakeCommander(exec.Command("ls", "/tmp")),
+							publish.NewPublisherFake(nil)),
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,
@@ -506,7 +506,8 @@ func Test_pythonManager_handleFlamegraph(t *testing.T) {
 				b.Write([]byte("test"))
 				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
 				return fields{
-						PythonProfiler: NewPythonProfiler(),
+						PythonProfiler: NewPythonProfiler(executil.NewFakeCommander(exec.Command("ls", "/tmp")),
+							publish.NewPublisherFake(nil)),
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,
@@ -538,7 +539,8 @@ func Test_pythonManager_handleFlamegraph(t *testing.T) {
 				b.Write([]byte("test"))
 				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
 				return fields{
-						PythonProfiler: NewPythonProfiler(),
+						PythonProfiler: NewPythonProfiler(executil.NewFakeCommander(exec.Command("ls", "/tmp")),
+							publish.NewPublisherFake(nil)),
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,
@@ -569,7 +571,8 @@ func Test_pythonManager_handleFlamegraph(t *testing.T) {
 				var b bytes.Buffer
 				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
 				return fields{
-						PythonProfiler: NewPythonProfiler(),
+						PythonProfiler: NewPythonProfiler(executil.NewFakeCommander(exec.Command("ls", "/tmp")),
+							publish.NewPublisherFake(nil)),
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,
@@ -611,10 +614,4 @@ func Test_pythonManager_handleFlamegraph(t *testing.T) {
 			}
 		})
 	}
-}
-
-func Test_pythonManager_publishResult(t *testing.T) {
-	p := NewPythonProfiler()
-	err := p.publishResult(compressor.Gzip, testdata.ResultTestDataDir()+"/flamegraph.svg", api.FlameGraph)
-	assert.Nil(t, err)
 }

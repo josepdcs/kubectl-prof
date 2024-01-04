@@ -1,4 +1,4 @@
-package util
+package publish
 
 import (
 	"github.com/josepdcs/kubectl-prof/api"
@@ -14,7 +14,7 @@ import (
 	"testing"
 )
 
-func TestPublish(t *testing.T) {
+func TestDo(t *testing.T) {
 	type args struct {
 		c         compressor.Type
 		file      string
@@ -58,7 +58,7 @@ func TestPublish(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := Publish(tt.args.c, tt.args.file, tt.args.eventType)
+			err := Do(tt.args.c, tt.args.file, tt.args.eventType)
 
 			if tt.wantErrMsg != "" {
 				require.Error(t, err)
@@ -75,7 +75,7 @@ func TestPublish(t *testing.T) {
 	}
 }
 
-func TestPublishWithNativeGzip(t *testing.T) {
+func TestDoWithNativeGzipAndSplit(t *testing.T) {
 	type args struct {
 		file      string
 		chunkSize string
@@ -149,7 +149,7 @@ func TestPublishWithNativeGzip(t *testing.T) {
 				tt.beforeEach()
 			}
 
-			err := PublishWithNativeGzipAndSplit(tt.args.file, tt.args.chunkSize, tt.args.eventType)
+			err := DoWithNativeGzipAndSplit(tt.args.file, tt.args.chunkSize, tt.args.eventType)
 
 			if tt.wantErrMsg != "" {
 				require.Error(t, err)

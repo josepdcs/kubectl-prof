@@ -13,6 +13,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/agent/util"
 	executil "github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/flamegraph"
+	"github.com/josepdcs/kubectl-prof/internal/agent/util/publish"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
@@ -27,9 +28,7 @@ const (
 	pySpyDelayBetweenJobs = 2 * time.Second
 )
 
-var pySpyCommander = executil.NewCommander()
-
-var pythonCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
+var pythonCommand = func(commander executil.Commander, job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
 	output := job.OutputType
 	if job.OutputType == api.FlameGraph {
 		// overrides to Raw
@@ -41,12 +40,12 @@ var pythonCommand = func(job *job.ProfilingJob, pid string, fileName string) *ex
 		interval := strconv.Itoa(int(job.Interval.Seconds()))
 		args := []string{"record"}
 		args = append(args, "-p", pid, "-o", fileName, "-d", interval, "-s", "-t", "-f", string(output))
-		return pySpyCommander.Command(pySpyLocation, args...)
+		return commander.Command(pySpyLocation, args...)
 	// api.ThreadDump:
 	default:
 		args := []string{"dump"}
 		args = append(args, "-p", pid)
-		return pySpyCommander.Command(pySpyLocation, args...)
+		return commander.Command(pySpyLocation, args...)
 	}
 }
 
@@ -63,12 +62,17 @@ type PythonManager interface {
 }
 
 type pythonManager struct {
+	commander executil.Commander
+	publisher publish.Publisher
 }
 
-func NewPythonProfiler() *PythonProfiler {
+func NewPythonProfiler(commander executil.Commander, publisher publish.Publisher) *PythonProfiler {
 	return &PythonProfiler{
-		delay:         pySpyDelayBetweenJobs,
-		PythonManager: &pythonManager{},
+		delay: pySpyDelayBetweenJobs,
+		PythonManager: &pythonManager{
+			commander: commander,
+			publisher: publisher,
+		},
 	}
 }
 
@@ -123,7 +127,7 @@ func (p *pythonManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 	if job.OutputType == api.FlameGraph {
 		fileName = common.GetResultFileWithPID(common.TmpDir(), job.Tool, api.Raw, pid)
 	}
-	cmd := pythonCommand(job, pid, fileName)
+	cmd := pythonCommand(p.commander, job, pid, fileName)
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 	err := cmd.Run()
@@ -163,7 +167,7 @@ func (p *pythonManager) handleFlamegraph(job *job.ProfilingJob, flameGrapher fla
 }
 
 func (p *pythonManager) publishResult(c compressor.Type, fileName string, outputType api.OutputType) error {
-	return util.Publish(c, fileName, outputType)
+	return p.publisher.Do(c, fileName, outputType)
 }
 
 func (p *PythonProfiler) CleanUp(*job.ProfilingJob) error {

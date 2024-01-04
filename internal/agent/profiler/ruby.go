@@ -12,6 +12,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util"
 	executil "github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
+	"github.com/josepdcs/kubectl-prof/internal/agent/util/publish"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
@@ -26,15 +27,13 @@ const (
 	rbSpyDelayBetweenJobs = 2 * time.Second
 )
 
-var rbSpyCommander = executil.NewCommander()
-
-var rubyCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
+var rubyCommand = func(commander executil.Commander, job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
 	output := job.OutputType
 
 	interval := strconv.Itoa(int(job.Interval.Seconds()))
 	args := []string{"record"}
 	args = append(args, "--pid", pid, "--file", fileName, "--duration", interval, "--format", string(output))
-	return rbSpyCommander.Command(rbSpyLocation, args...)
+	return commander.Command(rbSpyLocation, args...)
 
 }
 
@@ -50,12 +49,17 @@ type RubyManager interface {
 }
 
 type rubyManager struct {
+	commander executil.Commander
+	publisher publish.Publisher
 }
 
-func NewRubyProfiler() *RubyProfiler {
+func NewRubyProfiler(commander executil.Commander, publisher publish.Publisher) *RubyProfiler {
 	return &RubyProfiler{
-		delay:       rbSpyDelayBetweenJobs,
-		RubyManager: &rubyManager{},
+		delay: rbSpyDelayBetweenJobs,
+		RubyManager: &rubyManager{
+			commander: commander,
+			publisher: publisher,
+		},
 	}
 }
 
@@ -108,7 +112,7 @@ func (p *rubyManager) invoke(job *job.ProfilingJob, pid string) (error, time.Dur
 	var stderr bytes.Buffer
 
 	fileName := common.GetResultFileWithPID(common.TmpDir(), job.Tool, job.OutputType, pid)
-	cmd := rubyCommand(job, pid, fileName)
+	cmd := rubyCommand(p.commander, job, pid, fileName)
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 	err := cmd.Run()
@@ -127,5 +131,5 @@ func (r *RubyProfiler) CleanUp(job *job.ProfilingJob) error {
 }
 
 func (p *rubyManager) publishResult(c compressor.Type, fileName string, outputType api.OutputType) error {
-	return util.Publish(c, fileName, outputType)
+	return p.publisher.Do(c, fileName, outputType)
 }

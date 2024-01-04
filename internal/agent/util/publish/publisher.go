@@ -1,4 +1,4 @@
-package util
+package publish
 
 import (
 	"bufio"
@@ -15,7 +15,21 @@ import (
 	"time"
 )
 
-func Publish(compressorType compressor.Type, file string, eventType api.OutputType) error {
+type Publisher interface {
+	Do(compressorType compressor.Type, file string, eventType api.OutputType) error
+	DoWithNativeGzipAndSplit(file, chunkSize string, eventType api.OutputType) error
+}
+
+type publisher struct {
+}
+
+func NewPublisher() Publisher {
+	return &publisher{}
+}
+
+var newPublisher = NewPublisher()
+
+func (p publisher) Do(compressorType compressor.Type, file string, eventType api.OutputType) error {
 	f, err := os.Open(file)
 	if err != nil {
 		return err
@@ -61,7 +75,7 @@ func Publish(compressorType compressor.Type, file string, eventType api.OutputTy
 	)
 }
 
-func PublishWithNativeGzipAndSplit(file, chunkSize string, eventType api.OutputType) error {
+func (p publisher) DoWithNativeGzipAndSplit(file, chunkSize string, eventType api.OutputType) error {
 	if !fileutils.Exists(file) {
 		return errors.Errorf("file %s does not exist", file)
 	}
@@ -119,4 +133,12 @@ func PublishWithNativeGzipAndSplit(file, chunkSize string, eventType api.OutputT
 			Chunks:          chunkFilesData,
 		},
 	)
+}
+
+func Do(compressorType compressor.Type, file string, eventType api.OutputType) error {
+	return newPublisher.Do(compressorType, file, eventType)
+}
+
+func DoWithNativeGzipAndSplit(file, chunkSize string, eventType api.OutputType) error {
+	return newPublisher.DoWithNativeGzipAndSplit(file, chunkSize, eventType)
 }

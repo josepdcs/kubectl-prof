@@ -3,6 +3,8 @@ package profiler
 import (
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/jvm"
+	executil "github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
+	"github.com/josepdcs/kubectl-prof/internal/agent/util/publish"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -29,12 +31,22 @@ func TestGet(t *testing.T) {
 		{
 			name: "should return bpf profiler",
 			tool: api.Bpf,
-			want: NewBpfProfiler(),
+			want: NewBpfProfiler(executil.NewCommander(), publish.NewPublisher()),
 		},
 		{
 			name: "should return pyspy profiler",
 			tool: api.Pyspy,
-			want: NewPythonProfiler(),
+			want: NewPythonProfiler(executil.NewCommander(), publish.NewPublisher()),
+		},
+		{
+			name: "should return Rbspy profiler",
+			tool: api.Rbspy,
+			want: NewRubyProfiler(executil.NewCommander(), publish.NewPublisher()),
+		},
+		{
+			name: "should return perf profiler",
+			tool: api.Perf,
+			want: NewPerfProfiler(),
 		},
 		{
 			name: "should return mock profiler",

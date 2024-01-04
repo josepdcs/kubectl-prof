@@ -13,6 +13,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/agent/util"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/flamegraph"
+	"github.com/josepdcs/kubectl-prof/internal/agent/util/publish"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
@@ -24,9 +25,9 @@ import (
 
 const (
 	perfLocation                    = "/app/perf"
-	perfRecordOutputFileName        = "/tmp/perf.data"
+	perfRecordOutputFileName        = "/tmp/perf-%s.data"
 	flameGraphStackCollapseLocation = "/app/FlameGraph/stackcollapse-perf.pl"
-	perfScriptOutputFileName        = "/tmp/perf.out"
+	perfScriptOutputFileName        = "/tmp/perf-%s.out"
 	perfDelayBetweenJobs            = 2 * time.Second
 )
 
@@ -39,7 +40,7 @@ type PerfProfiler struct {
 type PerfManager interface {
 	invoke(job *job.ProfilingJob, pid string) (error, string, time.Duration)
 	runPerfRecord(job *job.ProfilingJob, pid string) error
-	runPerfScript(job *job.ProfilingJob) error
+	runPerfScript(job *job.ProfilingJob, pid string) error
 	foldPerfOutput(job *job.ProfilingJob, pid string) (error, string)
 	handleProfilingResult(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher, fileName string) error
 	publishResult(c compressor.Type, fileName string, outputType api.OutputType) error
@@ -122,7 +123,7 @@ func (m *perfManager) invoke(job *job.ProfilingJob, pid string) (error, string, 
 		return errors.Wrap(err, "perf record failed"), "", time.Since(start)
 	}
 
-	err = m.runPerfScript(job)
+	err = m.runPerfScript(job, pid)
 	if err != nil {
 		return errors.Wrap(err, "perf script failed"), "", time.Since(start)
 	}
@@ -138,7 +139,7 @@ func (m *perfManager) invoke(job *job.ProfilingJob, pid string) (error, string, 
 func (m *perfManager) runPerfRecord(job *job.ProfilingJob, pid string) error {
 	duration := strconv.Itoa(int(job.Duration.Seconds()))
 	var stderr bytes.Buffer
-	cmd := perfCommander.Command(perfLocation, "record", "-p", pid, "-o", perfRecordOutputFileName, "-g", "--", "sleep", duration)
+	cmd := perfCommander.Command(perfLocation, "record", "-p", pid, "-o", fmt.Sprintf(perfRecordOutputFileName, pid), "-g", "--", "sleep", duration)
 	cmd.Stderr = &stderr
 
 	err := cmd.Run()
@@ -148,8 +149,8 @@ func (m *perfManager) runPerfRecord(job *job.ProfilingJob, pid string) error {
 	return err
 }
 
-func (m *perfManager) runPerfScript(*job.ProfilingJob) error {
-	f, err := os.Create(perfScriptOutputFileName)
+func (m *perfManager) runPerfScript(job *job.ProfilingJob, pid string) error {
+	f, err := os.Create(fmt.Sprintf(perfScriptOutputFileName, pid))
 	if err != nil {
 		return err
 	}
@@ -162,7 +163,7 @@ func (m *perfManager) runPerfScript(*job.ProfilingJob) error {
 	}(f)
 
 	var stderr bytes.Buffer
-	cmd := perfCommander.Command(perfLocation, "script", "-i", perfRecordOutputFileName)
+	cmd := perfCommander.Command(perfLocation, "script", "-i", fmt.Sprintf(perfRecordOutputFileName, pid))
 	cmd.Stdout = f
 	cmd.Stderr = &stderr
 
@@ -177,7 +178,7 @@ func (m *perfManager) foldPerfOutput(job *job.ProfilingJob, pid string) (error, 
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 
-	cmd := perfCommander.Command(flameGraphStackCollapseLocation, perfScriptOutputFileName)
+	cmd := perfCommander.Command(flameGraphStackCollapseLocation, fmt.Sprintf(perfScriptOutputFileName, pid))
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 
@@ -210,7 +211,7 @@ func (m *perfManager) handleProfilingResult(job *job.ProfilingJob, flameGrapher 
 }
 
 func (m *perfManager) publishResult(c compressor.Type, fileName string, outputType api.OutputType) error {
-	return util.Publish(c, fileName, outputType)
+	return publish.Do(c, fileName, outputType)
 }
 
 func (p *PerfProfiler) CleanUp(job *job.ProfilingJob) error {

@@ -53,7 +53,7 @@ var runtime = func(r api.ContainerRuntime) (Container, error) {
 // ContainerFileSystem returns the root path of the container filesystem
 func ContainerFileSystem(r api.ContainerRuntime, containerID string) (string, error) {
 	if r == "" || containerID == "" {
-		return "", errors.New("container runtime and container ID are mandatory")
+		return "", errors.New(ContainerRuntimeAndContainerIdMandatoryText)
 	}
 	c, err := runtime(r)
 	if err != nil {
@@ -66,7 +66,7 @@ func ContainerFileSystem(r api.ContainerRuntime, containerID string) (string, er
 // Deprecated: use GetCandidatePIDs instead
 func ContainerPID(job *job.ProfilingJob) (string, error) {
 	if job.ContainerRuntime == "" || job.ContainerID == "" {
-		return "", errors.New("container runtime and container ID are mandatory")
+		return "", errors.New(ContainerRuntimeAndContainerIdMandatoryText)
 	}
 	c, err := runtime(job.ContainerRuntime)
 	if err != nil {
