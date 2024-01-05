@@ -27,7 +27,6 @@ type MockBpfManager interface {
 	BpfManager
 	InvokeInvokedTimes() int
 	HandleProfilingResultInvokedTimes() int
-	PublishResultInvokedTimes() int
 	WithHandleProfilingResultError() MockBpfManager
 	WithInvokeError() MockBpfManager
 }
@@ -35,7 +34,6 @@ type MockBpfManager interface {
 type mockBpfManager struct {
 	invokeInvokedTimes                int
 	handleProfilingResultInvokedTimes int
-	publishResultInvokedTimes         int
 	withHandleProfilingResultError    bool
 	withInvokeError                   bool
 }
@@ -63,22 +61,12 @@ func (m *mockBpfManager) handleFlamegraph(*job.ProfilingJob, flamegraph.FrameGra
 	return nil
 }
 
-func (m *mockBpfManager) publishResult(compressor.Type, string, api.OutputType) error {
-	m.publishResultInvokedTimes++
-	fmt.Println("fake publish result")
-	return nil
-}
-
 func (m *mockBpfManager) InvokeInvokedTimes() int {
 	return m.invokeInvokedTimes
 }
 
 func (m *mockBpfManager) HandleProfilingResultInvokedTimes() int {
 	return m.handleProfilingResultInvokedTimes
-}
-
-func (m *mockBpfManager) PublishResultInvokedTimes() int {
-	return m.publishResultInvokedTimes
 }
 
 func (m *mockBpfManager) WithHandleProfilingResultError() MockBpfManager {
@@ -342,7 +330,7 @@ func Test_bpfManager_invoke(t *testing.T) {
 		name  string
 		given func() (fields, args)
 		when  func(fields, args) (error, time.Duration)
-		then  func(t *testing.T, err error)
+		then  func(t *testing.T, fields fields, err error)
 		after func()
 	}{
 		{
@@ -356,7 +344,7 @@ func Test_bpfManager_invoke(t *testing.T) {
 
 				return fields{
 						BpfProfiler: NewBpfProfiler(executil.NewFakeCommander(exec.Command("ls", "/tmp")),
-							publish.NewPublisherFake(nil)),
+							publish.NewPublisherFake()),
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,
@@ -373,9 +361,10 @@ func Test_bpfManager_invoke(t *testing.T) {
 			when: func(fields fields, args args) (error, time.Duration) {
 				return fields.BpfProfiler.invoke(args.job, args.pid)
 			},
-			then: func(t *testing.T, err error) {
+			then: func(t *testing.T, fields fields, err error) {
 				assert.Nil(t, err)
 				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
+				assert.True(t, fields.BpfProfiler.BpfManager.(*bpfManager).publisher.(*publish.PublisherFake).DoInvokedTimes == 1)
 			},
 			after: func() {
 				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000.txt"))
@@ -386,7 +375,7 @@ func Test_bpfManager_invoke(t *testing.T) {
 			name: "should invoke fail when command fail",
 			given: func() (fields, args) {
 				return fields{
-						BpfProfiler: NewBpfProfiler(executil.NewFakeCommander(&exec.Cmd{}), publish.NewPublisherFake(nil)),
+						BpfProfiler: NewBpfProfiler(executil.NewFakeCommander(&exec.Cmd{}), publish.NewPublisherFake()),
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,
@@ -402,8 +391,9 @@ func Test_bpfManager_invoke(t *testing.T) {
 			when: func(fields fields, args args) (error, time.Duration) {
 				return fields.BpfProfiler.invoke(args.job, args.pid)
 			},
-			then: func(t *testing.T, err error) {
+			then: func(t *testing.T, fields fields, err error) {
 				require.Error(t, err)
+				assert.True(t, fields.BpfProfiler.BpfManager.(*bpfManager).publisher.(*publish.PublisherFake).DoInvokedTimes == 0)
 			},
 		},
 		{
@@ -412,7 +402,7 @@ func Test_bpfManager_invoke(t *testing.T) {
 				log.SetPrintLogs(true)
 				return fields{
 						BpfProfiler: NewBpfProfiler(executil.NewFakeCommander(exec.Command("ls", "/tmp")),
-							publish.NewPublisherFake(nil)),
+							publish.NewPublisherFake()),
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,
@@ -428,8 +418,9 @@ func Test_bpfManager_invoke(t *testing.T) {
 			when: func(fields fields, args args) (error, time.Duration) {
 				return fields.BpfProfiler.invoke(args.job, args.pid)
 			},
-			then: func(t *testing.T, err error) {
+			then: func(t *testing.T, fields fields, err error) {
 				require.NoError(t, err)
+				assert.True(t, fields.BpfProfiler.BpfManager.(*bpfManager).publisher.(*publish.PublisherFake).DoInvokedTimes == 0)
 			},
 		},
 		{
@@ -443,7 +434,9 @@ func Test_bpfManager_invoke(t *testing.T) {
 
 				return fields{
 						BpfProfiler: NewBpfProfiler(executil.NewFakeCommander(exec.Command("ls", "/tmp")),
-							publish.NewPublisherFake(errors.New("fake publish result error"))),
+							publish.NewPublisherFake().(*publish.PublisherFake).WithFakeReturnValues(
+								[]interface{}{errors.New("fake publisher with error")}),
+						),
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,
@@ -460,9 +453,11 @@ func Test_bpfManager_invoke(t *testing.T) {
 			when: func(fields fields, args args) (error, time.Duration) {
 				return fields.BpfProfiler.invoke(args.job, args.pid)
 			},
-			then: func(t *testing.T, err error) {
+			then: func(t *testing.T, fields fields, err error) {
 				require.Error(t, err)
+				assert.ErrorContains(t, err, "fake publisher with error")
 				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
+				assert.True(t, fields.BpfProfiler.BpfManager.(*bpfManager).publisher.(*publish.PublisherFake).DoInvokedTimes == 1)
 			},
 			after: func() {
 				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000.txt"))
@@ -479,7 +474,7 @@ func Test_bpfManager_invoke(t *testing.T) {
 			err, _ := tt.when(fields, args)
 
 			// Then
-			tt.then(t, err)
+			tt.then(t, fields, err)
 
 			if tt.after != nil {
 				tt.after()
@@ -513,7 +508,7 @@ func Test_bpfManager_handleFlamegraph(t *testing.T) {
 				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
 				return fields{
 						BpfProfiler: NewBpfProfiler(executil.NewFakeCommander(exec.Command("ls", "/tmp")),
-							publish.NewPublisherFake(nil)),
+							publish.NewPublisherFake()),
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,
@@ -546,7 +541,7 @@ func Test_bpfManager_handleFlamegraph(t *testing.T) {
 				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
 				return fields{
 						BpfProfiler: NewBpfProfiler(executil.NewFakeCommander(exec.Command("ls", "/tmp")),
-							publish.NewPublisherFake(nil)),
+							publish.NewPublisherFake()),
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,
@@ -578,7 +573,7 @@ func Test_bpfManager_handleFlamegraph(t *testing.T) {
 				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
 				return fields{
 						BpfProfiler: NewBpfProfiler(executil.NewFakeCommander(exec.Command("ls", "/tmp")),
-							publish.NewPublisherFake(nil)),
+							publish.NewPublisherFake()),
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,

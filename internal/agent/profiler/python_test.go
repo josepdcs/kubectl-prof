@@ -27,7 +27,6 @@ type MockPythonManager interface {
 	PythonManager
 	InvokeInvokedTimes() int
 	HandleFlamegraphInvokedTimes() int
-	PublishResultInvokedTimes() int
 	WithHandleFlamegraphError() MockPythonManager
 	WithInvokeError() MockPythonManager
 }
@@ -35,7 +34,6 @@ type MockPythonManager interface {
 type mockPythonManager struct {
 	invokeInvokedTimes           int
 	handleFlamegraphInvokedTimes int
-	publishResultInvokedTimes    int
 	withHandleFlamegraphError    bool
 	withInvokeError              bool
 }
@@ -63,22 +61,12 @@ func (m *mockPythonManager) handleFlamegraph(*job.ProfilingJob, flamegraph.Frame
 	return nil
 }
 
-func (m *mockPythonManager) publishResult(compressor.Type, string, api.OutputType) error {
-	m.publishResultInvokedTimes++
-	fmt.Println("fake publish result")
-	return nil
-}
-
 func (m *mockPythonManager) InvokeInvokedTimes() int {
 	return m.invokeInvokedTimes
 }
 
 func (m *mockPythonManager) HandleFlamegraphInvokedTimes() int {
 	return m.handleFlamegraphInvokedTimes
-}
-
-func (m *mockPythonManager) PublishResultInvokedTimes() int {
-	return m.publishResultInvokedTimes
 }
 
 func (m *mockPythonManager) WithHandleFlamegraphError() MockPythonManager {
@@ -342,7 +330,7 @@ func Test_pythonManager_invoke(t *testing.T) {
 		name  string
 		given func() (fields, args)
 		when  func(fields, args) (error, time.Duration)
-		then  func(t *testing.T, err error)
+		then  func(t *testing.T, fields fields, err error)
 		after func()
 	}{
 		{
@@ -356,7 +344,7 @@ func Test_pythonManager_invoke(t *testing.T) {
 
 				return fields{
 						PythonProfiler: NewPythonProfiler(executil.NewFakeCommander(exec.Command("ls", "/tmp")),
-							publish.NewPublisherFake(nil)),
+							publish.NewPublisherFake()),
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,
@@ -373,9 +361,10 @@ func Test_pythonManager_invoke(t *testing.T) {
 			when: func(fields fields, args args) (error, time.Duration) {
 				return fields.PythonProfiler.invoke(args.job, args.pid)
 			},
-			then: func(t *testing.T, err error) {
+			then: func(t *testing.T, fields fields, err error) {
 				assert.Nil(t, err)
 				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
+				assert.True(t, fields.PythonProfiler.PythonManager.(*pythonManager).publisher.(*publish.PublisherFake).DoInvokedTimes == 1)
 			},
 			after: func() {
 				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000.txt"))
@@ -387,7 +376,7 @@ func Test_pythonManager_invoke(t *testing.T) {
 			given: func() (fields, args) {
 				return fields{
 						PythonProfiler: NewPythonProfiler(executil.NewFakeCommander(exec.Command("ls", "/tmp")),
-							publish.NewPublisherFake(nil)),
+							publish.NewPublisherFake()),
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,
@@ -404,9 +393,10 @@ func Test_pythonManager_invoke(t *testing.T) {
 			when: func(fields fields, args args) (error, time.Duration) {
 				return fields.PythonProfiler.invoke(args.job, args.pid)
 			},
-			then: func(t *testing.T, err error) {
+			then: func(t *testing.T, fields fields, err error) {
 				assert.Nil(t, err)
 				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"threaddump-1000.txt")))
+				assert.True(t, fields.PythonProfiler.PythonManager.(*pythonManager).publisher.(*publish.PublisherFake).DoInvokedTimes == 1)
 			},
 			after: func() {
 				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"threaddump-1000.txt"))
@@ -417,7 +407,7 @@ func Test_pythonManager_invoke(t *testing.T) {
 			given: func() (fields, args) {
 				return fields{
 						PythonProfiler: NewPythonProfiler(executil.NewFakeCommander(&exec.Cmd{}),
-							publish.NewPublisherFake(nil)),
+							publish.NewPublisherFake()),
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,
@@ -433,8 +423,9 @@ func Test_pythonManager_invoke(t *testing.T) {
 			when: func(fields fields, args args) (error, time.Duration) {
 				return fields.PythonProfiler.invoke(args.job, args.pid)
 			},
-			then: func(t *testing.T, err error) {
+			then: func(t *testing.T, fields fields, err error) {
 				require.Error(t, err)
+				assert.True(t, fields.PythonProfiler.PythonManager.(*pythonManager).publisher.(*publish.PublisherFake).DoInvokedTimes == 0)
 			},
 		},
 		{
@@ -443,7 +434,7 @@ func Test_pythonManager_invoke(t *testing.T) {
 				log.SetPrintLogs(true)
 				return fields{
 						PythonProfiler: NewPythonProfiler(executil.NewFakeCommander(exec.Command("ls", "/tmp")),
-							publish.NewPublisherFake(nil)),
+							publish.NewPublisherFake()),
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,
@@ -459,8 +450,50 @@ func Test_pythonManager_invoke(t *testing.T) {
 			when: func(fields fields, args args) (error, time.Duration) {
 				return fields.PythonProfiler.invoke(args.job, args.pid)
 			},
-			then: func(t *testing.T, err error) {
+			then: func(t *testing.T, fields fields, err error) {
 				require.NoError(t, err)
+				assert.True(t, fields.PythonProfiler.PythonManager.(*pythonManager).publisher.(*publish.PublisherFake).DoInvokedTimes == 0)
+			},
+		},
+		{
+			name: "should invoke fail when fail publish",
+			given: func() (fields, args) {
+				log.SetPrintLogs(true)
+				var b bytes.Buffer
+				b.Write([]byte("test"))
+				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000.txt"), b.String())
+				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"), b.String())
+
+				return fields{
+						PythonProfiler: NewPythonProfiler(executil.NewFakeCommander(exec.Command("ls", "/tmp")),
+							publish.NewPublisherFake().(*publish.PublisherFake).WithFakeReturnValues(
+								[]interface{}{errors.New("fake publisher with error")}),
+						),
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							OutputType:       api.FlameGraph,
+							Language:         api.FakeLang,
+							Tool:             api.Pyspy,
+							Compressor:       compressor.None,
+						},
+						pid: "1000",
+					}
+			},
+			when: func(fields fields, args args) (error, time.Duration) {
+				return fields.PythonProfiler.invoke(args.job, args.pid)
+			},
+			then: func(t *testing.T, fields fields, err error) {
+				require.Error(t, err)
+				assert.ErrorContains(t, err, "fake publisher with error")
+				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
+				assert.True(t, fields.PythonProfiler.PythonManager.(*pythonManager).publisher.(*publish.PublisherFake).DoInvokedTimes == 1)
+			},
+			after: func() {
+				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000.txt"))
+				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"))
 			},
 		},
 	}
@@ -473,7 +506,7 @@ func Test_pythonManager_invoke(t *testing.T) {
 			err, _ := tt.when(fields, args)
 
 			// Then
-			tt.then(t, err)
+			tt.then(t, fields, err)
 
 			if tt.after != nil {
 				tt.after()
@@ -507,7 +540,7 @@ func Test_pythonManager_handleFlamegraph(t *testing.T) {
 				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
 				return fields{
 						PythonProfiler: NewPythonProfiler(executil.NewFakeCommander(exec.Command("ls", "/tmp")),
-							publish.NewPublisherFake(nil)),
+							publish.NewPublisherFake()),
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,
@@ -540,7 +573,7 @@ func Test_pythonManager_handleFlamegraph(t *testing.T) {
 				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
 				return fields{
 						PythonProfiler: NewPythonProfiler(executil.NewFakeCommander(exec.Command("ls", "/tmp")),
-							publish.NewPublisherFake(nil)),
+							publish.NewPublisherFake()),
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,
@@ -572,7 +605,7 @@ func Test_pythonManager_handleFlamegraph(t *testing.T) {
 				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
 				return fields{
 						PythonProfiler: NewPythonProfiler(executil.NewFakeCommander(exec.Command("ls", "/tmp")),
-							publish.NewPublisherFake(nil)),
+							publish.NewPublisherFake()),
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,

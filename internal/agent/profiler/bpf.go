@@ -14,7 +14,6 @@ import (
 	executil "github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/flamegraph"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/publish"
-	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
 	"github.com/pkg/errors"
@@ -30,7 +29,7 @@ const (
 
 var bccProfilerCommand = func(commander executil.Commander, job *job.ProfilingJob, pid string) *exec.Cmd {
 	interval := strconv.Itoa(int(job.Interval.Seconds()))
-	args := []string{"-df", "-U", "-p", pid, interval}
+	args := []string{"-df", "-U", "-F", "99", "-p", pid, interval}
 	return commander.Command(profilerLocation, args...)
 }
 
@@ -43,7 +42,6 @@ type BpfProfiler struct {
 type BpfManager interface {
 	invoke(*job.ProfilingJob, string) (error, time.Duration)
 	handleFlamegraph(*job.ProfilingJob, flamegraph.FrameGrapher, string, string) error
-	publishResult(compressor.Type, string, api.OutputType) error
 }
 
 type bpfManager struct {
@@ -129,7 +127,7 @@ func (b *bpfManager) invoke(job *job.ProfilingJob, pid string) (error, time.Dura
 		return nil, time.Since(start)
 	}
 
-	return b.publishResult(job.Compressor, resultFileName, job.OutputType), time.Since(start)
+	return b.publisher.Do(job.Compressor, resultFileName, job.OutputType), time.Since(start)
 }
 
 func (b *bpfManager) handleFlamegraph(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher,
@@ -145,10 +143,6 @@ func (b *bpfManager) handleFlamegraph(job *job.ProfilingJob, flameGrapher flameg
 		}
 	}
 	return nil
-}
-
-func (b *bpfManager) publishResult(c compressor.Type, fileName string, outputType api.OutputType) error {
-	return b.publisher.Do(c, fileName, outputType)
 }
 
 func (b *BpfProfiler) CleanUp(*job.ProfilingJob) error {

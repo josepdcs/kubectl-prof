@@ -6,14 +6,12 @@ import (
 	"fmt"
 	"github.com/agrison/go-commons-lang/stringUtils"
 	"github.com/alitto/pond"
-	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/config"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util"
 	executil "github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/publish"
-	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
 	"github.com/pkg/errors"
@@ -45,7 +43,6 @@ type RubyProfiler struct {
 
 type RubyManager interface {
 	invoke(job *job.ProfilingJob, pid string) (error, time.Duration)
-	publishResult(compressor compressor.Type, fileName string, outputType api.OutputType) error
 }
 
 type rubyManager struct {
@@ -121,15 +118,11 @@ func (p *rubyManager) invoke(job *job.ProfilingJob, pid string) (error, time.Dur
 		return errors.Wrapf(err, "could not launch profiler: %s", stderr.String()), time.Since(start)
 	}
 
-	return p.publishResult(job.Compressor, fileName, job.OutputType), time.Since(start)
+	return p.publisher.Do(job.Compressor, fileName, job.OutputType), time.Since(start)
 }
 
 func (r *RubyProfiler) CleanUp(job *job.ProfilingJob) error {
 	file.RemoveAll(common.TmpDir(), config.ProfilingPrefix)
 
 	return nil
-}
-
-func (p *rubyManager) publishResult(c compressor.Type, fileName string, outputType api.OutputType) error {
-	return p.publisher.Do(c, fileName, outputType)
 }

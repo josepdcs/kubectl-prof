@@ -14,7 +14,6 @@ import (
 	executil "github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/flamegraph"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/publish"
-	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
 	"github.com/pkg/errors"
@@ -58,7 +57,6 @@ type PythonProfiler struct {
 type PythonManager interface {
 	invoke(*job.ProfilingJob, string) (error, time.Duration)
 	handleFlamegraph(*job.ProfilingJob, flamegraph.FrameGrapher, string, string) error
-	publishResult(compressor.Type, string, api.OutputType) error
 }
 
 type pythonManager struct {
@@ -148,7 +146,7 @@ func (p *pythonManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 		}
 	}
 
-	return p.publishResult(job.Compressor, resultFileName, job.OutputType), time.Since(start)
+	return p.publisher.Do(job.Compressor, resultFileName, job.OutputType), time.Since(start)
 }
 
 func (p *pythonManager) handleFlamegraph(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher,
@@ -164,10 +162,6 @@ func (p *pythonManager) handleFlamegraph(job *job.ProfilingJob, flameGrapher fla
 		}
 	}
 	return nil
-}
-
-func (p *pythonManager) publishResult(c compressor.Type, fileName string, outputType api.OutputType) error {
-	return p.publisher.Do(c, fileName, outputType)
 }
 
 func (p *PythonProfiler) CleanUp(*job.ProfilingJob) error {

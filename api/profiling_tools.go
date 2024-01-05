@@ -44,7 +44,7 @@ var GetProfilingTool = func(l ProgrammingLanguage, o OutputType) ProfilingTool {
 	case Go, Node:
 		return Bpf
 	case Clang, ClangPlusPlus:
-		return Perf
+		return Bpf
 	case Ruby:
 		return Rbspy
 	}
@@ -60,8 +60,8 @@ var GetProfilingToolsByProgrammingLanguage = map[ProgrammingLanguage][]Profiling
 	Python:        {Pyspy},
 	Go:            {Bpf},
 	Node:          {Bpf, Perf},
-	Clang:         {Perf, Bpf},
-	ClangPlusPlus: {Perf, Bpf},
+	Clang:         {Bpf, Perf},
+	ClangPlusPlus: {Bpf, Perf},
 	Ruby:          {Rbspy},
 	Rust:          {Bpf, Perf},
 	FakeLang:      {FakeTool},
