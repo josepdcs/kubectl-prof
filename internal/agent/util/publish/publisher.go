@@ -15,20 +15,25 @@ import (
 	"time"
 )
 
+// Publisher is the interface that wraps the basic Do method in order to publish the profiling result
 type Publisher interface {
+	// Do compress the file and publishes the result
 	Do(compressorType compressor.Type, file string, eventType api.OutputType) error
+	// DoWithNativeGzipAndSplit compress the file with gzip and split the result file in chunks
 	DoWithNativeGzipAndSplit(file, chunkSize string, eventType api.OutputType) error
 }
 
 type publisher struct {
 }
 
+// NewPublisher returns a new publisher
 func NewPublisher() Publisher {
 	return &publisher{}
 }
 
 var newPublisher = NewPublisher()
 
+// Do compress the file and publishes the result
 func (p publisher) Do(compressorType compressor.Type, file string, eventType api.OutputType) error {
 	f, err := os.Open(file)
 	if err != nil {
@@ -75,6 +80,7 @@ func (p publisher) Do(compressorType compressor.Type, file string, eventType api
 	)
 }
 
+// DoWithNativeGzipAndSplit compress the file with gzip and split the result file in chunks
 func (p publisher) DoWithNativeGzipAndSplit(file, chunkSize string, eventType api.OutputType) error {
 	if !fileutils.Exists(file) {
 		return errors.Errorf("file %s does not exist", file)

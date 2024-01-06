@@ -46,7 +46,7 @@ func TestGet(t *testing.T) {
 		{
 			name: "should return perf profiler",
 			tool: api.Perf,
-			want: NewPerfProfiler(),
+			want: NewPerfProfiler(executil.NewCommander(), publish.NewPublisher()),
 		},
 		{
 			name: "should return mock profiler",

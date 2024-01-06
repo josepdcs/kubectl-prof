@@ -318,9 +318,11 @@ func Test_rubyManager_invoke(t *testing.T) {
 				b.Write([]byte("test"))
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"), b.String())
 
+				commander := executil.NewFakeCommander(exec.Command("ls", "/tmp"))
+				publisher := publish.NewFakePublisher()
+
 				return fields{
-						RubyProfiler: NewRubyProfiler(executil.NewFakeCommander(exec.Command("ls", "/tmp")),
-							publish.NewPublisherFake()),
+						RubyProfiler: NewRubyProfiler(commander, publisher),
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,
@@ -340,7 +342,7 @@ func Test_rubyManager_invoke(t *testing.T) {
 			then: func(t *testing.T, fields fields, err error) {
 				assert.Nil(t, err)
 				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
-				assert.True(t, fields.RubyProfiler.RubyManager.(*rubyManager).publisher.(*publish.PublisherFake).DoInvokedTimes == 1)
+				assert.True(t, fields.RubyProfiler.RubyManager.(*rubyManager).publisher.(*publish.Fake).InvokedTimes("Do") == 1)
 
 			},
 			after: func() {
@@ -350,9 +352,11 @@ func Test_rubyManager_invoke(t *testing.T) {
 		{
 			name: "should invoke fail when command fail",
 			given: func() (fields, args) {
+				commander := executil.NewFakeCommander(&exec.Cmd{})
+				publisher := publish.NewFakePublisher()
+
 				return fields{
-						RubyProfiler: NewRubyProfiler(executil.NewFakeCommander(&exec.Cmd{}),
-							publish.NewPublisherFake()),
+						RubyProfiler: NewRubyProfiler(commander, publisher),
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,
@@ -370,7 +374,7 @@ func Test_rubyManager_invoke(t *testing.T) {
 			},
 			then: func(t *testing.T, fields fields, err error) {
 				require.Error(t, err)
-				assert.True(t, fields.RubyProfiler.RubyManager.(*rubyManager).publisher.(*publish.PublisherFake).DoInvokedTimes == 0)
+				assert.True(t, fields.RubyProfiler.RubyManager.(*rubyManager).publisher.(*publish.Fake).InvokedTimes("Do") == 0)
 			},
 		},
 		{
@@ -381,11 +385,13 @@ func Test_rubyManager_invoke(t *testing.T) {
 				b.Write([]byte("test"))
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"), b.String())
 
+				commander := executil.NewFakeCommander(exec.Command("ls", "/tmp"))
+				publisher := publish.NewFakePublisher()
+				// mock publisher.Do return error
+				publisher.Return(errors.New("fake publisher with error")).On("Do")
+
 				return fields{
-						RubyProfiler: NewRubyProfiler(executil.NewFakeCommander(exec.Command("ls", "/tmp")),
-							publish.NewPublisherFake().(*publish.PublisherFake).WithFakeReturnValues(
-								[]interface{}{errors.New("fake publisher with error")}),
-						),
+						RubyProfiler: NewRubyProfiler(commander, publisher),
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,
@@ -406,7 +412,7 @@ func Test_rubyManager_invoke(t *testing.T) {
 				require.Error(t, err)
 				assert.ErrorContains(t, err, "fake publisher with error")
 				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
-				assert.True(t, fields.RubyProfiler.RubyManager.(*rubyManager).publisher.(*publish.PublisherFake).DoInvokedTimes == 1)
+				assert.True(t, fields.RubyProfiler.RubyManager.(*rubyManager).publisher.(*publish.Fake).InvokedTimes("Do") == 1)
 
 			},
 			after: func() {

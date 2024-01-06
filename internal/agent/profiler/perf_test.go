@@ -3,6 +3,8 @@ package profiler
 import (
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
+	executil "github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
+	"github.com/josepdcs/kubectl-prof/internal/agent/util/publish"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -39,6 +41,6 @@ func (m *mockPerfUtil) publishResult(c compressor.Type, fileName string, outputT
 }
 
 func TestNewPerfProfiler(t *testing.T) {
-	p := NewPerfProfiler()
+	p := NewPerfProfiler(executil.NewCommander(), publish.NewPublisher())
 	assert.IsType(t, p, &PerfProfiler{})
 }
