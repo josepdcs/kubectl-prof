@@ -14,7 +14,6 @@ import (
 	executil "github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/flamegraph"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/publish"
-	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
 	"github.com/pkg/errors"
@@ -43,7 +42,6 @@ type PerfManager interface {
 	runPerfScript(job *job.ProfilingJob, pid string) error
 	foldPerfOutput(job *job.ProfilingJob, pid string) (error, string)
 	handleFlamegraph(*job.ProfilingJob, flamegraph.FrameGrapher, string, string) error
-	publishResult(c compressor.Type, fileName string, outputType api.OutputType) error
 }
 
 type perfManager struct {
@@ -204,10 +202,6 @@ func (m *perfManager) handleFlamegraph(job *job.ProfilingJob, flameGrapher flame
 		}
 	}
 	return nil
-}
-
-func (m *perfManager) publishResult(c compressor.Type, fileName string, outputType api.OutputType) error {
-	return publish.Do(c, fileName, outputType)
 }
 
 func (p *PerfProfiler) CleanUp(job *job.ProfilingJob) error {

@@ -23,27 +23,27 @@ import (
 	"time"
 )
 
-type MockBpfManager interface {
+type FakeBpfManager interface {
 	BpfManager
 	InvokeInvokedTimes() int
 	HandleProfilingResultInvokedTimes() int
-	WithHandleProfilingResultError() MockBpfManager
-	WithInvokeError() MockBpfManager
+	WithHandleProfilingResultError() FakeBpfManager
+	WithInvokeError() FakeBpfManager
 }
 
-type mockBpfManager struct {
+type fakeBpfManager struct {
 	invokeInvokedTimes                int
 	handleProfilingResultInvokedTimes int
 	withHandleProfilingResultError    bool
 	withInvokeError                   bool
 }
 
-// NewMockBpfManager instances an empty MockBpfManager util for unit tests
-func NewMockBpfManager() MockBpfManager {
-	return &mockBpfManager{}
+// NewMockBpfManager instances an empty FakeBpfManager util for unit tests
+func NewMockBpfManager() FakeBpfManager {
+	return &fakeBpfManager{}
 }
 
-func (m *mockBpfManager) invoke(*job.ProfilingJob, string) (error, time.Duration) {
+func (m *fakeBpfManager) invoke(*job.ProfilingJob, string) (error, time.Duration) {
 	m.invokeInvokedTimes++
 	if m.withInvokeError {
 		return errors.New("fake invoke with error"), 0
@@ -52,7 +52,7 @@ func (m *mockBpfManager) invoke(*job.ProfilingJob, string) (error, time.Duration
 	return nil, 0
 }
 
-func (m *mockBpfManager) handleFlamegraph(*job.ProfilingJob, flamegraph.FrameGrapher, string, string) error {
+func (m *fakeBpfManager) handleFlamegraph(*job.ProfilingJob, flamegraph.FrameGrapher, string, string) error {
 	m.handleProfilingResultInvokedTimes++
 	if m.withHandleProfilingResultError {
 		return errors.New("fake handleFlamegraph with error")
@@ -61,20 +61,20 @@ func (m *mockBpfManager) handleFlamegraph(*job.ProfilingJob, flamegraph.FrameGra
 	return nil
 }
 
-func (m *mockBpfManager) InvokeInvokedTimes() int {
+func (m *fakeBpfManager) InvokeInvokedTimes() int {
 	return m.invokeInvokedTimes
 }
 
-func (m *mockBpfManager) HandleProfilingResultInvokedTimes() int {
+func (m *fakeBpfManager) HandleProfilingResultInvokedTimes() int {
 	return m.handleProfilingResultInvokedTimes
 }
 
-func (m *mockBpfManager) WithHandleProfilingResultError() MockBpfManager {
+func (m *fakeBpfManager) WithHandleProfilingResultError() FakeBpfManager {
 	m.withHandleProfilingResultError = true
 	return m
 }
 
-func (m *mockBpfManager) WithInvokeError() MockBpfManager {
+func (m *fakeBpfManager) WithInvokeError() FakeBpfManager {
 	m.withInvokeError = true
 	return m
 }
@@ -213,7 +213,7 @@ func TestBpfProfiler_Invoke(t *testing.T) {
 				return fields.BpfProfiler.Invoke(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
-				mock := fields.BpfProfiler.BpfManager.(MockBpfManager)
+				mock := fields.BpfProfiler.BpfManager.(FakeBpfManager)
 				assert.Nil(t, err)
 				assert.Equal(t, 2, mock.InvokeInvokedTimes())
 			},
@@ -240,7 +240,7 @@ func TestBpfProfiler_Invoke(t *testing.T) {
 				return fields.BpfProfiler.Invoke(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
-				mock := fields.BpfProfiler.BpfManager.(MockBpfManager)
+				mock := fields.BpfProfiler.BpfManager.(FakeBpfManager)
 				require.Error(t, err)
 				assert.Equal(t, 1, mock.InvokeInvokedTimes())
 			},

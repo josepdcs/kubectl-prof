@@ -7,8 +7,11 @@ import (
 
 // FakePublisher is an interface that wraps the Publisher interface
 type FakePublisher interface {
+	// Return sets the values to be returned by the fake publisher
 	Return(fakeReturnValues ...interface{}) *Fake
+	// On sets the expected method to be invoked by the fake publisher
 	On(methodName string) *Fake
+	// InvokedTimes represents the number of times the method was invoked
 	InvokedTimes(methodName string) int
 
 	Publisher
@@ -44,7 +47,7 @@ func (p *Fake) Return(fakeReturnValues ...interface{}) *Fake {
 	return p
 }
 
-// On sets the expected arguments for the fake publisher
+// On sets the expected method to be invoked by the fake publisher
 func (p *Fake) On(methodName string) *Fake {
 	p.methodName = methodName
 	return p

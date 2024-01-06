@@ -87,7 +87,10 @@ type fakeCommander struct {
 }
 
 func (f fakeCommander) Command(string, ...string) *exec.Cmd {
-	return f.fakeCommand
+	return &exec.Cmd{
+		Path: f.fakeCommand.Path,
+		Args: f.fakeCommand.Args,
+	}
 }
 
 func (f fakeCommander) Execute(cmd *exec.Cmd) (int, []byte, error) {
