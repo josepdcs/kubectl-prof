@@ -68,19 +68,30 @@ func (f *Fake) Command(string, ...string) *exec.Cmd {
 	f.fakeMethods["Command"].invokes++
 	if f.fakeMethods["Command"].fakeReturnValues != nil && len(f.fakeMethods["Command"].fakeReturnValues) > 0 {
 		f.fakeMethods["Command"].indexExecution++
-		return f.fakeMethods["Command"].fakeReturnValues[f.fakeMethods["Command"].indexExecution-1].([]interface{})[0].(*exec.Cmd)
+		if f.fakeMethods["Command"].fakeReturnValues[f.fakeMethods["Command"].indexExecution-1].([]interface{})[0] != nil {
+			return f.fakeMethods["Command"].fakeReturnValues[f.fakeMethods["Command"].indexExecution-1].([]interface{})[0].(*exec.Cmd)
+		}
 	}
 	return nil
 }
 
 // Execute is a fake implementation of the Commander interface
 func (f *Fake) Execute(*exec.Cmd) (int, []byte, error) {
+	var exitCode = 0
+	var output []byte
+	var err error
 	f.fakeMethods["Execute"].invokes++
 	if f.fakeMethods["Execute"].fakeReturnValues != nil && len(f.fakeMethods["Execute"].fakeReturnValues) > 0 {
 		f.fakeMethods["Execute"].indexExecution++
-		return f.fakeMethods["Execute"].fakeReturnValues[f.fakeMethods["Execute"].indexExecution-1].([]interface{})[0].(int),
-			f.fakeMethods["Execute"].fakeReturnValues[f.fakeMethods["Execute"].indexExecution-1].([]interface{})[1].([]byte),
-			f.fakeMethods["Execute"].fakeReturnValues[f.fakeMethods["Execute"].indexExecution-1].([]interface{})[2].(error)
+		if f.fakeMethods["Execute"].fakeReturnValues[f.fakeMethods["Execute"].indexExecution-1].([]interface{})[0] != nil {
+			exitCode = f.fakeMethods["Execute"].fakeReturnValues[f.fakeMethods["Execute"].indexExecution-1].([]interface{})[0].(int)
+		}
+		if f.fakeMethods["Execute"].fakeReturnValues[f.fakeMethods["Execute"].indexExecution-1].([]interface{})[1] != nil {
+			output = f.fakeMethods["Execute"].fakeReturnValues[f.fakeMethods["Execute"].indexExecution-1].([]interface{})[1].([]byte)
+		}
+		if f.fakeMethods["Execute"].fakeReturnValues[f.fakeMethods["Execute"].indexExecution-1].([]interface{})[2] != nil {
+			err = f.fakeMethods["Execute"].fakeReturnValues[f.fakeMethods["Execute"].indexExecution-1].([]interface{})[2].(error)
+		}
 	}
-	return 0, nil, nil
+	return exitCode, output, err
 }

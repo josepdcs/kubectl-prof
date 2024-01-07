@@ -53,9 +53,7 @@ func (f *Fake) On(methodName string) *FakeMethod {
 
 // Return sets the values to be returned by the fake method
 func (f *FakeMethod) Return(fakeReturnValues ...interface{}) *FakeMethod {
-	if fakeReturnValues != nil && len(fakeReturnValues) > 0 && fakeReturnValues[0] != nil {
-		f.fakeReturnValues = append(f.fakeReturnValues, fakeReturnValues)
-	}
+	f.fakeReturnValues = append(f.fakeReturnValues, fakeReturnValues)
 	return f
 }
 
@@ -69,7 +67,9 @@ func (f *Fake) Do(compressor.Type, string, api.OutputType) error {
 	f.fakeMethods["Do"].invokes++
 	if f.fakeMethods["Do"].fakeReturnValues != nil && len(f.fakeMethods["Do"].fakeReturnValues) > 0 {
 		f.fakeMethods["Do"].indexExecution++
-		return f.fakeMethods["Do"].fakeReturnValues[f.fakeMethods["Do"].indexExecution-1].([]interface{})[0].(error)
+		if f.fakeMethods["Do"].fakeReturnValues[f.fakeMethods["Do"].indexExecution-1].([]interface{})[0] != nil {
+			return f.fakeMethods["Do"].fakeReturnValues[f.fakeMethods["Do"].indexExecution-1].([]interface{})[0].(error)
+		}
 	}
 	return nil
 }
@@ -79,7 +79,9 @@ func (f *Fake) DoWithNativeGzipAndSplit(string, string, api.OutputType) error {
 	f.fakeMethods["DoWithNativeGzipAndSplit"].invokes++
 	if f.fakeMethods["DoWithNativeGzipAndSplit"].fakeReturnValues != nil && len(f.fakeMethods["DoWithNativeGzipAndSplit"].fakeReturnValues) > 0 {
 		f.fakeMethods["DoWithNativeGzipAndSplit"].indexExecution++
-		return f.fakeMethods["DoWithNativeGzipAndSplit"].fakeReturnValues[f.fakeMethods["DoWithNativeGzipAndSplit"].indexExecution-1].([]interface{})[0].(error)
+		if f.fakeMethods["DoWithNativeGzipAndSplit"].fakeReturnValues[f.fakeMethods["DoWithNativeGzipAndSplit"].indexExecution-1].([]interface{})[0] != nil {
+			return f.fakeMethods["DoWithNativeGzipAndSplit"].fakeReturnValues[f.fakeMethods["DoWithNativeGzipAndSplit"].indexExecution-1].([]interface{})[0].(error)
+		}
 	}
 	return nil
 }
