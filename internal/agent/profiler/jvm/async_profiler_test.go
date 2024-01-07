@@ -309,7 +309,7 @@ func TestAsyncProfiler_Invoke(t *testing.T) {
 			name: "should publish result",
 			given: func() (fields, args) {
 				commander := executil.NewFakeCommander()
-				commander.Return(exec.Command("ls", common.TmpDir())).Return(&exec.Cmd{}).On("Command")
+				commander.On("Command").Return(exec.Command("ls", common.TmpDir())).Return(&exec.Cmd{})
 				asyncProfilerCommander = commander
 				return fields{
 						AsyncProfiler: AsyncProfiler{
@@ -336,7 +336,7 @@ func TestAsyncProfiler_Invoke(t *testing.T) {
 			name: "should publish result when raw output type",
 			given: func() (fields, args) {
 				commander := executil.NewFakeCommander()
-				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				asyncProfilerCommander = commander
 				return fields{
 						AsyncProfiler: AsyncProfiler{
@@ -364,7 +364,7 @@ func TestAsyncProfiler_Invoke(t *testing.T) {
 			name: "should fail when fail exec command",
 			given: func() (fields, args) {
 				commander := executil.NewFakeCommander()
-				commander.Return(&exec.Cmd{}).On("Command")
+				commander.On("Command").Return(&exec.Cmd{})
 				asyncProfilerCommander = commander
 				return fields{
 						AsyncProfiler: AsyncProfiler{
@@ -424,7 +424,7 @@ func TestAsyncProfiler_CleanUp(t *testing.T) {
 				_, _ = os.Create(f + compressor.GetExtensionFileByCompressor[compressor.Gzip])
 
 				commander := executil.NewFakeCommander()
-				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				asyncProfilerCommander = commander
 				return fields{
 						AsyncProfiler: AsyncProfiler{
@@ -472,7 +472,7 @@ func TestAsyncProfiler_CleanUp(t *testing.T) {
 
 func Test_asyncProfilerManager_copyProfilerToTmpDir(t *testing.T) {
 	commander := executil.NewFakeCommander()
-	commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+	commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 	asyncProfilerCommander = commander
 	a := NewAsyncProfiler()
 	assert.Nil(t, a.copyProfilerToTmpDir())

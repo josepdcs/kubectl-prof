@@ -344,7 +344,7 @@ func Test_bpfManager_invoke(t *testing.T) {
 
 				commander := executil.NewFakeCommander()
 				// mock commander.Command return exec.Command("ls", common.TmpDir())
-				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
 
 				return fields{
@@ -380,7 +380,7 @@ func Test_bpfManager_invoke(t *testing.T) {
 			given: func() (fields, args) {
 				commander := executil.NewFakeCommander()
 				// mock commander.Command return exec.Command("ls", common.TmpDir())
-				commander.Return(&exec.Cmd{}).On("Command")
+				commander.On("Command").Return(&exec.Cmd{})
 				publisher := publish.NewFakePublisher()
 
 				return fields{
@@ -411,7 +411,7 @@ func Test_bpfManager_invoke(t *testing.T) {
 				log.SetPrintLogs(true)
 				commander := executil.NewFakeCommander()
 				// mock commander.Command return exec.Command("ls", common.TmpDir())
-				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
 
 				return fields{
@@ -447,7 +447,7 @@ func Test_bpfManager_invoke(t *testing.T) {
 
 				commander := executil.NewFakeCommander()
 				// mock commander.Command return exec.Command("ls", common.TmpDir())
-				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
 				// mock publisher.Do return error
 				publisher.Return(errors.New("fake publisher with error")).On("Do")
@@ -526,7 +526,7 @@ func Test_bpfManager_handleFlamegraph(t *testing.T) {
 
 				commander := executil.NewFakeCommander()
 				// mock commander.Command return exec.Command("ls", common.TmpDir())
-				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
 
 				return fields{
@@ -564,7 +564,7 @@ func Test_bpfManager_handleFlamegraph(t *testing.T) {
 
 				commander := executil.NewFakeCommander()
 				// mock commander.Command return exec.Command("ls", common.TmpDir())
-				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
 
 				return fields{
@@ -601,7 +601,7 @@ func Test_bpfManager_handleFlamegraph(t *testing.T) {
 
 				commander := executil.NewFakeCommander()
 				// mock commander.Command return exec.Command("ls", common.TmpDir())
-				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
 
 				return fields{

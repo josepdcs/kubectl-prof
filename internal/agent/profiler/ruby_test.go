@@ -320,7 +320,7 @@ func Test_rubyManager_invoke(t *testing.T) {
 
 				commander := executil.NewFakeCommander()
 				// mock commander.Command return exec.Command("ls", "/tmp")
-				commander.Return(exec.Command("ls", "/tmp")).On("Command")
+				commander.On("Command").Return(exec.Command("ls", "/tmp"))
 				publisher := publish.NewFakePublisher()
 
 				return fields{
@@ -345,7 +345,7 @@ func Test_rubyManager_invoke(t *testing.T) {
 				assert.Nil(t, err)
 				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
 				assert.True(t, fields.RubyProfiler.RubyManager.(*rubyManager).publisher.(*publish.Fake).InvokedTimes("Do") == 1)
-
+				assert.True(t, fields.RubyProfiler.RubyManager.(*rubyManager).commander.(*executil.Fake).On("Command").InvokedTimes() == 1)
 			},
 			after: func() {
 				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"))
@@ -356,7 +356,7 @@ func Test_rubyManager_invoke(t *testing.T) {
 			given: func() (fields, args) {
 				commander := executil.NewFakeCommander()
 				// mock commander.Command return exec.Command("ls", "/tmp")
-				commander.Return(&exec.Cmd{}).On("Command")
+				commander.On("Command").Return(&exec.Cmd{})
 				publisher := publish.NewFakePublisher()
 
 				return fields{
@@ -379,6 +379,7 @@ func Test_rubyManager_invoke(t *testing.T) {
 			then: func(t *testing.T, fields fields, err error) {
 				require.Error(t, err)
 				assert.True(t, fields.RubyProfiler.RubyManager.(*rubyManager).publisher.(*publish.Fake).InvokedTimes("Do") == 0)
+				assert.True(t, fields.RubyProfiler.RubyManager.(*rubyManager).commander.(*executil.Fake).On("Command").InvokedTimes() == 1)
 			},
 		},
 		{
@@ -391,7 +392,7 @@ func Test_rubyManager_invoke(t *testing.T) {
 
 				commander := executil.NewFakeCommander()
 				// mock commander.Command return exec.Command("ls", "/tmp")
-				commander.Return(exec.Command("ls", "/tmp")).On("Command")
+				commander.On("Command").Return(exec.Command("ls", "/tmp"))
 				publisher := publish.NewFakePublisher()
 				// mock publisher.Do return error
 				publisher.Return(errors.New("fake publisher with error")).On("Do")
@@ -419,6 +420,7 @@ func Test_rubyManager_invoke(t *testing.T) {
 				assert.ErrorContains(t, err, "fake publisher with error")
 				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
 				assert.True(t, fields.RubyProfiler.RubyManager.(*rubyManager).publisher.(*publish.Fake).InvokedTimes("Do") == 1)
+				assert.True(t, fields.RubyProfiler.RubyManager.(*rubyManager).commander.(*executil.Fake).On("Command").InvokedTimes() == 1)
 
 			},
 			after: func() {

@@ -344,7 +344,7 @@ func Test_pythonManager_invoke(t *testing.T) {
 
 				commander := executil.NewFakeCommander()
 				// mock commander.Command return exec.Command("ls", common.TmpDir())
-				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
 
 				return fields{
@@ -380,7 +380,7 @@ func Test_pythonManager_invoke(t *testing.T) {
 			given: func() (fields, args) {
 				commander := executil.NewFakeCommander()
 				// mock commander.Command return exec.Command("ls", common.TmpDir())
-				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
 
 				return fields{
@@ -415,7 +415,7 @@ func Test_pythonManager_invoke(t *testing.T) {
 			given: func() (fields, args) {
 				commander := executil.NewFakeCommander()
 				// mock commander.Command return a fake command
-				commander.Return(&exec.Cmd{}).On("Command")
+				commander.On("Command").Return(&exec.Cmd{})
 				publisher := publish.NewFakePublisher()
 
 				return fields{
@@ -446,7 +446,7 @@ func Test_pythonManager_invoke(t *testing.T) {
 				log.SetPrintLogs(true)
 				commander := executil.NewFakeCommander()
 				// mock commander.Command return exec.Command("ls", common.TmpDir())
-				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
 
 				return fields{
@@ -482,7 +482,7 @@ func Test_pythonManager_invoke(t *testing.T) {
 
 				commander := executil.NewFakeCommander()
 				// mock commander.Command return exec.Command("ls", common.TmpDir())
-				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
 				// mock publisher.Do return error
 				publisher.Return(errors.New("fake publisher with error")).On("Do")
@@ -560,7 +560,7 @@ func Test_pythonManager_handleFlamegraph(t *testing.T) {
 				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
 				commander := executil.NewFakeCommander()
 				// mock commander.Command return exec.Command("ls", common.TmpDir())
-				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
 
 				return fields{
@@ -597,7 +597,7 @@ func Test_pythonManager_handleFlamegraph(t *testing.T) {
 				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
 				commander := executil.NewFakeCommander()
 				// mock commander.Command return exec.Command("ls", common.TmpDir())
-				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
 
 				return fields{
@@ -633,7 +633,7 @@ func Test_pythonManager_handleFlamegraph(t *testing.T) {
 				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
 				commander := executil.NewFakeCommander()
 				// mock commander.Command return exec.Command("ls", common.TmpDir())
-				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
 
 				return fields{

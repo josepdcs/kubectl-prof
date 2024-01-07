@@ -341,7 +341,7 @@ func TestJcmdProfiler_Invoke(t *testing.T) {
 			name: "should publish result",
 			given: func() (fields, args) {
 				commander := executil.NewFakeCommander()
-				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				jcmdCommander = commander
 				return fields{
 						JcmdProfiler: JcmdProfiler{
@@ -369,7 +369,7 @@ func TestJcmdProfiler_Invoke(t *testing.T) {
 			name: "should publish result when ThreadDump output type",
 			given: func() (fields, args) {
 				commander := executil.NewFakeCommander()
-				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				jcmdCommander = commander
 				return fields{
 						JcmdProfiler: JcmdProfiler{
@@ -399,7 +399,7 @@ func TestJcmdProfiler_Invoke(t *testing.T) {
 			name: "should fail when fail exec command",
 			given: func() (fields, args) {
 				commander := executil.NewFakeCommander()
-				commander.Return(&exec.Cmd{}).On("Command")
+				commander.On("Command").Return(&exec.Cmd{})
 				jcmdCommander = commander
 				return fields{
 						JcmdProfiler: JcmdProfiler{
@@ -426,7 +426,7 @@ func TestJcmdProfiler_Invoke(t *testing.T) {
 			name: "should fail when handle profiling result fail",
 			given: func() (fields, args) {
 				commander := executil.NewFakeCommander()
-				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				jcmdCommander = commander
 				return fields{
 						JcmdProfiler: JcmdProfiler{
@@ -453,7 +453,7 @@ func TestJcmdProfiler_Invoke(t *testing.T) {
 			name: "should fail when profile fail for ThreadDump output type",
 			given: func() (fields, args) {
 				commander := executil.NewFakeCommander()
-				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				jcmdCommander = commander
 				return fields{
 						JcmdProfiler: JcmdProfiler{
@@ -482,7 +482,7 @@ func TestJcmdProfiler_Invoke(t *testing.T) {
 			name: "should fail when profile fail for ThreadDump output type",
 			given: func() (fields, args) {
 				commander := executil.NewFakeCommander()
-				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				jcmdCommander = commander
 				return fields{
 						JcmdProfiler: JcmdProfiler{
