@@ -2,7 +2,6 @@ package profiler
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/config"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
@@ -23,62 +22,6 @@ import (
 	"time"
 )
 
-type MockPythonManager interface {
-	PythonManager
-	InvokeInvokedTimes() int
-	HandleFlamegraphInvokedTimes() int
-	WithHandleFlamegraphError() MockPythonManager
-	WithInvokeError() MockPythonManager
-}
-
-type mockPythonManager struct {
-	invokeInvokedTimes           int
-	handleFlamegraphInvokedTimes int
-	withHandleFlamegraphError    bool
-	withInvokeError              bool
-}
-
-// NewMockPythonManager instances an empty MockPythonManager util for unit tests
-func NewMockPythonManager() MockPythonManager {
-	return &mockPythonManager{}
-}
-
-func (m *mockPythonManager) invoke(*job.ProfilingJob, string) (error, time.Duration) {
-	m.invokeInvokedTimes++
-	if m.withInvokeError {
-		return errors.New("fake invoke with error"), 0
-	}
-	fmt.Println("fake invoke")
-	return nil, 0
-}
-
-func (m *mockPythonManager) handleFlamegraph(*job.ProfilingJob, flamegraph.FrameGrapher, string, string) error {
-	m.handleFlamegraphInvokedTimes++
-	if m.withHandleFlamegraphError {
-		return errors.New("fake handleFlamegraph with error")
-	}
-	fmt.Println("fake handleFlamegraph")
-	return nil
-}
-
-func (m *mockPythonManager) InvokeInvokedTimes() int {
-	return m.invokeInvokedTimes
-}
-
-func (m *mockPythonManager) HandleFlamegraphInvokedTimes() int {
-	return m.handleFlamegraphInvokedTimes
-}
-
-func (m *mockPythonManager) WithHandleFlamegraphError() MockPythonManager {
-	m.withHandleFlamegraphError = true
-	return m
-}
-
-func (m *mockPythonManager) WithInvokeError() MockPythonManager {
-	m.withInvokeError = true
-	return m
-}
-
 func TestPythonProfiler_SetUp(t *testing.T) {
 	type fields struct {
 		PythonProfiler *PythonProfiler
@@ -97,7 +40,7 @@ func TestPythonProfiler_SetUp(t *testing.T) {
 			given: func() (fields, args) {
 				return fields{
 						PythonProfiler: &PythonProfiler{
-							PythonManager: NewMockPythonManager(),
+							PythonManager: newFakePythonManager(),
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -120,7 +63,7 @@ func TestPythonProfiler_SetUp(t *testing.T) {
 			given: func() (fields, args) {
 				return fields{
 						PythonProfiler: &PythonProfiler{
-							PythonManager: NewMockPythonManager(),
+							PythonManager: newFakePythonManager(),
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -144,7 +87,7 @@ func TestPythonProfiler_SetUp(t *testing.T) {
 			given: func() (fields, args) {
 				return fields{
 						PythonProfiler: &PythonProfiler{
-							PythonManager: NewMockPythonManager(),
+							PythonManager: newFakePythonManager(),
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -194,9 +137,14 @@ func TestPythonProfiler_Invoke(t *testing.T) {
 		{
 			name: "should invoke",
 			given: func() (fields, args) {
+				pythonManager := newFakePythonManager()
+				pythonManager.On("invoke").
+					Return(nil, 0).
+					Return(nil, 0)
+
 				return fields{
 						PythonProfiler: &PythonProfiler{
-							PythonManager: NewMockPythonManager(),
+							PythonManager: pythonManager,
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -213,17 +161,19 @@ func TestPythonProfiler_Invoke(t *testing.T) {
 				return fields.PythonProfiler.Invoke(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
-				mock := fields.PythonProfiler.PythonManager.(MockPythonManager)
 				assert.Nil(t, err)
-				assert.Equal(t, 2, mock.InvokeInvokedTimes())
+				assert.Equal(t, 2, fields.PythonProfiler.PythonManager.(FakePythonManager).On("invoke").InvokedTimes())
 			},
 		},
 		{
 			name: "should invoke fail when invoke fail",
 			given: func() (fields, args) {
+				pythonManager := newFakePythonManager()
+				pythonManager.On("invoke").Return(errors.New("fake invoke error"), time.Duration(0))
+
 				return fields{
 						PythonProfiler: &PythonProfiler{
-							PythonManager: NewMockPythonManager().WithInvokeError(),
+							PythonManager: pythonManager,
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -240,9 +190,9 @@ func TestPythonProfiler_Invoke(t *testing.T) {
 				return fields.PythonProfiler.Invoke(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
-				mock := fields.PythonProfiler.PythonManager.(MockPythonManager)
 				require.Error(t, err)
-				assert.Equal(t, 1, mock.InvokeInvokedTimes())
+				assert.EqualError(t, err, "fake invoke error")
+				assert.Equal(t, 1, fields.PythonProfiler.PythonManager.(FakePythonManager).On("invoke").InvokedTimes())
 			},
 		},
 	}
@@ -281,7 +231,7 @@ func TestPythonProfiler_CleanUp(t *testing.T) {
 				_, _ = os.Create(f + compressor.GetExtensionFileByCompressor[compressor.Gzip])
 				return fields{
 						PythonProfiler: &PythonProfiler{
-							PythonManager: NewMockPythonManager(),
+							PythonManager: newFakePythonManager(),
 						},
 					}, args{
 						job: &job.ProfilingJob{

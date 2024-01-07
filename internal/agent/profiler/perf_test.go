@@ -22,83 +22,6 @@ import (
 	"time"
 )
 
-// FakePerfManager is an interface that wraps the PerfManager interface
-type FakePerfManager interface {
-	Return(fakeReturnValues ...interface{}) *fakePerfManager
-	On(methodName string) *fakePerfManager
-	InvokedTimes(methodName string) int
-
-	PerfManager
-}
-
-// fakePerfManager is a fake implementation of the PerfManager interface
-type fakePerfManager struct {
-	fakeReturnValues []interface{}
-	methodName       string
-	invokes          map[string]int
-}
-
-// newFakePerfManager returns a new fake perf manager
-func newFakePerfManager() FakePerfManager {
-	return &fakePerfManager{
-		invokes: make(map[string]int),
-	}
-}
-
-func (p *fakePerfManager) Return(fakeReturnValues ...interface{}) *fakePerfManager {
-	p.fakeReturnValues = fakeReturnValues
-	return p
-}
-
-func (p *fakePerfManager) On(methodName string) *fakePerfManager {
-	p.methodName = methodName
-	return p
-}
-
-func (p *fakePerfManager) InvokedTimes(methodName string) int {
-	return p.invokes[methodName]
-}
-
-func (p *fakePerfManager) invoke(job *job.ProfilingJob, pid string) (error, time.Duration) {
-	p.invokes["invoke"]++
-	if p.methodName == "invoke" && p.fakeReturnValues != nil && len(p.fakeReturnValues) > 0 {
-		return p.fakeReturnValues[0].(error), p.fakeReturnValues[1].(time.Duration)
-	}
-	return nil, 0
-}
-
-func (p *fakePerfManager) runPerfRecord(job *job.ProfilingJob, pid string) error {
-	p.invokes["runPerfRecord"]++
-	if p.methodName == "runPerfRecord" && p.fakeReturnValues != nil && len(p.fakeReturnValues) > 0 {
-		return p.fakeReturnValues[0].(error)
-	}
-	return nil
-}
-
-func (p *fakePerfManager) runPerfScript(job *job.ProfilingJob, pid string) error {
-	p.invokes["runPerfScript"]++
-	if p.methodName == "runPerfScript" && p.fakeReturnValues != nil && len(p.fakeReturnValues) > 0 {
-		return p.fakeReturnValues[0].(error)
-	}
-	return nil
-}
-
-func (p *fakePerfManager) foldPerfOutput(job *job.ProfilingJob, pid string) (error, string) {
-	p.invokes["foldPerfOutput"]++
-	if p.methodName == "foldPerfOutput" && p.fakeReturnValues != nil && len(p.fakeReturnValues) > 0 {
-		return p.fakeReturnValues[0].(error), p.fakeReturnValues[1].(string)
-	}
-	return nil, ""
-}
-
-func (p *fakePerfManager) handleFlamegraph(job *job.ProfilingJob, f flamegraph.FrameGrapher, fileName string, pid string) error {
-	p.invokes["handleFlamegraph"]++
-	if p.methodName == "handleFlamegraph" && p.fakeReturnValues != nil && len(p.fakeReturnValues) > 0 {
-		return p.fakeReturnValues[0].(error)
-	}
-	return nil
-}
-
 func TestPerfProfiler_SetUp(t *testing.T) {
 	type fields struct {
 		PerfProfiler *PerfProfiler
@@ -214,9 +137,14 @@ func TestPerfProfiler_Invoke(t *testing.T) {
 		{
 			name: "should invoke",
 			given: func() (fields, args) {
+				fakePerfManager := newFakePerfManager()
+				fakePerfManager.On("invoke").
+					Return(nil, time.Duration(0)).
+					Return(nil, time.Duration(0))
+
 				return fields{
 						PerfProfiler: &PerfProfiler{
-							PerfManager: newFakePerfManager(),
+							PerfManager: fakePerfManager,
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -234,15 +162,18 @@ func TestPerfProfiler_Invoke(t *testing.T) {
 			},
 			then: func(t *testing.T, err error, fields fields) {
 				assert.Nil(t, err)
-				assert.Equal(t, 2, fields.PerfProfiler.PerfManager.(FakePerfManager).InvokedTimes("invoke"))
+				assert.Equal(t, 2, fields.PerfProfiler.PerfManager.(FakePerfManager).On("invoke").InvokedTimes())
 			},
 		},
 		{
 			name: "should invoke fail when invoke fail",
 			given: func() (fields, args) {
+				fakePerfManager := newFakePerfManager()
+				fakePerfManager.On("invoke").Return(errors.New("fake invoke error"), time.Duration(0))
+
 				return fields{
 						PerfProfiler: &PerfProfiler{
-							PerfManager: newFakePerfManager().On("invoke").Return(errors.New("fake invoke error"), time.Duration(0)),
+							PerfManager: fakePerfManager,
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -260,7 +191,8 @@ func TestPerfProfiler_Invoke(t *testing.T) {
 			},
 			then: func(t *testing.T, err error, fields fields) {
 				require.Error(t, err)
-				assert.Equal(t, 1, fields.PerfProfiler.PerfManager.(FakePerfManager).InvokedTimes("invoke"))
+				assert.EqualError(t, err, "fake invoke error")
+				assert.Equal(t, 1, fields.PerfProfiler.PerfManager.(FakePerfManager).On("invoke").InvokedTimes())
 			},
 		},
 	}

@@ -2,7 +2,6 @@ package profiler
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/config"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
@@ -22,40 +21,6 @@ import (
 	"time"
 )
 
-type MockRubyManager interface {
-	RubyManager
-	InvokeInvokedTimes() int
-	WithInvokeError() MockRubyManager
-}
-
-type mockRubyManager struct {
-	invokeInvokedTimes int
-	withInvokeError    bool
-}
-
-// NewMockRubyManager instances an empty MockRubyManager util for unit tests
-func NewMockRubyManager() MockRubyManager {
-	return &mockRubyManager{}
-}
-
-func (m *mockRubyManager) invoke(*job.ProfilingJob, string) (error, time.Duration) {
-	m.invokeInvokedTimes++
-	if m.withInvokeError {
-		return errors.New("fake handleFlamegraph with error"), 0
-	}
-	fmt.Println("fake invoke")
-	return nil, 0
-}
-
-func (m *mockRubyManager) InvokeInvokedTimes() int {
-	return m.invokeInvokedTimes
-}
-
-func (m *mockRubyManager) WithInvokeError() MockRubyManager {
-	m.withInvokeError = true
-	return m
-}
-
 func TestRubyProfiler_SetUp(t *testing.T) {
 	type fields struct {
 		RubyProfiler *RubyProfiler
@@ -74,7 +39,7 @@ func TestRubyProfiler_SetUp(t *testing.T) {
 			given: func() (fields, args) {
 				return fields{
 						RubyProfiler: &RubyProfiler{
-							RubyManager: NewMockRubyManager(),
+							RubyManager: newFakeRubyManager(),
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -97,7 +62,7 @@ func TestRubyProfiler_SetUp(t *testing.T) {
 			given: func() (fields, args) {
 				return fields{
 						RubyProfiler: &RubyProfiler{
-							RubyManager: NewMockRubyManager(),
+							RubyManager: newFakeRubyManager(),
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -121,7 +86,7 @@ func TestRubyProfiler_SetUp(t *testing.T) {
 			given: func() (fields, args) {
 				return fields{
 						RubyProfiler: &RubyProfiler{
-							RubyManager: NewMockRubyManager(),
+							RubyManager: newFakeRubyManager(),
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -171,9 +136,14 @@ func TestRubyProfiler_Invoke(t *testing.T) {
 		{
 			name: "should invoke",
 			given: func() (fields, args) {
+				rubyManager := newFakeRubyManager()
+				rubyManager.On("invoke").
+					Return(nil, 0).
+					Return(nil, 0)
+
 				return fields{
 						RubyProfiler: &RubyProfiler{
-							RubyManager: NewMockRubyManager(),
+							RubyManager: rubyManager,
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -190,17 +160,20 @@ func TestRubyProfiler_Invoke(t *testing.T) {
 				return fields.RubyProfiler.Invoke(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
-				mock := fields.RubyProfiler.RubyManager.(MockRubyManager)
 				assert.Nil(t, err)
-				assert.Equal(t, 2, mock.InvokeInvokedTimes())
+				assert.Equal(t, 2, fields.RubyProfiler.RubyManager.(FakeRubyManager).On("invoke").InvokedTimes())
 			},
 		},
 		{
 			name: "should invoke fail when invoke fail",
 			given: func() (fields, args) {
+				rubyManager := newFakeRubyManager()
+				rubyManager.On("invoke").Return(errors.New("fake invoke error"), time.Duration(0))
+
 				return fields{
+
 						RubyProfiler: &RubyProfiler{
-							RubyManager: NewMockRubyManager().WithInvokeError(),
+							RubyManager: rubyManager,
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -217,9 +190,9 @@ func TestRubyProfiler_Invoke(t *testing.T) {
 				return fields.RubyProfiler.Invoke(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
-				mock := fields.RubyProfiler.RubyManager.(MockRubyManager)
 				require.Error(t, err)
-				assert.Equal(t, 1, mock.InvokeInvokedTimes())
+				assert.EqualError(t, err, "fake invoke error")
+				assert.Equal(t, 1, fields.RubyProfiler.RubyManager.(FakeRubyManager).On("invoke").InvokedTimes())
 			},
 		},
 	}
@@ -258,7 +231,7 @@ func TestRubyProfiler_CleanUp(t *testing.T) {
 				_, _ = os.Create(f + compressor.GetExtensionFileByCompressor[compressor.Gzip])
 				return fields{
 						RubyProfiler: &RubyProfiler{
-							RubyManager: NewMockRubyManager(),
+							RubyManager: newFakeRubyManager(),
 						},
 					}, args{
 						job: &job.ProfilingJob{
