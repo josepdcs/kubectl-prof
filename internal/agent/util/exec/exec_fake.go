@@ -52,9 +52,7 @@ func (f *Fake) On(methodName string) *FakeMethod {
 
 // Return sets the values to be returned by the fake method
 func (f *FakeMethod) Return(fakeReturnValues ...interface{}) *FakeMethod {
-	if fakeReturnValues != nil && len(fakeReturnValues) > 0 && fakeReturnValues[0] != nil {
-		f.fakeReturnValues = append(f.fakeReturnValues, fakeReturnValues)
-	}
+	f.fakeReturnValues = append(f.fakeReturnValues, fakeReturnValues)
 	return f
 }
 
