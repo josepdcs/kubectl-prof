@@ -308,7 +308,9 @@ func TestAsyncProfiler_Invoke(t *testing.T) {
 		{
 			name: "should publish result",
 			given: func() (fields, args) {
-				asyncProfilerCommander = executil.NewFakeCommander(exec.Command("ls", common.TmpDir()))
+				commander := executil.NewFakeCommander()
+				commander.Return(exec.Command("ls", common.TmpDir())).Return(&exec.Cmd{}).On("Command")
+				asyncProfilerCommander = commander
 				return fields{
 						AsyncProfiler: AsyncProfiler{
 							AsyncProfilerManager: NewMockAsyncProfilerManager(),
@@ -333,7 +335,9 @@ func TestAsyncProfiler_Invoke(t *testing.T) {
 		{
 			name: "should publish result when raw output type",
 			given: func() (fields, args) {
-				asyncProfilerCommander = executil.NewFakeCommander(exec.Command("ls", common.TmpDir()))
+				commander := executil.NewFakeCommander()
+				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+				asyncProfilerCommander = commander
 				return fields{
 						AsyncProfiler: AsyncProfiler{
 							AsyncProfilerManager: NewMockAsyncProfilerManager(),
@@ -359,7 +363,9 @@ func TestAsyncProfiler_Invoke(t *testing.T) {
 		{
 			name: "should fail when fail exec command",
 			given: func() (fields, args) {
-				asyncProfilerCommander = executil.NewFakeCommander(&exec.Cmd{})
+				commander := executil.NewFakeCommander()
+				commander.Return(&exec.Cmd{}).On("Command")
+				asyncProfilerCommander = commander
 				return fields{
 						AsyncProfiler: AsyncProfiler{
 							AsyncProfilerManager: NewMockAsyncProfilerManager(),
@@ -416,6 +422,10 @@ func TestAsyncProfiler_CleanUp(t *testing.T) {
 				f := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph.html")
 				_, _ = os.Create(f)
 				_, _ = os.Create(f + compressor.GetExtensionFileByCompressor[compressor.Gzip])
+
+				commander := executil.NewFakeCommander()
+				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+				asyncProfilerCommander = commander
 				return fields{
 						AsyncProfiler: AsyncProfiler{
 							AsyncProfilerManager: NewMockAsyncProfilerManager(),
@@ -461,7 +471,9 @@ func TestAsyncProfiler_CleanUp(t *testing.T) {
 }
 
 func Test_asyncProfilerManager_copyProfilerToTmpDir(t *testing.T) {
-	asyncProfilerCommander = executil.NewFakeCommander(exec.Command("ls", common.TmpDir()))
+	commander := executil.NewFakeCommander()
+	commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+	asyncProfilerCommander = commander
 	a := NewAsyncProfiler()
 	assert.Nil(t, a.copyProfilerToTmpDir())
 }

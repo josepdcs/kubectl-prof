@@ -81,24 +81,3 @@ func SilentCommand(name string, arg ...string) *exec.Cmd {
 func Execute(cmd *exec.Cmd) (int, []byte, error) {
 	return std.Execute(cmd)
 }
-
-type fakeCommander struct {
-	fakeCommand *exec.Cmd
-}
-
-func (f fakeCommander) Command(string, ...string) *exec.Cmd {
-	return &exec.Cmd{
-		Path: f.fakeCommand.Path,
-		Args: f.fakeCommand.Args,
-	}
-}
-
-func (f fakeCommander) Execute(cmd *exec.Cmd) (int, []byte, error) {
-	return 0, []byte{}, nil
-}
-
-func NewFakeCommander(fakeCommand *exec.Cmd) Commander {
-	return &fakeCommander{
-		fakeCommand: fakeCommand,
-	}
-}

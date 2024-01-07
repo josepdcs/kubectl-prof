@@ -342,7 +342,9 @@ func Test_bpfManager_invoke(t *testing.T) {
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000.txt"), b.String())
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"), b.String())
 
-				commander := executil.NewFakeCommander(exec.Command("ls", "/tmp"))
+				commander := executil.NewFakeCommander()
+				// mock commander.Command return exec.Command("ls", common.TmpDir())
+				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
 				publisher := publish.NewFakePublisher()
 
 				return fields{
@@ -376,7 +378,9 @@ func Test_bpfManager_invoke(t *testing.T) {
 		{
 			name: "should invoke fail when command fail",
 			given: func() (fields, args) {
-				commander := executil.NewFakeCommander(&exec.Cmd{})
+				commander := executil.NewFakeCommander()
+				// mock commander.Command return exec.Command("ls", common.TmpDir())
+				commander.Return(&exec.Cmd{}).On("Command")
 				publisher := publish.NewFakePublisher()
 
 				return fields{
@@ -405,7 +409,9 @@ func Test_bpfManager_invoke(t *testing.T) {
 			name: "should invoke return nil when fail handle flamegraph",
 			given: func() (fields, args) {
 				log.SetPrintLogs(true)
-				commander := executil.NewFakeCommander(exec.Command("ls", "/tmp"))
+				commander := executil.NewFakeCommander()
+				// mock commander.Command return exec.Command("ls", common.TmpDir())
+				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
 				publisher := publish.NewFakePublisher()
 
 				return fields{
@@ -439,7 +445,9 @@ func Test_bpfManager_invoke(t *testing.T) {
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000.txt"), b.String())
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"), b.String())
 
-				commander := executil.NewFakeCommander(exec.Command("ls", "/tmp"))
+				commander := executil.NewFakeCommander()
+				// mock commander.Command return exec.Command("ls", common.TmpDir())
+				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
 				publisher := publish.NewFakePublisher()
 				// mock publisher.Do return error
 				publisher.Return(errors.New("fake publisher with error")).On("Do")
@@ -516,7 +524,9 @@ func Test_bpfManager_handleFlamegraph(t *testing.T) {
 				b.Write([]byte("testtesttesttesttesttesttesttesttesttesttesttesttest"))
 				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
 
-				commander := executil.NewFakeCommander(exec.Command("ls", "/tmp"))
+				commander := executil.NewFakeCommander()
+				// mock commander.Command return exec.Command("ls", common.TmpDir())
+				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
 				publisher := publish.NewFakePublisher()
 
 				return fields{
@@ -552,7 +562,9 @@ func Test_bpfManager_handleFlamegraph(t *testing.T) {
 				b.Write([]byte("testtesttesttesttesttesttesttesttesttesttesttesttest"))
 				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
 
-				commander := executil.NewFakeCommander(exec.Command("ls", "/tmp"))
+				commander := executil.NewFakeCommander()
+				// mock commander.Command return exec.Command("ls", common.TmpDir())
+				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
 				publisher := publish.NewFakePublisher()
 
 				return fields{
@@ -587,7 +599,9 @@ func Test_bpfManager_handleFlamegraph(t *testing.T) {
 				var b bytes.Buffer
 				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
 
-				commander := executil.NewFakeCommander(exec.Command("ls", "/tmp"))
+				commander := executil.NewFakeCommander()
+				// mock commander.Command return exec.Command("ls", common.TmpDir())
+				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
 				publisher := publish.NewFakePublisher()
 
 				return fields{

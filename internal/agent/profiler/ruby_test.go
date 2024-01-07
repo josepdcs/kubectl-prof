@@ -318,7 +318,9 @@ func Test_rubyManager_invoke(t *testing.T) {
 				b.Write([]byte("test"))
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"), b.String())
 
-				commander := executil.NewFakeCommander(exec.Command("ls", "/tmp"))
+				commander := executil.NewFakeCommander()
+				// mock commander.Command return exec.Command("ls", "/tmp")
+				commander.Return(exec.Command("ls", "/tmp")).On("Command")
 				publisher := publish.NewFakePublisher()
 
 				return fields{
@@ -352,7 +354,9 @@ func Test_rubyManager_invoke(t *testing.T) {
 		{
 			name: "should invoke fail when command fail",
 			given: func() (fields, args) {
-				commander := executil.NewFakeCommander(&exec.Cmd{})
+				commander := executil.NewFakeCommander()
+				// mock commander.Command return exec.Command("ls", "/tmp")
+				commander.Return(&exec.Cmd{}).On("Command")
 				publisher := publish.NewFakePublisher()
 
 				return fields{
@@ -385,7 +389,9 @@ func Test_rubyManager_invoke(t *testing.T) {
 				b.Write([]byte("test"))
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"), b.String())
 
-				commander := executil.NewFakeCommander(exec.Command("ls", "/tmp"))
+				commander := executil.NewFakeCommander()
+				// mock commander.Command return exec.Command("ls", "/tmp")
+				commander.Return(exec.Command("ls", "/tmp")).On("Command")
 				publisher := publish.NewFakePublisher()
 				// mock publisher.Do return error
 				publisher.Return(errors.New("fake publisher with error")).On("Do")

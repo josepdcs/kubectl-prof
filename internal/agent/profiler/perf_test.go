@@ -360,7 +360,9 @@ func Test_perfManager_invoke(t *testing.T) {
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000.txt"), b.String())
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"), b.String())
 
-				commander := executil.NewFakeCommander(exec.Command("ls", "/tmp"))
+				commander := executil.NewFakeCommander()
+				// mock commander.Command return exec.Command("ls", common.TmpDir())
+				commander.Return(exec.Command("ls", common.TmpDir())).Return(exec.Command("ls", common.TmpDir())).Return(exec.Command("ls", common.TmpDir())).On("Command")
 				publisher := publish.NewFakePublisher()
 
 				return fields{
@@ -394,7 +396,8 @@ func Test_perfManager_invoke(t *testing.T) {
 		{
 			name: "should invoke fail when perf record fail",
 			given: func() (fields, args) {
-				commander := executil.NewFakeCommander(&exec.Cmd{})
+				commander := executil.NewFakeCommander()
+				commander.Return(&exec.Cmd{}).On("Command")
 				publisher := publish.NewFakePublisher()
 
 				return fields{
@@ -421,10 +424,72 @@ func Test_perfManager_invoke(t *testing.T) {
 			},
 		},
 		{
+			name: "should invoke fail when perf script fail",
+			given: func() (fields, args) {
+				commander := executil.NewFakeCommander()
+				commander.Return(exec.Command("ls", common.TmpDir())).Return(&exec.Cmd{}).On("Command")
+				publisher := publish.NewFakePublisher()
+
+				return fields{
+						PerfProfiler: NewPerfProfiler(commander, publisher),
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							OutputType:       api.FlameGraph,
+							Language:         api.Go,
+							Tool:             api.Perf,
+						},
+						pid: "1000",
+					}
+			},
+			when: func(fields fields, args args) (error, time.Duration) {
+				return fields.PerfProfiler.invoke(args.job, args.pid)
+			},
+			then: func(t *testing.T, fields fields, err error) {
+				require.Error(t, err)
+				assert.ErrorContains(t, err, "perf script failed")
+				assert.True(t, fields.PerfProfiler.PerfManager.(*perfManager).publisher.(*publish.Fake).InvokedTimes("Do") == 0)
+			},
+		},
+		{
+			name: "should invoke fail when folding perf output fail",
+			given: func() (fields, args) {
+				commander := executil.NewFakeCommander()
+				commander.Return(exec.Command("ls", common.TmpDir())).Return(exec.Command("ls", common.TmpDir())).Return(&exec.Cmd{}).On("Command")
+				publisher := publish.NewFakePublisher()
+
+				return fields{
+						PerfProfiler: NewPerfProfiler(commander, publisher),
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							OutputType:       api.FlameGraph,
+							Language:         api.Go,
+							Tool:             api.Perf,
+						},
+						pid: "1000",
+					}
+			},
+			when: func(fields fields, args args) (error, time.Duration) {
+				return fields.PerfProfiler.invoke(args.job, args.pid)
+			},
+			then: func(t *testing.T, fields fields, err error) {
+				require.Error(t, err)
+				assert.ErrorContains(t, err, "folding perf output failed")
+				assert.True(t, fields.PerfProfiler.PerfManager.(*perfManager).publisher.(*publish.Fake).InvokedTimes("Do") == 0)
+			},
+		},
+		{
 			name: "should invoke return nil when fail handle flamegraph",
 			given: func() (fields, args) {
 				log.SetPrintLogs(true)
-				commander := executil.NewFakeCommander(exec.Command("ls", "/tmp"))
+				commander := executil.NewFakeCommander()
+				// mock commander.Command return exec.Command("ls", common.TmpDir())
+				commander.Return(exec.Command("ls", common.TmpDir())).Return(exec.Command("ls", common.TmpDir())).Return(exec.Command("ls", common.TmpDir())).On("Command")
 				publisher := publish.NewFakePublisher()
 
 				return fields{
@@ -458,7 +523,9 @@ func Test_perfManager_invoke(t *testing.T) {
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000.txt"), b.String())
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"), b.String())
 
-				commander := executil.NewFakeCommander(exec.Command("ls", "/tmp"))
+				commander := executil.NewFakeCommander()
+				// mock commander.Command return exec.Command("ls", common.TmpDir())
+				commander.Return(exec.Command("ls", common.TmpDir())).Return(exec.Command("ls", common.TmpDir())).Return(exec.Command("ls", common.TmpDir())).On("Command")
 				publisher := publish.NewFakePublisher()
 				// mock publisher.Do return error
 				publisher.Return(errors.New("fake publisher with error")).On("Do")
@@ -535,7 +602,8 @@ func Test_perfManager_handleFlamegraph(t *testing.T) {
 				b.Write([]byte("testtesttesttesttesttesttesttesttesttesttesttesttest"))
 				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
 
-				commander := executil.NewFakeCommander(exec.Command("ls", "/tmp"))
+				commander := executil.NewFakeCommander()
+				commander.(*executil.Fake).Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
 
 				return fields{
@@ -571,7 +639,8 @@ func Test_perfManager_handleFlamegraph(t *testing.T) {
 				b.Write([]byte("testtesttesttesttesttesttesttesttesttesttesttesttest"))
 				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
 
-				commander := executil.NewFakeCommander(exec.Command("ls", "/tmp"))
+				commander := executil.NewFakeCommander()
+				commander.(*executil.Fake).Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
 
 				return fields{
@@ -606,7 +675,8 @@ func Test_perfManager_handleFlamegraph(t *testing.T) {
 				var b bytes.Buffer
 				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
 
-				commander := executil.NewFakeCommander(exec.Command("ls", "/tmp"))
+				commander := executil.NewFakeCommander()
+				commander.(*executil.Fake).Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
 
 				return fields{

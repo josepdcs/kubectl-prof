@@ -340,7 +340,9 @@ func TestJcmdProfiler_Invoke(t *testing.T) {
 		{
 			name: "should publish result",
 			given: func() (fields, args) {
-				jcmdCommander = executil.NewFakeCommander(exec.Command("ls", "/tmp"))
+				commander := executil.NewFakeCommander()
+				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+				jcmdCommander = commander
 				return fields{
 						JcmdProfiler: JcmdProfiler{
 							JcmdManager: NewMockJcmdManager(),
@@ -366,7 +368,9 @@ func TestJcmdProfiler_Invoke(t *testing.T) {
 		{
 			name: "should publish result when ThreadDump output type",
 			given: func() (fields, args) {
-				jcmdCommander = executil.NewFakeCommander(exec.Command("ls", "/tmp"))
+				commander := executil.NewFakeCommander()
+				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+				jcmdCommander = commander
 				return fields{
 						JcmdProfiler: JcmdProfiler{
 							JcmdManager: NewMockJcmdManager(),
@@ -394,7 +398,9 @@ func TestJcmdProfiler_Invoke(t *testing.T) {
 		{
 			name: "should fail when fail exec command",
 			given: func() (fields, args) {
-				jcmdCommander = executil.NewFakeCommander(&exec.Cmd{})
+				commander := executil.NewFakeCommander()
+				commander.Return(&exec.Cmd{}).On("Command")
+				jcmdCommander = commander
 				return fields{
 						JcmdProfiler: JcmdProfiler{
 							JcmdManager: NewMockJcmdManager(),
@@ -419,7 +425,9 @@ func TestJcmdProfiler_Invoke(t *testing.T) {
 		{
 			name: "should fail when handle profiling result fail",
 			given: func() (fields, args) {
-				jcmdCommander = executil.NewFakeCommander(exec.Command("ls", "/tmp"))
+				commander := executil.NewFakeCommander()
+				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+				jcmdCommander = commander
 				return fields{
 						JcmdProfiler: JcmdProfiler{
 							JcmdManager: NewMockJcmdManager().WithHandleProfilingResultError(),
@@ -444,7 +452,9 @@ func TestJcmdProfiler_Invoke(t *testing.T) {
 		{
 			name: "should fail when profile fail for ThreadDump output type",
 			given: func() (fields, args) {
-				jcmdCommander = executil.NewFakeCommander(exec.Command("ls", "/tmp"))
+				commander := executil.NewFakeCommander()
+				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+				jcmdCommander = commander
 				return fields{
 						JcmdProfiler: JcmdProfiler{
 							JcmdManager: NewMockJcmdManager().WithHandleProfilingResultError(),
@@ -471,7 +481,9 @@ func TestJcmdProfiler_Invoke(t *testing.T) {
 		{
 			name: "should fail when profile fail for ThreadDump output type",
 			given: func() (fields, args) {
-				jcmdCommander = executil.NewFakeCommander(exec.Command("ls", "/tmp"))
+				commander := executil.NewFakeCommander()
+				commander.Return(exec.Command("ls", common.TmpDir())).On("Command")
+				jcmdCommander = commander
 				return fields{
 						JcmdProfiler: JcmdProfiler{
 							JcmdManager: NewMockJcmdManager().WithHandleProfilingResultError(),
@@ -528,7 +540,7 @@ func TestJcmdProfiler_CleanUp(t *testing.T) {
 			name: "should clean up",
 			given: func() (fields, args) {
 				jcmdStopCommand = func(job *job.ProfilingJob, pid string) *exec.Cmd {
-					return exec.Command("ls", "/tmp")
+					return exec.Command("ls", common.TmpDir())
 				}
 				f := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph.html")
 				_, _ = os.Create(f)
