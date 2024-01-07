@@ -7,71 +7,79 @@ import (
 
 // FakePublisher is an interface that wraps the Publisher interface
 type FakePublisher interface {
-	// Return sets the values to be returned by the fake publisher
-	Return(fakeReturnValues ...interface{}) *Fake
 	// On sets the expected method to be invoked by the fake publisher
-	On(methodName string) *Fake
-	// InvokedTimes represents the number of times the method was invoked
-	InvokedTimes(methodName string) int
+	On(methodName string) *FakeMethod
 
 	Publisher
 }
 
 // Fake is an implementation of the FakePublisher interface
 type Fake struct {
-	*fakePublisher
+	fakeMethods map[string]*FakeMethod
 }
 
-// fakePublisher is a fake implementation of the Publisher interface
-type fakePublisher struct {
-	// values to be returned by the fake publisher
+// FakeMethod wraps the fakeMethod struct
+type FakeMethod struct {
+	*fakeMethod
+}
+
+// fakeMethod represents a fake method
+type fakeMethod struct {
+	// values to be returned by the fake method
 	fakeReturnValues []interface{}
-	// name of the method invoked
-	methodName string
-	// map of method names and the number of times they were
-	invokes map[string]int
+	// number of times the method was invoked
+	invokes int
+	// index of the execution of the method
+	indexExecution int
 }
 
-// NewFakePublisher returns a new fake publisher
+// NewFakePublisher returns a new FakePublisher
 func NewFakePublisher() FakePublisher {
 	return &Fake{
-		fakePublisher: &fakePublisher{
-			invokes: make(map[string]int),
-		},
+		fakeMethods: make(map[string]*FakeMethod),
 	}
 }
 
-// Return sets the values to be returned by the fake publisher
-func (p *Fake) Return(fakeReturnValues ...interface{}) *Fake {
-	p.fakeReturnValues = fakeReturnValues
-	return p
+// On sets the expected method to be invoked by the fake publisher
+func (f *Fake) On(methodName string) *FakeMethod {
+	if _, ok := f.fakeMethods[methodName]; !ok {
+		f.fakeMethods[methodName] = &FakeMethod{&fakeMethod{}}
+	}
+	if f.fakeMethods[methodName].fakeReturnValues == nil {
+		f.fakeMethods[methodName].fakeReturnValues = make([]interface{}, 0)
+	}
+	return f.fakeMethods[methodName]
 }
 
-// On sets the expected method to be invoked by the fake publisher
-func (p *Fake) On(methodName string) *Fake {
-	p.methodName = methodName
-	return p
+// Return sets the values to be returned by the fake method
+func (f *FakeMethod) Return(fakeReturnValues ...interface{}) *FakeMethod {
+	if fakeReturnValues != nil && len(fakeReturnValues) > 0 && fakeReturnValues[0] != nil {
+		f.fakeReturnValues = append(f.fakeReturnValues, fakeReturnValues)
+	}
+	return f
 }
 
 // InvokedTimes represents the number of times the method was invoked
-func (p *Fake) InvokedTimes(methodName string) int {
-	return p.invokes[methodName]
+func (f *FakeMethod) InvokedTimes() int {
+	return f.invokes
 }
 
-// Do is a mock implementation of the Publisher interface
-func (p *fakePublisher) Do(compressor.Type, string, api.OutputType) error {
-	p.invokes["Do"]++
-	if p.methodName == "Do" && p.fakeReturnValues != nil && len(p.fakeReturnValues) > 0 {
-		return p.fakeReturnValues[0].(error)
+// Do is a fake implementation of the Publisher interface
+func (f *Fake) Do(compressor.Type, string, api.OutputType) error {
+	f.fakeMethods["Do"].invokes++
+	if f.fakeMethods["Do"].fakeReturnValues != nil && len(f.fakeMethods["Do"].fakeReturnValues) > 0 {
+		f.fakeMethods["Do"].indexExecution++
+		return f.fakeMethods["Do"].fakeReturnValues[f.fakeMethods["Do"].indexExecution-1].([]interface{})[0].(error)
 	}
 	return nil
 }
 
-// DoWithNativeGzipAndSplit is a mock implementation of the Publisher interface
-func (p *fakePublisher) DoWithNativeGzipAndSplit(string, string, api.OutputType) error {
-	p.invokes["DoWithNativeGzipAndSplit"]++
-	if p.methodName == "DoWithNativeGzipAndSplit" && p.fakeReturnValues != nil && len(p.fakeReturnValues) > 0 {
-		return p.fakeReturnValues[0].(error)
+// DoWithNativeGzipAndSplit is a fake implementation of the Publisher interface
+func (f *Fake) DoWithNativeGzipAndSplit(string, string, api.OutputType) error {
+	f.fakeMethods["DoWithNativeGzipAndSplit"].invokes++
+	if f.fakeMethods["DoWithNativeGzipAndSplit"].fakeReturnValues != nil && len(f.fakeMethods["DoWithNativeGzipAndSplit"].fakeReturnValues) > 0 {
+		f.fakeMethods["DoWithNativeGzipAndSplit"].indexExecution++
+		return f.fakeMethods["DoWithNativeGzipAndSplit"].fakeReturnValues[f.fakeMethods["DoWithNativeGzipAndSplit"].indexExecution-1].([]interface{})[0].(error)
 	}
 	return nil
 }

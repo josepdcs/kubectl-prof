@@ -343,9 +343,9 @@ func Test_bpfManager_invoke(t *testing.T) {
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"), b.String())
 
 				commander := executil.NewFakeCommander()
-				// mock commander.Command return exec.Command("ls", common.TmpDir())
 				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
+				publisher.On("Do").Return(nil)
 
 				return fields{
 						BpfProfiler: NewBpfProfiler(commander, publisher),
@@ -368,7 +368,7 @@ func Test_bpfManager_invoke(t *testing.T) {
 			then: func(t *testing.T, fields fields, err error) {
 				assert.Nil(t, err)
 				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
-				assert.True(t, fields.BpfProfiler.BpfManager.(*bpfManager).publisher.(*publish.Fake).InvokedTimes("Do") == 1)
+				assert.True(t, fields.BpfProfiler.BpfManager.(*bpfManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 1)
 			},
 			after: func() {
 				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000.txt"))
@@ -379,9 +379,9 @@ func Test_bpfManager_invoke(t *testing.T) {
 			name: "should invoke fail when command fail",
 			given: func() (fields, args) {
 				commander := executil.NewFakeCommander()
-				// mock commander.Command return exec.Command("ls", common.TmpDir())
 				commander.On("Command").Return(&exec.Cmd{})
 				publisher := publish.NewFakePublisher()
+				publisher.On("Do").Return(nil)
 
 				return fields{
 						BpfProfiler: NewBpfProfiler(commander, publisher),
@@ -402,7 +402,7 @@ func Test_bpfManager_invoke(t *testing.T) {
 			},
 			then: func(t *testing.T, fields fields, err error) {
 				require.Error(t, err)
-				assert.True(t, fields.BpfProfiler.BpfManager.(*bpfManager).publisher.(*publish.Fake).InvokedTimes("Do") == 0)
+				assert.True(t, fields.BpfProfiler.BpfManager.(*bpfManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 0)
 			},
 		},
 		{
@@ -410,9 +410,9 @@ func Test_bpfManager_invoke(t *testing.T) {
 			given: func() (fields, args) {
 				log.SetPrintLogs(true)
 				commander := executil.NewFakeCommander()
-				// mock commander.Command return exec.Command("ls", common.TmpDir())
 				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
+				publisher.On("Do").Return(nil)
 
 				return fields{
 						BpfProfiler: NewBpfProfiler(commander, publisher),
@@ -433,7 +433,7 @@ func Test_bpfManager_invoke(t *testing.T) {
 			},
 			then: func(t *testing.T, fields fields, err error) {
 				require.NoError(t, err)
-				assert.True(t, fields.BpfProfiler.BpfManager.(*bpfManager).publisher.(*publish.Fake).InvokedTimes("Do") == 0)
+				assert.True(t, fields.BpfProfiler.BpfManager.(*bpfManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 0)
 			},
 		},
 		{
@@ -450,7 +450,7 @@ func Test_bpfManager_invoke(t *testing.T) {
 				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
 				// mock publisher.Do return error
-				publisher.Return(errors.New("fake publisher with error")).On("Do")
+				publisher.On("Do").Return(errors.New("fake publisher with error"))
 
 				return fields{
 						BpfProfiler: NewBpfProfiler(commander, publisher),
@@ -474,7 +474,7 @@ func Test_bpfManager_invoke(t *testing.T) {
 				require.Error(t, err)
 				assert.ErrorContains(t, err, "fake publisher with error")
 				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
-				assert.True(t, fields.BpfProfiler.BpfManager.(*bpfManager).publisher.(*publish.Fake).InvokedTimes("Do") == 1)
+				assert.True(t, fields.BpfProfiler.BpfManager.(*bpfManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 1)
 			},
 			after: func() {
 				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000.txt"))

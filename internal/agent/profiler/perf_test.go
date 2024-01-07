@@ -361,12 +361,12 @@ func Test_perfManager_invoke(t *testing.T) {
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"), b.String())
 
 				commander := executil.NewFakeCommander()
-				// mock commander.Command return exec.Command("ls", common.TmpDir())
 				commander.On("Command").
 					Return(exec.Command("ls", common.TmpDir())).
 					Return(exec.Command("ls", common.TmpDir())).
 					Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
+				publisher.On("Do").Return(nil)
 
 				return fields{
 						PerfProfiler: NewPerfProfiler(commander, publisher),
@@ -389,7 +389,7 @@ func Test_perfManager_invoke(t *testing.T) {
 			then: func(t *testing.T, fields fields, err error) {
 				assert.Nil(t, err)
 				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
-				assert.True(t, fields.PerfProfiler.PerfManager.(*perfManager).publisher.(*publish.Fake).InvokedTimes("Do") == 1)
+				assert.True(t, fields.PerfProfiler.PerfManager.(*perfManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 1)
 				assert.True(t, fields.PerfProfiler.PerfManager.(*perfManager).commander.(*executil.Fake).On("Command").InvokedTimes() == 3)
 			},
 			after: func() {
@@ -403,6 +403,7 @@ func Test_perfManager_invoke(t *testing.T) {
 				commander := executil.NewFakeCommander()
 				commander.On("Command").Return(&exec.Cmd{})
 				publisher := publish.NewFakePublisher()
+				publisher.On("Do").Return(nil)
 
 				return fields{
 						PerfProfiler: NewPerfProfiler(commander, publisher),
@@ -424,7 +425,7 @@ func Test_perfManager_invoke(t *testing.T) {
 			then: func(t *testing.T, fields fields, err error) {
 				require.Error(t, err)
 				assert.ErrorContains(t, err, "perf record failed")
-				assert.True(t, fields.PerfProfiler.PerfManager.(*perfManager).publisher.(*publish.Fake).InvokedTimes("Do") == 0)
+				assert.True(t, fields.PerfProfiler.PerfManager.(*perfManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 0)
 				assert.True(t, fields.PerfProfiler.PerfManager.(*perfManager).commander.(*executil.Fake).On("Command").InvokedTimes() == 1)
 			},
 		},
@@ -457,7 +458,7 @@ func Test_perfManager_invoke(t *testing.T) {
 			then: func(t *testing.T, fields fields, err error) {
 				require.Error(t, err)
 				assert.ErrorContains(t, err, "perf script failed")
-				assert.True(t, fields.PerfProfiler.PerfManager.(*perfManager).publisher.(*publish.Fake).InvokedTimes("Do") == 0)
+				assert.True(t, fields.PerfProfiler.PerfManager.(*perfManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 0)
 				assert.True(t, fields.PerfProfiler.PerfManager.(*perfManager).commander.(*executil.Fake).On("Command").InvokedTimes() == 2)
 			},
 		},
@@ -470,6 +471,7 @@ func Test_perfManager_invoke(t *testing.T) {
 					Return(exec.Command("ls", common.TmpDir())).
 					Return(&exec.Cmd{})
 				publisher := publish.NewFakePublisher()
+				publisher.On("Do").Return(nil)
 
 				return fields{
 						PerfProfiler: NewPerfProfiler(commander, publisher),
@@ -491,7 +493,7 @@ func Test_perfManager_invoke(t *testing.T) {
 			then: func(t *testing.T, fields fields, err error) {
 				require.Error(t, err)
 				assert.ErrorContains(t, err, "folding perf output failed")
-				assert.True(t, fields.PerfProfiler.PerfManager.(*perfManager).publisher.(*publish.Fake).InvokedTimes("Do") == 0)
+				assert.True(t, fields.PerfProfiler.PerfManager.(*perfManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 0)
 				assert.True(t, fields.PerfProfiler.PerfManager.(*perfManager).commander.(*executil.Fake).On("Command").InvokedTimes() == 3)
 			},
 		},
@@ -500,12 +502,12 @@ func Test_perfManager_invoke(t *testing.T) {
 			given: func() (fields, args) {
 				log.SetPrintLogs(true)
 				commander := executil.NewFakeCommander()
-				// mock commander.Command return exec.Command("ls", common.TmpDir())
 				commander.On("Command").
 					Return(exec.Command("ls", common.TmpDir())).
 					Return(exec.Command("ls", common.TmpDir())).
 					Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
+				publisher.On("Do").Return(nil)
 
 				return fields{
 						PerfProfiler: NewPerfProfiler(commander, publisher),
@@ -526,7 +528,7 @@ func Test_perfManager_invoke(t *testing.T) {
 			},
 			then: func(t *testing.T, fields fields, err error) {
 				require.NoError(t, err)
-				assert.True(t, fields.PerfProfiler.PerfManager.(*perfManager).publisher.(*publish.Fake).InvokedTimes("Do") == 0)
+				assert.True(t, fields.PerfProfiler.PerfManager.(*perfManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 0)
 				assert.True(t, fields.PerfProfiler.PerfManager.(*perfManager).commander.(*executil.Fake).On("Command").InvokedTimes() == 3)
 			},
 		},
@@ -540,14 +542,12 @@ func Test_perfManager_invoke(t *testing.T) {
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"), b.String())
 
 				commander := executil.NewFakeCommander()
-				// mock commander.Command return exec.Command("ls", common.TmpDir())
 				commander.On("Command").
 					Return(exec.Command("ls", common.TmpDir())).
 					Return(exec.Command("ls", common.TmpDir())).
 					Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
-				// mock publisher.Do return error
-				publisher.Return(errors.New("fake publisher with error")).On("Do")
+				publisher.On("Do").Return(errors.New("fake publisher with error"))
 
 				return fields{
 						PerfProfiler: NewPerfProfiler(commander, publisher),
@@ -571,7 +571,7 @@ func Test_perfManager_invoke(t *testing.T) {
 				require.Error(t, err)
 				assert.ErrorContains(t, err, "fake publisher with error")
 				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
-				assert.True(t, fields.PerfProfiler.PerfManager.(*perfManager).publisher.(*publish.Fake).InvokedTimes("Do") == 1)
+				assert.True(t, fields.PerfProfiler.PerfManager.(*perfManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 1)
 				assert.True(t, fields.PerfProfiler.PerfManager.(*perfManager).commander.(*executil.Fake).On("Command").InvokedTimes() == 3)
 			},
 			after: func() {

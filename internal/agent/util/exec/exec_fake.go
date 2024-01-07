@@ -4,32 +4,42 @@ import (
 	"os/exec"
 )
 
+// FakeCommander is an interface that wraps the Commander interface
 type FakeCommander interface {
+	// On sets the expected method to be invoked by the fake commander
 	On(methodName string) *FakeMethod
 
 	Commander
 }
 
+// Fake is an implementation of the FakeCommander interface
 type Fake struct {
 	fakeMethods map[string]*FakeMethod
 }
 
+// FakeMethod wraps the fakeMethod struct
 type FakeMethod struct {
 	*fakeMethod
 }
 
+// fakeMethod represents a fake method
 type fakeMethod struct {
+	// values to be returned by the fake method
 	fakeReturnValues []interface{}
-	invokes          int
-	indexCommand     int
+	// number of times the method was invoked
+	invokes int
+	// index of the execution of the method
+	indexExecution int
 }
 
+// NewFakeCommander returns a new FakeCommander
 func NewFakeCommander() FakeCommander {
 	return &Fake{
 		fakeMethods: make(map[string]*FakeMethod),
 	}
 }
 
+// On sets the expected method to be invoked by the fake commander
 func (f *Fake) On(methodName string) *FakeMethod {
 	if _, ok := f.fakeMethods[methodName]; !ok {
 		f.fakeMethods[methodName] = &FakeMethod{&fakeMethod{}}
@@ -40,31 +50,37 @@ func (f *Fake) On(methodName string) *FakeMethod {
 	return f.fakeMethods[methodName]
 }
 
+// Return sets the values to be returned by the fake method
 func (f *FakeMethod) Return(fakeReturnValues ...interface{}) *FakeMethod {
-	f.fakeReturnValues = append(f.fakeReturnValues, fakeReturnValues)
+	if fakeReturnValues != nil && len(fakeReturnValues) > 0 && fakeReturnValues[0] != nil {
+		f.fakeReturnValues = append(f.fakeReturnValues, fakeReturnValues)
+	}
 	return f
 }
 
+// InvokedTimes represents the number of times the method was invoked
 func (f *FakeMethod) InvokedTimes() int {
 	return f.invokes
 }
 
+// Command is a fake implementation of the Commander interface
 func (f *Fake) Command(string, ...string) *exec.Cmd {
 	f.fakeMethods["Command"].invokes++
 	if f.fakeMethods["Command"].fakeReturnValues != nil && len(f.fakeMethods["Command"].fakeReturnValues) > 0 {
-		f.fakeMethods["Command"].indexCommand++
-		return f.fakeMethods["Command"].fakeReturnValues[f.fakeMethods["Command"].indexCommand-1].([]interface{})[0].(*exec.Cmd)
+		f.fakeMethods["Command"].indexExecution++
+		return f.fakeMethods["Command"].fakeReturnValues[f.fakeMethods["Command"].indexExecution-1].([]interface{})[0].(*exec.Cmd)
 	}
 	return nil
 }
 
+// Execute is a fake implementation of the Commander interface
 func (f *Fake) Execute(*exec.Cmd) (int, []byte, error) {
 	f.fakeMethods["Execute"].invokes++
 	if f.fakeMethods["Execute"].fakeReturnValues != nil && len(f.fakeMethods["Execute"].fakeReturnValues) > 0 {
-		f.fakeMethods["Execute"].indexCommand++
-		return f.fakeMethods["Execute"].fakeReturnValues[f.fakeMethods["Execute"].indexCommand-1].([]interface{})[0].(int),
-			f.fakeMethods["Execute"].fakeReturnValues[f.fakeMethods["Execute"].indexCommand-1].([]interface{})[1].([]byte),
-			f.fakeMethods["Execute"].fakeReturnValues[f.fakeMethods["Execute"].indexCommand-1].([]interface{})[2].(error)
+		f.fakeMethods["Execute"].indexExecution++
+		return f.fakeMethods["Execute"].fakeReturnValues[f.fakeMethods["Execute"].indexExecution-1].([]interface{})[0].(int),
+			f.fakeMethods["Execute"].fakeReturnValues[f.fakeMethods["Execute"].indexExecution-1].([]interface{})[1].([]byte),
+			f.fakeMethods["Execute"].fakeReturnValues[f.fakeMethods["Execute"].indexExecution-1].([]interface{})[2].(error)
 	}
 	return 0, nil, nil
 }
