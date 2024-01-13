@@ -248,6 +248,11 @@ minikube-build-and-push-node-stupid-app:
 minikube-build-and-push-python-stupid-app:
 	@test/minikube-lab/build_and_push_image.sh "test/stupid-apps/python" "stupid-apps" "python"
 
+## minikube-build-and-push-jvm-stupid-app: Build image of jvm stupid app and load it into minikube
+.PHONY: minikube-build-and-push-jvm-stupid-app
+minikube-build-and-push-jvm-stupid-app:
+	@test/minikube-lab/build_and_push_image.sh "test/stupid-apps/jvm" "stupid-apps" "jvm"
+
 ## minikube-configure-profiling: Configure all needed for profiling (service account, namespace, etc.)
 .PHONY: minikube-configure-profiling
 minikube-configure-profiling:

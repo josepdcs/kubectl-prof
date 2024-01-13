@@ -26,7 +26,7 @@ func TestGet(t *testing.T) {
 		{
 			name: "should return async profiler profiler",
 			tool: api.AsyncProfiler,
-			want: jvm.NewAsyncProfiler(),
+			want: jvm.NewAsyncProfiler(executil.NewCommander(), publish.NewPublisher()),
 		},
 		{
 			name: "should return bpf profiler",
