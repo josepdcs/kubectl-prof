@@ -57,9 +57,6 @@ var jcmdCommand = func(commander executil.Commander, job *job.ProfilingJob, pid 
 }
 
 var jcmdStopCommand = func(commander executil.Commander, job *job.ProfilingJob, pid string) *exec.Cmd {
-	if job.OutputType != api.Jfr {
-		return nil
-	}
 	return commander.Command(jcmd, pid, "JFR.stop", invocationName+pid+"_"+string(job.OutputType))
 }
 
@@ -263,7 +260,7 @@ func (j *jcmdManager) publishResult(c compressor.Type, fileName string, outputTy
 }
 
 func (j *JcmdProfiler) CleanUp(job *job.ProfilingJob) error {
-	if recordingPIDs != nil {
+	if recordingPIDs != nil && job.OutputType == api.Jfr {
 		defer close(recordingPIDs)
 		for _, pid := range j.targetPIDs {
 			j.cleanUp(job, pid)
