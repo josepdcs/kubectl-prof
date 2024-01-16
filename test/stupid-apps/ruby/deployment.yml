@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ruby-deployment
+  namespace: stupid-apps
+  labels:
+    app: ruby
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ruby
+  template:
+    metadata:
+      labels:
+        app: ruby
+    spec:
+      containers:
+      - name: ruby
+        image: localhost/stupid-apps/ruby:latest
+        imagePullPolicy: Never
+        resources:
+          limits:
+            cpu: 100m
+            memory: 200Mi
+          requests:
+            cpu: 20m
+            memory: 50Mi

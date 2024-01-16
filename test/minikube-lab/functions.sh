@@ -61,6 +61,7 @@ function build_docker_image_and_push_to_minikube() {
   local fullImageName=${REGISTRY}/${project}/${image}:latest
   local dockerfile="${workDir}/Dockerfile"
 
+  #Building image: localhost/stupid-apps/clang:latest. Dockerfile: test/stupid-apps/clang/Dockerfile
   echo "Building image: ${fullImageName}. Dockerfile: ${dockerfile}"
 
   docker build -t ${fullImageName} -f "${dockerfile}" .

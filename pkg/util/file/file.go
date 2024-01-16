@@ -79,6 +79,23 @@ func Read(file string) string {
 	return string(content)
 }
 
+// Append appends content to a file
+func Append(file string, content string) {
+	f, err := os.OpenFile(file, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.WarningLogLn(fmt.Sprintf("file [%s] could no be open to append content: %s", file, err))
+	}
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			log.WarningLogLn(fmt.Sprintf("file [%s] could no be closed after append content: %s", file, err))
+		}
+	}(f)
+	if _, err := f.WriteString(content); err != nil {
+		log.WarningLogLn(fmt.Sprintf("file [%s] could no be written to append content: %s", file, err))
+	}
+}
+
 // GetChecksum returns the checksum of a file applying md5
 // if file could not be read, returns empty string
 func GetChecksum(file string) string {
@@ -89,4 +106,11 @@ func GetChecksum(file string) string {
 	}
 	hash := md5.Sum(content)
 	return hex.EncodeToString(hash[:])
+}
+
+// MergeFiles merges all files into a single one
+func MergeFiles(outputPath string, inputPaths []string) {
+	for _, f := range inputPaths {
+		Append(outputPath, Read(f))
+	}
 }

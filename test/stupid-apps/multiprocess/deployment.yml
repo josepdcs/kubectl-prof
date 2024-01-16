@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: multiprocess-deployment
+  namespace: stupid-apps
+  labels:
+    app: multiprocess
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: multiprocess
+  template:
+    metadata:
+      labels:
+        app: multiprocess
+    spec:
+      containers:
+      - name: python
+        image: localhost/stupid-apps/multiprocess:latest
+        imagePullPolicy: Never
+        resources:
+          limits:
+            cpu: 100m
+            memory: 200Mi
+          requests:
+            cpu: 20m
+            memory: 50Mi

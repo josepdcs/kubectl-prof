@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/agrison/go-commons-lang/stringUtils"
-	"github.com/josepdcs/kubectl-prof/internal/agent/util"
+	"github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
 	"os"
 	"reflect"
@@ -216,7 +216,7 @@ func (g *FlameGrapherScript) StackSamplesToFlameGraph(inputFileName string, outp
 	}(outputFile)
 
 	var stderr bytes.Buffer
-	cmd := util.Command(g.path, scriptToArguments(g)...)
+	cmd := exec.Command(g.path, scriptToArguments(g)...)
 	cmd.Stdin = inputFile
 	cmd.Stdout = outputFile
 	cmd.Stderr = &stderr

@@ -478,3 +478,117 @@ func TestGetChecksum(t *testing.T) {
 		})
 	}
 }
+
+func TestMergeFiles(t *testing.T) {
+	type args struct {
+		outputPath string
+		inputPaths []string
+	}
+	tests := []struct {
+		name  string
+		given func() args
+		when  func(args args)
+		then  func(t *testing.T)
+		after func(args args)
+	}{
+		{
+			name: "merge files",
+			given: func() args {
+				file1 := filepath.Join(common.TmpDir(), "test1.txt")
+				Write(file1, "content1")
+				file2 := filepath.Join(common.TmpDir(), "test2.txt")
+				Write(file2, "content2")
+				file3 := filepath.Join(common.TmpDir(), "test3.txt")
+				Write(file3, "content3")
+				return args{
+					outputPath: filepath.Join(common.TmpDir(), "test.txt"),
+					inputPaths: []string{file1, file2, file3},
+				}
+			},
+			when: func(args args) {
+				MergeFiles(args.outputPath, args.inputPaths)
+			},
+			then: func(t *testing.T) {
+				content := Read(filepath.Join(common.TmpDir(), "test.txt"))
+				assert.Equal(t, "content1content2content3", content)
+			},
+			after: func(args args) {
+				for _, f := range args.inputPaths {
+					_ = Remove(f)
+				}
+				_ = Remove(args.outputPath)
+			},
+		},
+		{
+			name: "output file does not exist",
+			given: func() args {
+				file1 := filepath.Join(common.TmpDir(), "test1.txt")
+				Write(file1, "content1")
+				file2 := filepath.Join(common.TmpDir(), "test2.txt")
+				Write(file2, "content2")
+				file3 := filepath.Join(common.TmpDir(), "test3.txt")
+				Write(file3, "content3")
+				return args{
+					outputPath: "/other_file.txt",
+					inputPaths: []string{file1, file2, file3},
+				}
+			},
+			when: func(args args) {
+				MergeFiles(args.outputPath, args.inputPaths)
+			},
+			then: func(t *testing.T) {
+				content := Read(filepath.Join(common.TmpDir(), "test.txt"))
+				assert.Empty(t, content)
+			},
+			after: func(args args) {
+				for _, f := range args.inputPaths {
+					_ = Remove(f)
+				}
+			},
+		},
+		{
+			name: "input files do not exist",
+			given: func() args {
+				file1 := filepath.Join(common.TmpDir(), "test1.txt")
+				Write(file1, "content1")
+				file2 := filepath.Join(common.TmpDir(), "test2.txt")
+				Write(file2, "content2")
+				file3 := filepath.Join(common.TmpDir(), "test3.txt")
+				return args{
+					outputPath: filepath.Join(common.TmpDir(), "test.txt"),
+					inputPaths: []string{file1, file2, file3},
+				}
+			},
+			when: func(args args) {
+				MergeFiles(args.outputPath, args.inputPaths)
+			},
+			then: func(t *testing.T) {
+				content := Read(filepath.Join(common.TmpDir(), "test.txt"))
+				assert.Equal(t, "content1content2", content)
+			},
+			after: func(args args) {
+				for _, f := range args.inputPaths {
+					_ = Remove(f)
+				}
+				_ = Remove(args.outputPath)
+			},
+		},
+	}
+	for _, tt := range tests {
+		log.SetPrintLogs(true)
+		t.Run(tt.name, func(t *testing.T) {
+			// Given
+			args := tt.given()
+
+			// When
+			tt.when(args)
+
+			// Then
+			tt.then(t)
+
+			if tt.after != nil {
+				tt.after(args)
+			}
+		})
+	}
+}

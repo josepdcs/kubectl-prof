@@ -1,10 +1,15 @@
 package common
 
 import (
+	"fmt"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/config"
 	"os"
 	"path/filepath"
+)
+
+const (
+	MinimumRawSize = 50
 )
 
 var TmpDir = func() string {
@@ -14,6 +19,11 @@ var TmpDir = func() string {
 func GetResultFile(targetDir string, tool api.ProfilingTool, outputType api.OutputType) string {
 	prefix := filepath.Join(targetDir, config.ProfilingPrefix)
 	return prefix + string(outputType) + GetFileExtension(tool, outputType)
+}
+
+func GetResultFileWithPID(targetDir string, tool api.ProfilingTool, outputType api.OutputType, pid string) string {
+	prefix := filepath.Join(targetDir, config.ProfilingPrefix)
+	return fmt.Sprint(prefix, string(outputType), "-", pid, GetFileExtension(tool, outputType))
 }
 
 func GetFileExtension(tool api.ProfilingTool, outputType api.OutputType) string {
@@ -40,9 +50,21 @@ func GetFileExtension(tool api.ProfilingTool, outputType api.OutputType) string 
 			// api.FlameGraph
 			return ".svg"
 		}
+	case api.Rbspy:
+		switch outputType {
+		case api.SpeedScope:
+			return ".json"
+		case api.Callgrind:
+			return ".out"
+		case api.Summary, api.SummaryByLine:
+			return ".txt"
+		default:
+			// api.FlameGraph
+			return ".svg"
+		}
 	case api.Bpf, api.Perf:
 		switch outputType {
-		case api.SpeedScope, api.Raw:
+		case api.Raw:
 			return ".txt"
 		default:
 			// api.FlameGraph

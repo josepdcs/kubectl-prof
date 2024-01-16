@@ -7,6 +7,8 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/runtime/crio"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/runtime/fake"
 	"github.com/stretchr/testify/assert"
+	"os"
+	"strconv"
 	"testing"
 )
 
@@ -145,6 +147,20 @@ func TestRuntime(t *testing.T) {
 	}
 }
 
+type childPIDGetterMock struct {
+	results    []string
+	interation int
+}
+
+// getChildPID returns the PID of the child process of the given PID
+func (c *childPIDGetterMock) get(string) string {
+	defer func() { c.interation++ }()
+	if c.interation >= len(c.results) {
+		return ""
+	}
+	return c.results[c.interation]
+}
+
 func TestContainerPID(t *testing.T) {
 	tests := []struct {
 		name            string
@@ -189,6 +205,10 @@ func TestContainerPID(t *testing.T) {
 				runtime = func(runtime api.ContainerRuntime) (Container, error) {
 					return fake.NewRuntimeFake(), nil
 				}
+				childPIDGetterInstance = &childPIDGetterMock{
+					interation: 0,
+					results:    []string{"PID_12334_CRIO"},
+				}
 			},
 			expected: "PID_12334_CRIO",
 		},
@@ -201,6 +221,27 @@ func TestContainerPID(t *testing.T) {
 			mockFunc: func() {
 				runtime = func(runtime api.ContainerRuntime) (Container, error) {
 					return fake.NewRuntimeFake(), nil
+				}
+				childPIDGetterInstance = &childPIDGetterMock{
+					interation: 0,
+					results:    []string{"PID_12334_CONTAINERD"},
+				}
+			},
+			expected: "PID_12334_CONTAINERD",
+		},
+		{
+			name: "more than one child process",
+			job: job.ProfilingJob{
+				ContainerRuntime: api.Containerd,
+				ContainerID:      "12334_CONTAINERD",
+			},
+			mockFunc: func() {
+				runtime = func(runtime api.ContainerRuntime) (Container, error) {
+					return fake.NewRuntimeFake(), nil
+				}
+				childPIDGetterInstance = &childPIDGetterMock{
+					interation: 0,
+					results:    []string{"PID_12334_CONTAINERD\nPID_12335_CONTAINERD"},
 				}
 			},
 			expected: "PID_12334_CONTAINERD",
@@ -221,4 +262,144 @@ func TestContainerPID(t *testing.T) {
 		})
 	}
 	runtime = original
+}
+
+func TestGetCandidatePIDs(t *testing.T) {
+	tests := []struct {
+		name            string
+		job             job.ProfilingJob
+		mockFunc        func()
+		expected        []string
+		containedErrMsg string
+	}{
+		{
+			name: "empty container runtime",
+			job: job.ProfilingJob{
+				ContainerID: "1234",
+			},
+			mockFunc:        func() {},
+			expected:        nil,
+			containedErrMsg: "container runtime and container ID are mandatory",
+		},
+		{
+			name: "empty container ID",
+			job: job.ProfilingJob{
+				ContainerRuntime: api.ContainerRuntime("other"),
+				ContainerID:      "",
+			},
+			mockFunc:        func() {},
+			expected:        nil,
+			containedErrMsg: "container runtime and container ID are mandatory",
+		},
+		{
+			name: "unknown container runtime",
+			job: job.ProfilingJob{
+				ContainerRuntime: api.ContainerRuntime("other"),
+				ContainerID:      "1234",
+			},
+			mockFunc:        func() {},
+			expected:        nil,
+			containedErrMsg: "unsupported container runtime: other",
+		},
+		{
+			name: "crio container runtime",
+			job: job.ProfilingJob{
+				ContainerRuntime: api.Crio,
+				ContainerID:      "12334_CRIO",
+			},
+			mockFunc: func() {
+				runtime = func(runtime api.ContainerRuntime) (Container, error) {
+					return fake.NewRuntimeFake(), nil
+				}
+				childPIDGetterInstance = &childPIDGetterMock{
+					interation: 0,
+					results:    []string{"PID_12334_CRIO"},
+				}
+			},
+			expected: []string{"PID_12334_CRIO"},
+		},
+		{
+			name: "containerd container runtime",
+			job: job.ProfilingJob{
+				ContainerRuntime: api.Containerd,
+				ContainerID:      "12334_CONTAINERD",
+			},
+			mockFunc: func() {
+				runtime = func(runtime api.ContainerRuntime) (Container, error) {
+					return fake.NewRuntimeFake(), nil
+				}
+				childPIDGetterInstance = &childPIDGetterMock{
+					interation: 0,
+					results:    []string{"PID_12334_CONTAINERD"},
+				}
+			},
+			expected: []string{"PID_12334_CONTAINERD"},
+		},
+		{
+			name: "more than one child process",
+			job: job.ProfilingJob{
+				ContainerRuntime: api.Containerd,
+				ContainerID:      "12334_CONTAINERD",
+			},
+			mockFunc: func() {
+				runtime = func(runtime api.ContainerRuntime) (Container, error) {
+					return fake.NewRuntimeFake(), nil
+				}
+				childPIDGetterInstance = &childPIDGetterMock{
+					interation: 0,
+					results:    []string{"PID_12334_CONTAINERD\nPID_12335_CONTAINERD"},
+				}
+			},
+			expected: []string{"PID_12334_CONTAINERD", "PID_12335_CONTAINERD"},
+		},
+	}
+
+	// preserve the original function
+	original := runtime
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.mockFunc()
+			pids, err := GetCandidatePIDs(&tt.job)
+
+			if err != nil {
+				assert.Contains(t, err.Error(), tt.containedErrMsg)
+				assert.Nil(t, pids)
+			} else {
+				assert.Equal(t, tt.expected, pids)
+			}
+		})
+	}
+	runtime = original
+}
+
+func Test_childPIDGetter_get(t *testing.T) {
+	type args struct {
+		pid string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "pid not exists",
+			args: args{
+				pid: "1234",
+			},
+			want: "",
+		},
+		{
+			name: "pid exists",
+			args: args{
+				pid: strconv.Itoa(os.Getpid()),
+			},
+			want: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := childPIDGetter{}
+			assert.Equalf(t, tt.want, c.get(tt.args.pid), "get(%v)", tt.args.pid)
+		})
+	}
 }

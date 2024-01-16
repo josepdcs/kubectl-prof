@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import multiprocessing
 import asyncio
 
 
@@ -10,12 +11,12 @@ async def work(n, time, function):
 
 async def fast_function():
     while True:
-        await work(100, 50, "fast_function")
+        await work(100, 25, "fast_function")
 
 
 async def slow_function():
     while True:
-        await work(100, 500, "slow_function")
+        await work(100, 150, "slow_function")
 
 
 async def launch():
@@ -23,6 +24,18 @@ async def launch():
     await asyncio.wait(tasks)
 
 
-if __name__ == "__main__":
+def process1():
     loop = asyncio.get_event_loop()
     loop.run_until_complete(launch())
+
+
+def process2():
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(launch())
+
+
+if __name__ == "__main__":
+    p1 = multiprocessing.Process(target=process1)
+    p2 = multiprocessing.Process(target=process2)
+    p1.start()
+    p2.start()

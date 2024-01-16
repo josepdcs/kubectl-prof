@@ -1,135 +1,24 @@
 package jvm
 
 import (
-	"bytes"
-	"fmt"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/config"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
 	"github.com/josepdcs/kubectl-prof/internal/agent/testdata"
+	executil "github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
+	"github.com/josepdcs/kubectl-prof/internal/agent/util/publish"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
 )
-
-type MockJcmdManager interface {
-	JcmdManager
-	RemoveTmpDirInvokedTimes() int
-	LinkTmpDirToTargetTmpDirInvokedTimes() int
-	CopyJfrSettingsToTmpDirInvokedTimes() int
-	HandleProfilingResultInvokedTimes() int
-	PublishResultInvokedTimes() int
-	HandleJcmdRecordingTimes() int
-	WithHandleProfilingResultError() MockJcmdManager
-	WithRemoveTmpDirResultError() MockJcmdManager
-	WithLinkTmpDirToTargetTmpDirResultError() MockJcmdManager
-}
-
-type mockJcmdManager struct {
-	removeTmpDirInvokedTimes                int
-	linkTmpDirToTargetTmpDirInvokedTimes    int
-	copyJfrSettingsToTmpDirInvokedTimes     int
-	handleProfilingResultInvokedTimes       int
-	publishResultInvokedTimes               int
-	handleJcmdRecordingTimes                int
-	withHandleProfilingResultError          bool
-	withRemoveTmpDirResultError             bool
-	withLinkTmpDirToTargetTmpDirResultError bool
-}
-
-// NewMockJcmdManager instances an empty MockJcmdManager util for unit tests
-func NewMockJcmdManager() MockJcmdManager {
-	return &mockJcmdManager{}
-}
-
-func (m *mockJcmdManager) removeTmpDir() error {
-	m.removeTmpDirInvokedTimes++
-	if m.withRemoveTmpDirResultError {
-		return errors.New("fake removeTmpDir with error")
-	}
-	fmt.Println("fake removeTmpDir")
-	return nil
-}
-
-func (m *mockJcmdManager) linkTmpDirToTargetTmpDir(string) error {
-	m.linkTmpDirToTargetTmpDirInvokedTimes++
-	if m.withLinkTmpDirToTargetTmpDirResultError {
-		return errors.New("fake linkTmpDirToTargetTmpDir with error")
-	}
-	fmt.Println("fake linkTmpDirToTargetTmpDir")
-	return nil
-}
-
-func (m *mockJcmdManager) copyJfrSettingsToTmpDir() error {
-	fmt.Println("fake copyJfrSettingsToTmpDir")
-	m.copyJfrSettingsToTmpDirInvokedTimes++
-	return nil
-}
-
-func (m *mockJcmdManager) handleProfilingResult(*job.ProfilingJob, string, bytes.Buffer, string) error {
-	m.handleProfilingResultInvokedTimes++
-	if m.withHandleProfilingResultError {
-		return errors.New("fake handleProfilingResult with error")
-	}
-	fmt.Println("fake handleProfilingResult")
-	return nil
-}
-
-func (m *mockJcmdManager) handleJcmdRecording(string, string) {
-	fmt.Println("fake handleJcmdRecording")
-}
-
-func (m *mockJcmdManager) publishResult(compressor.Type, string, api.OutputType, string) error {
-	fmt.Println("fake publish result")
-	m.publishResultInvokedTimes++
-	return nil
-}
-
-func (m *mockJcmdManager) RemoveTmpDirInvokedTimes() int {
-	return m.removeTmpDirInvokedTimes
-}
-
-func (m *mockJcmdManager) LinkTmpDirToTargetTmpDirInvokedTimes() int {
-	return m.linkTmpDirToTargetTmpDirInvokedTimes
-}
-
-func (m *mockJcmdManager) CopyJfrSettingsToTmpDirInvokedTimes() int {
-	return m.copyJfrSettingsToTmpDirInvokedTimes
-}
-
-func (m *mockJcmdManager) HandleProfilingResultInvokedTimes() int {
-	return m.handleProfilingResultInvokedTimes
-}
-
-func (m *mockJcmdManager) PublishResultInvokedTimes() int {
-	return m.publishResultInvokedTimes
-}
-
-func (m *mockJcmdManager) HandleJcmdRecordingTimes() int {
-	return m.handleJcmdRecordingTimes
-}
-
-func (m *mockJcmdManager) WithHandleProfilingResultError() MockJcmdManager {
-	m.withHandleProfilingResultError = true
-	return m
-}
-
-func (m *mockJcmdManager) WithRemoveTmpDirResultError() MockJcmdManager {
-	m.withRemoveTmpDirResultError = true
-	return m
-}
-
-func (m *mockJcmdManager) WithLinkTmpDirToTargetTmpDirResultError() MockJcmdManager {
-	m.withLinkTmpDirToTargetTmpDirResultError = true
-	return m
-}
 
 func TestJcmdProfiler_SetUp(t *testing.T) {
 	type fields struct {
@@ -147,9 +36,14 @@ func TestJcmdProfiler_SetUp(t *testing.T) {
 		{
 			name: "should setup",
 			given: func() (fields, args) {
+				jcmdManager := newFakeJcmdManager()
+				jcmdManager.On("removeTmpDir").Return(nil)
+				jcmdManager.On("linkTmpDirToTargetTmpDir").Return(nil)
+				jcmdManager.On("copyJfrSettingsToTmpDir").Return(nil)
+
 				return fields{
 						JcmdProfiler: &JcmdProfiler{
-							JcmdManager: NewMockJcmdManager(),
+							JcmdManager: jcmdManager,
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -163,20 +57,24 @@ func TestJcmdProfiler_SetUp(t *testing.T) {
 				return fields.JcmdProfiler.SetUp(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
-				mock := fields.JcmdProfiler.JcmdManager.(MockJcmdManager)
 				assert.Nil(t, err)
-				assert.Equal(t, "PID_ContainerID", fields.JcmdProfiler.targetPID)
-				assert.Equal(t, 1, mock.RemoveTmpDirInvokedTimes())
-				assert.Equal(t, 1, mock.LinkTmpDirToTargetTmpDirInvokedTimes())
-				assert.Equal(t, 1, mock.CopyJfrSettingsToTmpDirInvokedTimes())
+				assert.Equal(t, []string{"PID_ContainerID"}, fields.JcmdProfiler.targetPIDs)
+				assert.Equal(t, 1, fields.JcmdProfiler.JcmdManager.(FakeJcmdManager).On("removeTmpDir").InvokedTimes())
+				assert.Equal(t, 1, fields.JcmdProfiler.JcmdManager.(FakeJcmdManager).On("linkTmpDirToTargetTmpDir").InvokedTimes())
+				assert.Equal(t, 1, fields.JcmdProfiler.JcmdManager.(FakeJcmdManager).On("copyJfrSettingsToTmpDir").InvokedTimes())
 			},
 		},
 		{
 			name: "should setup when PID is given",
 			given: func() (fields, args) {
+				jcmdManager := newFakeJcmdManager()
+				jcmdManager.On("removeTmpDir").Return(nil)
+				jcmdManager.On("linkTmpDirToTargetTmpDir").Return(nil)
+				jcmdManager.On("copyJfrSettingsToTmpDir").Return(nil)
+
 				return fields{
 						JcmdProfiler: &JcmdProfiler{
-							JcmdManager: NewMockJcmdManager(),
+							JcmdManager: jcmdManager,
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -191,20 +89,24 @@ func TestJcmdProfiler_SetUp(t *testing.T) {
 				return fields.JcmdProfiler.SetUp(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
-				mock := fields.JcmdProfiler.JcmdManager.(MockJcmdManager)
 				assert.Nil(t, err)
-				assert.Equal(t, "PID_ContainerID", fields.JcmdProfiler.targetPID)
-				assert.Equal(t, 1, mock.RemoveTmpDirInvokedTimes())
-				assert.Equal(t, 1, mock.LinkTmpDirToTargetTmpDirInvokedTimes())
-				assert.Equal(t, 1, mock.CopyJfrSettingsToTmpDirInvokedTimes())
+				assert.Equal(t, []string{"PID_ContainerID"}, fields.JcmdProfiler.targetPIDs)
+				assert.Equal(t, 1, fields.JcmdProfiler.JcmdManager.(FakeJcmdManager).On("removeTmpDir").InvokedTimes())
+				assert.Equal(t, 1, fields.JcmdProfiler.JcmdManager.(FakeJcmdManager).On("linkTmpDirToTargetTmpDir").InvokedTimes())
+				assert.Equal(t, 1, fields.JcmdProfiler.JcmdManager.(FakeJcmdManager).On("copyJfrSettingsToTmpDir").InvokedTimes())
 			},
 		},
 		{
 			name: "should fail when getting target filesystem fail",
 			given: func() (fields, args) {
+				jcmdManager := newFakeJcmdManager()
+				jcmdManager.On("removeTmpDir").Return(nil)
+				jcmdManager.On("linkTmpDirToTargetTmpDir").Return(nil)
+				jcmdManager.On("copyJfrSettingsToTmpDir").Return(nil)
+
 				return fields{
 						JcmdProfiler: &JcmdProfiler{
-							JcmdManager: NewMockJcmdManager(),
+							JcmdManager: jcmdManager,
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -218,20 +120,21 @@ func TestJcmdProfiler_SetUp(t *testing.T) {
 				return fields.JcmdProfiler.SetUp(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
-				mock := fields.JcmdProfiler.JcmdManager.(MockJcmdManager)
 				assert.NotNil(t, err)
-				assert.Empty(t, fields.JcmdProfiler.targetPID)
-				assert.Equal(t, 0, mock.RemoveTmpDirInvokedTimes())
-				assert.Equal(t, 0, mock.LinkTmpDirToTargetTmpDirInvokedTimes())
-				assert.Equal(t, 0, mock.CopyJfrSettingsToTmpDirInvokedTimes())
+				assert.Equal(t, 0, fields.JcmdProfiler.JcmdManager.(FakeJcmdManager).On("removeTmpDir").InvokedTimes())
+				assert.Equal(t, 0, fields.JcmdProfiler.JcmdManager.(FakeJcmdManager).On("linkTmpDirToTargetTmpDir").InvokedTimes())
+				assert.Equal(t, 0, fields.JcmdProfiler.JcmdManager.(FakeJcmdManager).On("copyJfrSettingsToTmpDir").InvokedTimes())
 			},
 		},
 		{
 			name: "should fail when removing tmp dir fail",
 			given: func() (fields, args) {
+				jcmdManager := newFakeJcmdManager()
+				jcmdManager.On("removeTmpDir").Return(errors.New("fake error"))
+
 				return fields{
 						JcmdProfiler: &JcmdProfiler{
-							JcmdManager: NewMockJcmdManager().WithRemoveTmpDirResultError(),
+							JcmdManager: jcmdManager,
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -245,20 +148,23 @@ func TestJcmdProfiler_SetUp(t *testing.T) {
 				return fields.JcmdProfiler.SetUp(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
-				mock := fields.JcmdProfiler.JcmdManager.(MockJcmdManager)
 				assert.NotNil(t, err)
-				assert.Empty(t, fields.JcmdProfiler.targetPID)
-				assert.Equal(t, 1, mock.RemoveTmpDirInvokedTimes())
-				assert.Equal(t, 0, mock.LinkTmpDirToTargetTmpDirInvokedTimes())
-				assert.Equal(t, 0, mock.CopyJfrSettingsToTmpDirInvokedTimes())
+				assert.EqualError(t, err, "fake error")
+				assert.Equal(t, 1, fields.JcmdProfiler.JcmdManager.(FakeJcmdManager).On("removeTmpDir").InvokedTimes())
+				assert.Equal(t, 0, fields.JcmdProfiler.JcmdManager.(FakeJcmdManager).On("linkTmpDirToTargetTmpDir").InvokedTimes())
+				assert.Equal(t, 0, fields.JcmdProfiler.JcmdManager.(FakeJcmdManager).On("copyJfrSettingsToTmpDir").InvokedTimes())
 			},
 		},
 		{
 			name: "should fail when link tmp dir to target tmp dir fail",
 			given: func() (fields, args) {
+				jcmdManager := newFakeJcmdManager()
+				jcmdManager.On("removeTmpDir").Return(nil)
+				jcmdManager.On("linkTmpDirToTargetTmpDir").Return(errors.New("fake error"))
+
 				return fields{
 						JcmdProfiler: &JcmdProfiler{
-							JcmdManager: NewMockJcmdManager().WithLinkTmpDirToTargetTmpDirResultError(),
+							JcmdManager: jcmdManager,
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -272,20 +178,23 @@ func TestJcmdProfiler_SetUp(t *testing.T) {
 				return fields.JcmdProfiler.SetUp(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
-				mock := fields.JcmdProfiler.JcmdManager.(MockJcmdManager)
 				assert.NotNil(t, err)
-				assert.Empty(t, fields.JcmdProfiler.targetPID)
-				assert.Equal(t, 1, mock.RemoveTmpDirInvokedTimes())
-				assert.Equal(t, 1, mock.LinkTmpDirToTargetTmpDirInvokedTimes())
-				assert.Equal(t, 0, mock.CopyJfrSettingsToTmpDirInvokedTimes())
+				assert.EqualError(t, err, "fake error")
+				assert.Equal(t, 1, fields.JcmdProfiler.JcmdManager.(FakeJcmdManager).On("removeTmpDir").InvokedTimes())
+				assert.Equal(t, 1, fields.JcmdProfiler.JcmdManager.(FakeJcmdManager).On("linkTmpDirToTargetTmpDir").InvokedTimes())
+				assert.Equal(t, 0, fields.JcmdProfiler.JcmdManager.(FakeJcmdManager).On("copyJfrSettingsToTmpDir").InvokedTimes())
 			},
 		},
 		{
 			name: "should fail when container PID not found",
 			given: func() (fields, args) {
+				jcmdManager := newFakeJcmdManager()
+				jcmdManager.On("removeTmpDir").Return(nil)
+				jcmdManager.On("linkTmpDirToTargetTmpDir").Return(nil)
+
 				return fields{
 						JcmdProfiler: &JcmdProfiler{
-							JcmdManager: NewMockJcmdManager(),
+							JcmdManager: jcmdManager,
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -299,12 +208,41 @@ func TestJcmdProfiler_SetUp(t *testing.T) {
 				return fields.JcmdProfiler.SetUp(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
-				mock := fields.JcmdProfiler.JcmdManager.(MockJcmdManager)
 				assert.NotNil(t, err)
-				assert.Empty(t, fields.JcmdProfiler.targetPID)
-				assert.Equal(t, 1, mock.RemoveTmpDirInvokedTimes())
-				assert.Equal(t, 1, mock.LinkTmpDirToTargetTmpDirInvokedTimes())
-				assert.Equal(t, 0, mock.CopyJfrSettingsToTmpDirInvokedTimes())
+				assert.Equal(t, 1, fields.JcmdProfiler.JcmdManager.(FakeJcmdManager).On("removeTmpDir").InvokedTimes())
+				assert.Equal(t, 1, fields.JcmdProfiler.JcmdManager.(FakeJcmdManager).On("linkTmpDirToTargetTmpDir").InvokedTimes())
+				assert.Equal(t, 0, fields.JcmdProfiler.JcmdManager.(FakeJcmdManager).On("copyJfrSettingsToTmpDir").InvokedTimes())
+			},
+		},
+		{
+			name: "should fail when copy jfr settings to tmp dir fail",
+			given: func() (fields, args) {
+				jcmdManager := newFakeJcmdManager()
+				jcmdManager.On("removeTmpDir").Return(nil)
+				jcmdManager.On("linkTmpDirToTargetTmpDir").Return(nil)
+				jcmdManager.On("copyJfrSettingsToTmpDir").Return(errors.New("fake error"))
+
+				return fields{
+						JcmdProfiler: &JcmdProfiler{
+							JcmdManager: jcmdManager,
+						},
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+						},
+					}
+			},
+			when: func(fields fields, args args) error {
+				return fields.JcmdProfiler.SetUp(args.job)
+			},
+			then: func(t *testing.T, err error, fields fields) {
+				assert.NotNil(t, err)
+				assert.EqualError(t, err, "fake error")
+				assert.Equal(t, 1, fields.JcmdProfiler.JcmdManager.(FakeJcmdManager).On("removeTmpDir").InvokedTimes())
+				assert.Equal(t, 1, fields.JcmdProfiler.JcmdManager.(FakeJcmdManager).On("linkTmpDirToTargetTmpDir").InvokedTimes())
+				assert.Equal(t, 1, fields.JcmdProfiler.JcmdManager.(FakeJcmdManager).On("copyJfrSettingsToTmpDir").InvokedTimes())
 			},
 		},
 	}
@@ -339,12 +277,14 @@ func TestJcmdProfiler_Invoke(t *testing.T) {
 		{
 			name: "should publish result",
 			given: func() (fields, args) {
-				jcmdCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-					return exec.Command("ls", "/tmp")
-				}
+				jcmdManager := newFakeJcmdManager()
+				jcmdManager.On("invoke").
+					Return(nil, time.Duration(0)).
+					Return(nil, time.Duration(0))
+
 				return fields{
 						JcmdProfiler: JcmdProfiler{
-							JcmdManager: NewMockJcmdManager(),
+							JcmdManager: jcmdManager,
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -355,155 +295,43 @@ func TestJcmdProfiler_Invoke(t *testing.T) {
 					}
 			},
 			when: func(fields fields, args args) (error, time.Duration) {
+				fields.JcmdProfiler.delay = 0
+				fields.JcmdProfiler.targetPIDs = []string{"1000", "2000"}
 				return fields.JcmdProfiler.Invoke(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
-				mock := fields.JcmdProfiler.JcmdManager.(MockJcmdManager)
 				assert.Nil(t, err)
-				assert.Equal(t, 1, mock.HandleProfilingResultInvokedTimes())
-				assert.Equal(t, 1, mock.PublishResultInvokedTimes())
+				assert.Equal(t, 2, fields.JcmdProfiler.JcmdManager.(FakeJcmdManager).On("invoke").InvokedTimes())
 			},
 		},
 		{
-			name: "should publish result when ThreadDump output type",
+			name: "should invoke fail when invoke fail",
 			given: func() (fields, args) {
-				jcmdCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-					return exec.Command("ls", "/tmp")
-				}
+				jcmdManager := newFakeJcmdManager()
+				jcmdManager.On("invoke").Return(errors.New("fake invoke error"), time.Duration(0))
+
 				return fields{
 						JcmdProfiler: JcmdProfiler{
-							JcmdManager: NewMockJcmdManager(),
-						},
-					}, args{
-						job: &job.ProfilingJob{
-							Duration:         time.Duration(1) * time.Second,
-							Interval:         time.Duration(1) * time.Second,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
-							OutputType:       api.ThreadDump,
-						},
-					}
-			},
-			when: func(fields fields, args args) (error, time.Duration) {
-				return fields.JcmdProfiler.Invoke(args.job)
-			},
-			then: func(t *testing.T, err error, fields fields) {
-				mock := fields.JcmdProfiler.JcmdManager.(MockJcmdManager)
-				assert.Nil(t, err)
-				assert.Equal(t, 1, mock.HandleProfilingResultInvokedTimes())
-				assert.Equal(t, 1, mock.PublishResultInvokedTimes())
-			},
-		},
-		{
-			name: "should fail when fail exec command",
-			given: func() (fields, args) {
-				jcmdCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-					return &exec.Cmd{}
-				}
-				return fields{
-						JcmdProfiler: JcmdProfiler{
-							JcmdManager: NewMockJcmdManager(),
+							JcmdManager: jcmdManager,
 						},
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,
 							ContainerRuntime: api.FakeContainer,
 							ContainerID:      "ContainerID",
+							OutputType:       api.FlameGraph,
 						},
 					}
 			},
 			when: func(fields fields, args args) (error, time.Duration) {
+				fields.JcmdProfiler.delay = 0
+				fields.JcmdProfiler.targetPIDs = []string{"1000", "2000"}
 				return fields.JcmdProfiler.Invoke(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
-				mock := fields.JcmdProfiler.JcmdManager.(MockJcmdManager)
-				assert.NotNil(t, err)
-				assert.Equal(t, 0, mock.PublishResultInvokedTimes())
-			},
-		},
-		{
-			name: "should fail when handle profiling result fail",
-			given: func() (fields, args) {
-				jcmdCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-					return exec.Command("ls", "/tmp")
-				}
-				return fields{
-						JcmdProfiler: JcmdProfiler{
-							JcmdManager: NewMockJcmdManager().WithHandleProfilingResultError(),
-						},
-					}, args{
-						job: &job.ProfilingJob{
-							Duration:         0,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
-						},
-					}
-			},
-			when: func(fields fields, args args) (error, time.Duration) {
-				return fields.JcmdProfiler.Invoke(args.job)
-			},
-			then: func(t *testing.T, err error, fields fields) {
-				mock := fields.JcmdProfiler.JcmdManager.(MockJcmdManager)
-				assert.NotNil(t, err)
-				assert.Equal(t, 0, mock.PublishResultInvokedTimes())
-			},
-		},
-		{
-			name: "should fail when profile fail for ThreadDump output type",
-			given: func() (fields, args) {
-				jcmdCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-					return exec.Command("ls", "/tmp")
-				}
-				return fields{
-						JcmdProfiler: JcmdProfiler{
-							JcmdManager: NewMockJcmdManager().WithHandleProfilingResultError(),
-						},
-					}, args{
-						job: &job.ProfilingJob{
-							Duration:         time.Duration(2) * time.Second,
-							Interval:         time.Duration(1) * time.Second,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
-							OutputType:       api.ThreadDump,
-						},
-					}
-			},
-			when: func(fields fields, args args) (error, time.Duration) {
-				return fields.JcmdProfiler.Invoke(args.job)
-			},
-			then: func(t *testing.T, err error, fields fields) {
-				mock := fields.JcmdProfiler.JcmdManager.(MockJcmdManager)
-				assert.NotNil(t, err)
-				assert.Equal(t, 0, mock.PublishResultInvokedTimes())
-			},
-		},
-		{
-			name: "should fail when profile fail for ThreadDump output type",
-			given: func() (fields, args) {
-				jcmdCommand = func(job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-					return exec.Command("ls", "/tmp")
-				}
-				return fields{
-						JcmdProfiler: JcmdProfiler{
-							JcmdManager: NewMockJcmdManager().WithHandleProfilingResultError(),
-						},
-					}, args{
-						job: &job.ProfilingJob{
-							Duration:         time.Duration(2) * time.Second,
-							Interval:         time.Duration(1) * time.Second,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
-							OutputType:       api.ThreadDump,
-						},
-					}
-			},
-			when: func(fields fields, args args) (error, time.Duration) {
-				return fields.JcmdProfiler.Invoke(args.job)
-			},
-			then: func(t *testing.T, err error, fields fields) {
-				mock := fields.JcmdProfiler.JcmdManager.(MockJcmdManager)
-				assert.NotNil(t, err)
-				assert.Equal(t, 0, mock.PublishResultInvokedTimes())
+				require.Error(t, err)
+				assert.EqualError(t, err, "fake invoke error")
+				assert.Equal(t, 1, fields.JcmdProfiler.JcmdManager.(FakeJcmdManager).On("invoke").InvokedTimes())
 			},
 		},
 	}
@@ -523,8 +351,7 @@ func TestJcmdProfiler_Invoke(t *testing.T) {
 
 func TestJcmdProfiler_CleanUp(t *testing.T) {
 	type fields struct {
-		JcmdProfiler      JcmdProfiler
-		stopJcmdRecording chan bool
+		JcmdProfiler JcmdProfiler
 	}
 	type args struct {
 		job *job.ProfilingJob
@@ -538,15 +365,19 @@ func TestJcmdProfiler_CleanUp(t *testing.T) {
 		{
 			name: "should clean up",
 			given: func() (fields, args) {
-				jcmdStopCommand = func(job *job.ProfilingJob, pid string) *exec.Cmd {
-					return exec.Command("ls", "/tmp")
-				}
-				f := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph.html")
+				recordingPIDs = make(chan string, 2)
+				f := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"jfr.jfr")
 				_, _ = os.Create(f)
 				_, _ = os.Create(f + compressor.GetExtensionFileByCompressor[compressor.Gzip])
+
+				jcmdManager := newFakeJcmdManager()
+				jcmdManager.On("cleanUp").Return(nil)
+
 				return fields{
 						JcmdProfiler: JcmdProfiler{
-							JcmdManager: NewMockJcmdManager(),
+							targetPIDs:  []string{"1000", "2000"},
+							delay:       0,
+							JcmdManager: jcmdManager,
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -554,7 +385,7 @@ func TestJcmdProfiler_CleanUp(t *testing.T) {
 							ContainerRuntime:    api.FakeContainer,
 							ContainerID:         "ContainerID",
 							Compressor:          compressor.Gzip,
-							FileName:            "flamegraph.html",
+							OutputType:          api.Jfr,
 							AdditionalArguments: map[string]string{"settings": "contprof"},
 						},
 					}
@@ -563,33 +394,40 @@ func TestJcmdProfiler_CleanUp(t *testing.T) {
 				return fields.JcmdProfiler.CleanUp(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
-				f := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph.html")
-				g := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph.html"+
+				f := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"jfr.jfr")
+				g := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"jfr.jfr"+
 					compressor.GetExtensionFileByCompressor[compressor.Gzip])
 				assert.False(t, file.Exists(f))
 				assert.False(t, file.Exists(g))
 				assert.Nil(t, err)
+				assert.Equal(t, 2, fields.JcmdProfiler.JcmdManager.(FakeJcmdManager).On("cleanUp").InvokedTimes())
 			},
 		},
 		{
-			name: "should clean up when stopJcmdRecording",
+			name: "should clean up when not jfr output type",
 			given: func() (fields, args) {
-				stopJcmdRecording = make(chan bool, 1)
-				f := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph.html")
+				recordingPIDs = make(chan string, 2)
+				f := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"heapdump.hprof")
 				_, _ = os.Create(f)
 				_, _ = os.Create(f + compressor.GetExtensionFileByCompressor[compressor.Gzip])
+
+				jcmdManager := newFakeJcmdManager()
+				jcmdManager.On("cleanUp").Return(nil)
+
 				return fields{
 						JcmdProfiler: JcmdProfiler{
-							JcmdManager: NewMockJcmdManager(),
+							targetPIDs:  []string{"1000", "2000"},
+							delay:       0,
+							JcmdManager: jcmdManager,
 						},
-						stopJcmdRecording: stopJcmdRecording,
 					}, args{
 						job: &job.ProfilingJob{
-							Duration:         0,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
-							Compressor:       compressor.Gzip,
-							FileName:         "flamegraph.html",
+							Duration:            0,
+							ContainerRuntime:    api.FakeContainer,
+							ContainerID:         "ContainerID",
+							Compressor:          compressor.Gzip,
+							OutputType:          api.HeapDump,
+							AdditionalArguments: map[string]string{"settings": "contprof"},
 						},
 					}
 			},
@@ -597,45 +435,13 @@ func TestJcmdProfiler_CleanUp(t *testing.T) {
 				return fields.JcmdProfiler.CleanUp(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
-				f := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"-flamegraph.html")
-				g := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"-flamegraph.html"+
+				f := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"heapdump.hprof")
+				g := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"heapdump.hprof"+
 					compressor.GetExtensionFileByCompressor[compressor.Gzip])
 				assert.False(t, file.Exists(f))
 				assert.False(t, file.Exists(g))
 				assert.Nil(t, err)
-				assert.True(t, <-fields.stopJcmdRecording)
-			},
-		},
-		{
-			name: "should clean no jcmd command stop",
-			given: func() (fields, args) {
-				f := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph.html")
-				_, _ = os.Create(f)
-				_, _ = os.Create(f + compressor.GetExtensionFileByCompressor[compressor.Gzip])
-				return fields{
-						JcmdProfiler: JcmdProfiler{
-							JcmdManager: NewMockJcmdManager(),
-						},
-					}, args{
-						job: &job.ProfilingJob{
-							Duration:         0,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
-							Compressor:       compressor.Gzip,
-							FileName:         "flamegraph.html",
-						},
-					}
-			},
-			when: func(fields fields, args args) error {
-				return fields.JcmdProfiler.CleanUp(args.job)
-			},
-			then: func(t *testing.T, err error, fields fields) {
-				f := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"-flamegraph.html")
-				g := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"-flamegraph.html"+
-					compressor.GetExtensionFileByCompressor[compressor.Gzip])
-				assert.False(t, file.Exists(f))
-				assert.False(t, file.Exists(g))
-				assert.Nil(t, err)
+				assert.Equal(t, 0, fields.JcmdProfiler.JcmdManager.(FakeJcmdManager).On("cleanUp").InvokedTimes())
 			},
 		},
 	}
@@ -653,7 +459,7 @@ func TestJcmdProfiler_CleanUp(t *testing.T) {
 	}
 }
 
-func Test_jcmdUtil_publishResult(t *testing.T) {
+func Test_jcmdManager_publishResult(t *testing.T) {
 	type fields struct {
 		JcmdProfiler JcmdProfiler
 	}
@@ -675,7 +481,7 @@ func Test_jcmdUtil_publishResult(t *testing.T) {
 				cmd := exec.Command("cp", filepath.Join(testdata.ResultTestDataDir(), "heapdump.hprof"), common.TmpDir())
 				_ = cmd.Run()
 				return fields{
-						JcmdProfiler: *NewJcmdProfiler(),
+						JcmdProfiler: *NewJcmdProfiler(executil.NewCommander(), publish.NewPublisher()),
 					}, args{
 						c:          compressor.None,
 						fileName:   filepath.Join(common.TmpDir(), "heapdump.hprof"),
@@ -698,7 +504,7 @@ func Test_jcmdUtil_publishResult(t *testing.T) {
 			name: "should publish other output type",
 			given: func() (fields, args) {
 				return fields{
-						JcmdProfiler: *NewJcmdProfiler(),
+						JcmdProfiler: *NewJcmdProfiler(executil.NewCommander(), publish.NewPublisher()),
 					}, args{
 						c:          compressor.None,
 						fileName:   testdata.ResultTestDataDir() + "/flamegraph.svg",
@@ -729,4 +535,37 @@ func Test_jcmdUtil_publishResult(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_jcmdManager_cleanUp(t *testing.T) {
+	recordingPIDs = make(chan string, 2)
+
+	commander := executil.NewFakeCommander()
+	commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
+	publisher := publish.NewFakePublisher()
+	a := NewJcmdProfiler(commander, publisher)
+	a.cleanUp(&job.ProfilingJob{
+		Duration:         0,
+		ContainerRuntime: api.FakeContainer,
+		ContainerID:      "ContainerID",
+		OutputType:       api.Jfr,
+		Language:         api.FakeLang,
+		Tool:             api.Jcmd,
+		Compressor:       compressor.None,
+	}, "1000")
+	assert.True(t, commander.(*executil.Fake).On("Command").InvokedTimes() == 1)
+
+	commander = executil.NewFakeCommander()
+	commander.On("Command").Return(&exec.Cmd{})
+	a = NewJcmdProfiler(commander, publisher)
+	a.cleanUp(&job.ProfilingJob{
+		Duration:         0,
+		ContainerRuntime: api.FakeContainer,
+		ContainerID:      "ContainerID",
+		OutputType:       api.Jfr,
+		Language:         api.FakeLang,
+		Tool:             api.Jcmd,
+		Compressor:       compressor.None,
+	}, "1000")
+	assert.True(t, commander.(*executil.Fake).On("Command").InvokedTimes() == 1)
 }

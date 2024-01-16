@@ -44,7 +44,7 @@ func (h *EventHandler) Handle(events chan string, done chan bool, resultFile cha
 
 func (*EventHandler) reportProgress(data *api.ProgressData, done chan bool) {
 	if data.Stage == api.Started {
-		fmt.Printf("Profiling ...")
+		fmt.Printf("Profiling ... ✔\n")
 	} else if data.Stage == api.Ended {
 		done <- true
 	}

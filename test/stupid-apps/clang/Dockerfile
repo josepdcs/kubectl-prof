@@ -1,4 +1,4 @@
-FROM bitnami/minideb
+FROM bitnami/minideb:bullseye-amd64
 
 WORKDIR /app
 
