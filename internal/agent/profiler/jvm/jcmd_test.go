@@ -575,7 +575,7 @@ func TestJcmdProfiler_CleanUp(t *testing.T) {
 		{
 			name: "should clean up when stopJcmdRecording",
 			given: func() (fields, args) {
-				stopJcmdRecording = make(chan bool, 1)
+				recordingPIDs = make(chan bool, 1)
 				f := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph.html")
 				_, _ = os.Create(f)
 				_, _ = os.Create(f + compressor.GetExtensionFileByCompressor[compressor.Gzip])
@@ -583,7 +583,7 @@ func TestJcmdProfiler_CleanUp(t *testing.T) {
 						JcmdProfiler: JcmdProfiler{
 							JcmdManager: NewMockJcmdManager(),
 						},
-						stopJcmdRecording: stopJcmdRecording,
+						stopJcmdRecording: recordingPIDs,
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,

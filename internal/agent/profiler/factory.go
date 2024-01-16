@@ -23,7 +23,7 @@ type Profiler interface {
 func Get(tool api.ProfilingTool) Profiler {
 	switch tool {
 	case api.Jcmd:
-		return jvm.NewJcmdProfiler()
+		return jvm.NewJcmdProfiler(executil.NewCommander(), publish.NewPublisher())
 	case api.AsyncProfiler:
 		return jvm.NewAsyncProfiler(executil.NewCommander(), publish.NewPublisher())
 	case api.Bpf:

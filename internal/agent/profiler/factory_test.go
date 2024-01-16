@@ -21,7 +21,7 @@ func TestGet(t *testing.T) {
 		{
 			name: "should return jcmd profiler",
 			tool: api.Jcmd,
-			want: jvm.NewJcmdProfiler(),
+			want: jvm.NewJcmdProfiler(executil.NewCommander(), publish.NewPublisher()),
 		},
 		{
 			name: "should return async profiler profiler",

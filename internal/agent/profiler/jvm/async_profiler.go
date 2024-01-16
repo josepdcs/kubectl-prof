@@ -110,6 +110,19 @@ func (j *AsyncProfiler) SetUp(job *job.ProfilingJob) error {
 	return j.copyProfilerToTmpDir()
 }
 
+func (j *asyncProfilerManager) removeTmpDir() error {
+	return os.RemoveAll(common.TmpDir())
+}
+
+func (j *asyncProfilerManager) linkTmpDirToTargetTmpDir(targetTmpDir string) error {
+	return os.Symlink(targetTmpDir, common.TmpDir())
+}
+
+func (j *asyncProfilerManager) copyProfilerToTmpDir() error {
+	cmd := j.commander.Command("cp", "-r", "/app/async-profiler", common.TmpDir())
+	return cmd.Run()
+}
+
 func (j *AsyncProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	start := time.Now()
 
@@ -136,33 +149,6 @@ func (j *AsyncProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	return err, time.Since(start)
 }
 
-func (j *AsyncProfiler) CleanUp(job *job.ProfilingJob) error {
-	for _, pid := range j.targetPIDs {
-		j.cleanUp(job, pid)
-	}
-
-	err := os.RemoveAll(asyncProfilerDir)
-	if err != nil {
-		log.WarningLogLn(fmt.Sprintf("async-profiler folder could not be removed: %s", err))
-	}
-	file.RemoveAll(common.TmpDir(), config.ProfilingPrefix+string(job.OutputType))
-
-	return nil
-}
-
-func (j *asyncProfilerManager) removeTmpDir() error {
-	return os.RemoveAll(common.TmpDir())
-}
-
-func (j *asyncProfilerManager) linkTmpDirToTargetTmpDir(targetTmpDir string) error {
-	return os.Symlink(targetTmpDir, common.TmpDir())
-}
-
-func (j *asyncProfilerManager) copyProfilerToTmpDir() error {
-	cmd := j.commander.Command("cp", "-r", "/app/async-profiler", common.TmpDir())
-	return cmd.Run()
-}
-
 func (j *asyncProfilerManager) invoke(job *job.ProfilingJob, pid string) (error, time.Duration) {
 	start := time.Now()
 	var out bytes.Buffer
@@ -180,6 +166,20 @@ func (j *asyncProfilerManager) invoke(job *job.ProfilingJob, pid string) (error,
 	log.DebugLogLn(out.String())
 
 	return j.publisher.Do(job.Compressor, resultFileName, job.OutputType), time.Since(start)
+}
+
+func (j *AsyncProfiler) CleanUp(job *job.ProfilingJob) error {
+	for _, pid := range j.targetPIDs {
+		j.cleanUp(job, pid)
+	}
+
+	err := os.RemoveAll(asyncProfilerDir)
+	if err != nil {
+		log.WarningLogLn(fmt.Sprintf("async-profiler folder could not be removed: %s", err))
+	}
+	file.RemoveAll(common.TmpDir(), config.ProfilingPrefix+string(job.OutputType))
+
+	return nil
 }
 
 func (j *asyncProfilerManager) cleanUp(job *job.ProfilingJob, pid string) {

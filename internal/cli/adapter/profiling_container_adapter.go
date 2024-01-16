@@ -200,7 +200,7 @@ func retrieveChunkOrRetry(chunk api.ChunkData, pod *v1.Pod, containerName string
 
 		// check the checksum of the downloaded chunk
 		checksum := getMD5Hash(fileBuff)
-		fmt.Printf("\nChunk file %s downloaded (local: %s | remote: %s)", chunk.File, checksum, chunk.Checksum)
+		//fmt.Printf("\nChunk file %s downloaded (local: %s | remote: %s)", chunk.File, checksum, chunk.Checksum)
 
 		// if the checksum matches, write the chunk file to the local filesystem
 		// and return the file name
@@ -224,7 +224,7 @@ func retrieveChunkOrRetry(chunk api.ChunkData, pod *v1.Pod, containerName string
 func retrieveChunk(chunk api.ChunkData, pod *v1.Pod, containerName string, exec podexec.Executor) ([]byte, error) {
 	fileBuff := make([]byte, 0, chunk.FileSizeInBytes)
 	n := 0
-	fmt.Printf("\nDownloading chunk file %s ...", chunk.File)
+	// fmt.Printf("\nDownloading chunk file %s ...", chunk.File)
 	for (chunk.FileSizeInBytes - int64(n)) > 0 {
 		_, out, errOut, err := exec.Execute(pod.Namespace, pod.Name, containerName, []string{"sh", "-c", fmt.Sprintf("tail -c+%d %s", n, chunk.File)})
 		if err != nil {
