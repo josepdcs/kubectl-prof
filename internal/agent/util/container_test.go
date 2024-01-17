@@ -3,6 +3,7 @@ package util
 import (
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
+	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/runtime/containerd"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/runtime/crio"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/runtime/fake"
@@ -27,6 +28,7 @@ func TestContainerFileSystem(t *testing.T) {
 	tests := []struct {
 		name            string
 		runtime         api.ContainerRuntime
+		runtimePath     string
 		containerID     string
 		mockFunc        func()
 		wanted          string
@@ -34,6 +36,7 @@ func TestContainerFileSystem(t *testing.T) {
 	}{
 		{
 			name:            "empty container runtime",
+			runtimePath:     common.TmpDir(),
 			containerID:     "ID",
 			mockFunc:        func() {},
 			containedErrMsg: "container runtime and container ID are mandatory",
@@ -41,12 +44,14 @@ func TestContainerFileSystem(t *testing.T) {
 		{
 			name:            "empty container ID",
 			runtime:         api.ContainerRuntime("fake"),
+			runtimePath:     common.TmpDir(),
 			mockFunc:        func() {},
 			containedErrMsg: "container runtime and container ID are mandatory",
 		},
 		{
 			name:            "unknown container runtime",
 			runtime:         api.ContainerRuntime("other"),
+			runtimePath:     common.TmpDir(),
 			containerID:     "1234",
 			mockFunc:        func() {},
 			containedErrMsg: "unsupported container runtime: other",
@@ -54,6 +59,7 @@ func TestContainerFileSystem(t *testing.T) {
 		{
 			name:        "crio container runtime",
 			runtime:     api.Crio,
+			runtimePath: common.TmpDir(),
 			containerID: "1234",
 			mockFunc: func() {
 				runtime = func(runtime api.ContainerRuntime) (Container, error) {
@@ -65,6 +71,7 @@ func TestContainerFileSystem(t *testing.T) {
 		{
 			name:        "containerd container runtime",
 			runtime:     api.Containerd,
+			runtimePath: common.TmpDir(),
 			containerID: "1234",
 			mockFunc: func() {
 				runtime = func(runtime api.ContainerRuntime) (Container, error) {
@@ -80,7 +87,7 @@ func TestContainerFileSystem(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockFunc()
-			location, err := ContainerFileSystem(tt.runtime, tt.containerID)
+			location, err := ContainerFileSystem(tt.runtime, tt.containerID, tt.runtimePath)
 
 			if err != nil {
 				assert.Contains(t, err.Error(), tt.containedErrMsg)
@@ -159,109 +166,6 @@ func (c *childPIDGetterMock) get(string) string {
 		return ""
 	}
 	return c.results[c.interation]
-}
-
-func TestContainerPID(t *testing.T) {
-	tests := []struct {
-		name            string
-		job             job.ProfilingJob
-		mockFunc        func()
-		expected        string
-		containedErrMsg string
-	}{
-		{
-			name: "empty container runtime",
-			job: job.ProfilingJob{
-				ContainerID: "1234",
-			},
-			mockFunc:        func() {},
-			containedErrMsg: "container runtime and container ID are mandatory",
-		},
-		{
-			name: "empty container ID",
-			job: job.ProfilingJob{
-				ContainerRuntime: api.ContainerRuntime("other"),
-				ContainerID:      "",
-			},
-			mockFunc:        func() {},
-			containedErrMsg: "container runtime and container ID are mandatory",
-		},
-		{
-			name: "unknown container runtime",
-			job: job.ProfilingJob{
-				ContainerRuntime: api.ContainerRuntime("other"),
-				ContainerID:      "1234",
-			},
-			mockFunc:        func() {},
-			containedErrMsg: "unsupported container runtime: other",
-		},
-		{
-			name: "crio container runtime",
-			job: job.ProfilingJob{
-				ContainerRuntime: api.Crio,
-				ContainerID:      "12334_CRIO",
-			},
-			mockFunc: func() {
-				runtime = func(runtime api.ContainerRuntime) (Container, error) {
-					return fake.NewRuntimeFake(), nil
-				}
-				childPIDGetterInstance = &childPIDGetterMock{
-					interation: 0,
-					results:    []string{"PID_12334_CRIO"},
-				}
-			},
-			expected: "PID_12334_CRIO",
-		},
-		{
-			name: "containerd container runtime",
-			job: job.ProfilingJob{
-				ContainerRuntime: api.Containerd,
-				ContainerID:      "12334_CONTAINERD",
-			},
-			mockFunc: func() {
-				runtime = func(runtime api.ContainerRuntime) (Container, error) {
-					return fake.NewRuntimeFake(), nil
-				}
-				childPIDGetterInstance = &childPIDGetterMock{
-					interation: 0,
-					results:    []string{"PID_12334_CONTAINERD"},
-				}
-			},
-			expected: "PID_12334_CONTAINERD",
-		},
-		{
-			name: "more than one child process",
-			job: job.ProfilingJob{
-				ContainerRuntime: api.Containerd,
-				ContainerID:      "12334_CONTAINERD",
-			},
-			mockFunc: func() {
-				runtime = func(runtime api.ContainerRuntime) (Container, error) {
-					return fake.NewRuntimeFake(), nil
-				}
-				childPIDGetterInstance = &childPIDGetterMock{
-					interation: 0,
-					results:    []string{"PID_12334_CONTAINERD\nPID_12335_CONTAINERD"},
-				}
-			},
-			expected: "PID_12334_CONTAINERD",
-		},
-	}
-
-	// preserve the original function
-	original := runtime
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.mockFunc()
-			pid, err := ContainerPID(&tt.job)
-
-			if err != nil {
-				assert.Contains(t, err.Error(), tt.containedErrMsg)
-			}
-			assert.Equal(t, tt.expected, pid)
-		})
-	}
-	runtime = original
 }
 
 func TestGetCandidatePIDs(t *testing.T) {

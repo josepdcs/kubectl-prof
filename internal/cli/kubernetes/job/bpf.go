@@ -2,7 +2,6 @@ package job
 
 import (
 	"fmt"
-	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
 	"github.com/josepdcs/kubectl-prof/internal/cli/version"
@@ -76,7 +75,7 @@ func (b *bpfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 							VolumeMounts: []apiv1.VolumeMount{
 								{
 									Name:      "target-filesystem",
-									MountPath: api.GetContainerRuntimeRootPath[cfg.Target.ContainerRuntime],
+									MountPath: cfg.Target.ContainerRuntimePath,
 								},
 								{
 									Name:      "modules",

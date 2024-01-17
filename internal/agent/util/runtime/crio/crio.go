@@ -5,7 +5,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
-	"io/ioutil"
+	"os"
 	"strconv"
 )
 
@@ -16,20 +16,20 @@ func NewCrio() *Crio {
 	return &Crio{}
 }
 
-var crioConfigFile = func(containerID string) string {
-	return fmt.Sprintf("/var/lib/containers/storage/overlay-containers/%s/userdata/config.json", containerID)
+var crioConfigFile = func(containerID string, containerRuntimePath string) string {
+	return fmt.Sprintf("%s/overlay-containers/%s/userdata/config.json", containerRuntimePath, containerID)
 }
 
-var crioStateFile = func(containerID string) string {
-	return fmt.Sprintf("/var/lib/containers/storage/overlay-containers/%s/userdata/state.json", containerID)
+var crioStateFile = func(containerID string, containerRuntimePath string) string {
+	return fmt.Sprintf("%s/overlay-containers/%s/userdata/state.json", containerRuntimePath, containerID)
 }
 
-func (c *Crio) RootFileSystemLocation(containerID string) (string, error) {
+func (c *Crio) RootFileSystemLocation(containerID string, containerRuntimePath string) (string, error) {
 	if containerID == "" {
 		return "", errors.New("container ID is mandatory")
 	}
 
-	spec, err := runtimeSpec(crioConfigFile(containerID))
+	spec, err := runtimeSpec(crioConfigFile(containerID, containerRuntimePath))
 	if err != nil {
 		return "", err
 	}
@@ -38,7 +38,7 @@ func (c *Crio) RootFileSystemLocation(containerID string) (string, error) {
 }
 
 func runtimeSpec(configFile string) (rspec.Spec, error) {
-	file, err := ioutil.ReadFile(configFile)
+	file, err := os.ReadFile(configFile)
 	if err != nil {
 		return rspec.Spec{}, errors.Wrapf(err, "read file failed: %s", configFile)
 	}
@@ -52,12 +52,12 @@ func runtimeSpec(configFile string) (rspec.Spec, error) {
 	return result, nil
 }
 
-func (c *Crio) PID(containerID string) (string, error) {
+func (c *Crio) PID(containerID string, containerRuntimePath string) (string, error) {
 	if containerID == "" {
 		return "", errors.New("container ID is mandatory")
 	}
 
-	state, err := runtimeState(crioStateFile(containerID))
+	state, err := runtimeState(crioStateFile(containerID, containerRuntimePath))
 	if err != nil {
 		return "", err
 	}
@@ -66,7 +66,7 @@ func (c *Crio) PID(containerID string) (string, error) {
 }
 
 func runtimeState(stateFile string) (rspec.State, error) {
-	file, err := ioutil.ReadFile(stateFile)
+	file, err := os.ReadFile(stateFile)
 	if err != nil {
 		return rspec.State{}, errors.Wrapf(err, "read file failed: %s", stateFile)
 	}

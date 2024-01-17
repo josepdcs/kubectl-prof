@@ -29,8 +29,8 @@ fixes.
 
 * Supported languages: Go, Java (any JVM based language), Python, Ruby, NodeJS, Clang and Clang++.
 * Kubernetes that use some of the following container runtimes:
-    * Containerd (default)
-    * CRI-O
+    * **Containerd** by using flag `--runtime=containerd` (default)
+    * **CRI-O** by using flag `--runtime=crio`
 
 ## Usage
 

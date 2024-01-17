@@ -529,13 +529,14 @@ func Test_asyncProfilerManager_invoke(t *testing.T) {
 						AsyncProfiler: NewAsyncProfiler(commander, publisher),
 					}, args{
 						job: &job.ProfilingJob{
-							Duration:         0,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
-							OutputType:       api.FlameGraph,
-							Language:         api.FakeLang,
-							Tool:             api.AsyncProfiler,
-							Compressor:       compressor.None,
+							Duration:             0,
+							ContainerRuntime:     api.FakeContainer,
+							ContainerRuntimePath: common.TmpDir(),
+							ContainerID:          "ContainerID",
+							OutputType:           api.FlameGraph,
+							Language:             api.FakeLang,
+							Tool:                 api.AsyncProfiler,
+							Compressor:           compressor.None,
 						},
 						pid: "1000",
 					}

@@ -17,8 +17,8 @@ var (
 )
 
 var GetContainerRuntimeRootPath = map[ContainerRuntime]string{
-	Crio:       "/var/lib/containers/storage/",
-	Containerd: "/run/containerd/",
+	Crio:       "/var/lib/containers/storage",
+	Containerd: "/run/containerd",
 }
 
 func AvailableContainerRuntimes() []ContainerRuntime {

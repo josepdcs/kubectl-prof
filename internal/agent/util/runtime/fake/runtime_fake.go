@@ -24,14 +24,14 @@ func (r *RuntimeFake) WithPIDResultError() *RuntimeFake {
 	return r
 }
 
-func (r *RuntimeFake) RootFileSystemLocation(containerID string) (string, error) {
+func (r *RuntimeFake) RootFileSystemLocation(containerID string, containerRuntimePath string) (string, error) {
 	if r.RootFileSystemLocationResultError {
 		return "", errors.New("fake RootFileSystemLocation with error")
 	}
 	return fmt.Sprintf("/root/fs/%s", containerID), nil
 }
 
-func (r *RuntimeFake) PID(containerID string) (string, error) {
+func (r *RuntimeFake) PID(containerID string, containerRuntimePath string) (string, error) {
 	if r.PIDResultError {
 		return "", errors.New("fake PID with error")
 	}

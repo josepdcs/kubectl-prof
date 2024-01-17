@@ -7,18 +7,19 @@ import (
 
 func TestProfilingJob_String(t *testing.T) {
 	p := ProfilingJob{
-		Duration:         10,
-		Interval:         5,
-		UID:              "ID",
-		ContainerRuntime: "ContainerRuntime",
-		ContainerID:      "ContainerID",
-		PodUID:           "PodUID",
-		Language:         "Language",
-		Event:            "Event",
-		Compressor:       "Compressor",
-		Tool:             "Tool",
-		OutputType:       "OutputType",
-		FileName:         "FileName",
+		Duration:             10,
+		Interval:             5,
+		UID:                  "ID",
+		ContainerRuntime:     "ContainerRuntime",
+		ContainerRuntimePath: "ContainerRuntimePath",
+		ContainerID:          "ContainerID",
+		PodUID:               "PodUID",
+		Language:             "Language",
+		Event:                "Event",
+		Compressor:           "Compressor",
+		Tool:                 "Tool",
+		OutputType:           "OutputType",
+		FileName:             "FileName",
 		AdditionalArguments: map[string]string{
 			"maxsize":  "1024M",
 			"settings": "custom",
@@ -32,6 +33,7 @@ func TestProfilingJob_String(t *testing.T) {
 	assert.Contains(t, out, "5")
 	assert.Contains(t, out, "ID")
 	assert.Contains(t, out, "ContainerRuntime")
+	assert.Contains(t, out, "ContainerRuntimePath")
 	assert.Contains(t, out, "ContainerID")
 	assert.Contains(t, out, "PodUID")
 	assert.Contains(t, out, "Language")
@@ -49,6 +51,7 @@ func TestProfilingJob_ToMap(t *testing.T) {
 		Interval:                 5,
 		UID:                      "ID",
 		ContainerRuntime:         "ContainerRuntime",
+		ContainerRuntimePath:     "ContainerRuntimePath",
 		ContainerID:              "ContainerID",
 		PodUID:                   "PodUID",
 		Language:                 "Language",
@@ -69,11 +72,12 @@ func TestProfilingJob_ToMap(t *testing.T) {
 	out := p.ToMap()
 
 	assert.NotEmpty(t, out)
-	assert.Len(t, out, 16)
+	assert.Len(t, out, 17)
 	assert.Equal(t, float64(10), out["Duration"])
 	assert.Equal(t, float64(5), out["Interval"])
 	assert.Equal(t, "ID", out["UID"])
 	assert.Equal(t, "ContainerRuntime", out["ContainerRuntime"])
+	assert.Equal(t, "ContainerRuntimePath", out["ContainerRuntimePath"])
 	assert.Equal(t, "ContainerID", out["ContainerID"])
 	assert.Equal(t, "PodUID", out["PodUID"])
 	assert.Equal(t, "Language", out["Language"])

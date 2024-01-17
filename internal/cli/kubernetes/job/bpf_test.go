@@ -1,7 +1,6 @@
 package job
 
 import (
-	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
 	"github.com/stretchr/testify/assert"
@@ -118,7 +117,7 @@ func Test_bpfCreate_create(t *testing.T) {
 							VolumeMounts: []apiv1.VolumeMount{
 								{
 									Name:      "target-filesystem",
-									MountPath: api.GetContainerRuntimeRootPath[cfg.Target.ContainerRuntime],
+									MountPath: cfg.Target.ContainerRuntimePath,
 								},
 								{
 									Name:      "modules",

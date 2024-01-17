@@ -139,8 +139,8 @@ func TestBpfProfiler_Invoke(t *testing.T) {
 			given: func() (fields, args) {
 				bpfManager := newFakeBpfManager()
 				bpfManager.On("invoke").
-					Return(nil, 0).
-					Return(nil, 0)
+					Return(nil, time.Duration(0)).
+					Return(nil, time.Duration(0))
 
 				return fields{
 						BpfProfiler: &BpfProfiler{
@@ -148,7 +148,7 @@ func TestBpfProfiler_Invoke(t *testing.T) {
 						},
 					}, args{
 						job: &job.ProfilingJob{
-							Duration:         0,
+							Duration:         time.Duration(0),
 							ContainerRuntime: api.FakeContainer,
 							ContainerID:      "ContainerID",
 							OutputType:       api.FlameGraph,

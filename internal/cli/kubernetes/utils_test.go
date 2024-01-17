@@ -131,7 +131,7 @@ func TestGetArgs(t *testing.T) {
 						DryRun:               false,
 						Image:                "",
 						ContainerRuntime:     api.Crio,
-						ContainerRuntimePath: "",
+						ContainerRuntimePath: "/var/lib/containers/storage",
 						Language:             api.Java,
 						Compressor:           compressor.Gzip,
 						ImagePullSecret:      "",
@@ -149,6 +149,7 @@ func TestGetArgs(t *testing.T) {
 			},
 			want: []string{
 				"--target-container-runtime", "crio",
+				"--target-container-runtime-path", "/var/lib/containers/storage",
 				"--target-pod-uid", "UID",
 				"--target-container-id", "ContainerID",
 				"--lang", "java",
@@ -187,7 +188,7 @@ func TestGetArgs(t *testing.T) {
 						DryRun:               false,
 						Image:                "",
 						ContainerRuntime:     api.Crio,
-						ContainerRuntimePath: "",
+						ContainerRuntimePath: "/var/lib/containers/storage",
 						Language:             api.Java,
 						Compressor:           compressor.Gzip,
 						ImagePullSecret:      "",
@@ -208,6 +209,7 @@ func TestGetArgs(t *testing.T) {
 			},
 			want: []string{
 				"--target-container-runtime", "crio",
+				"--target-container-runtime-path", "/var/lib/containers/storage",
 				"--target-pod-uid", "UID",
 				"--target-container-id", "ContainerID",
 				"--lang", "java",
