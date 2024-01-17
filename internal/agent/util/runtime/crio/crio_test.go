@@ -33,8 +33,15 @@ func TestRootFileSystemLocation(t *testing.T) {
 			containedErrMsg: "container ID is mandatory",
 		},
 		{
-			name:        "unable read root filesystem",
-			containerID: "1234",
+			name:            "empty container runtime path",
+			containerID:     "1234",
+			mockFunc:        func() {},
+			containedErrMsg: "container runtime path is mandatory",
+		},
+		{
+			name:                 "unable read root filesystem",
+			containerID:          "1234",
+			containerRuntimePath: "/var/lib/containers/storage",
 			mockFunc: func() {
 				crioConfigFile = func(string, string) string {
 					return filepath.FromSlash(testdata.CrioTestDataDir() + "/other.json")
@@ -43,8 +50,9 @@ func TestRootFileSystemLocation(t *testing.T) {
 			containedErrMsg: "read file failed",
 		},
 		{
-			name:        "expect root filesystem",
-			containerID: "1234",
+			name:                 "expect root filesystem",
+			containerID:          "1234",
+			containerRuntimePath: "/var/lib/containers/storage",
 			mockFunc: func() {
 				crioConfigFile = func(string, string) string {
 					return filepath.FromSlash(testdata.CrioTestDataDir() + "/config.json")
@@ -117,8 +125,15 @@ func TestPID(t *testing.T) {
 			containedErrMsg: "container ID is mandatory",
 		},
 		{
-			name:        "unable read root filesystem",
-			containerID: "1234",
+			name:            "empty container runtime path",
+			containerID:     "1234",
+			mockFunc:        func() {},
+			containedErrMsg: "container runtime path is mandatory",
+		},
+		{
+			name:                 "unable read root filesystem",
+			containerID:          "1234",
+			containerRuntimePath: "/var/lib/containers/storage",
 			mockFunc: func() {
 				crioStateFile = func(string, string) string {
 					return filepath.FromSlash(testdata.CrioTestDataDir() + "/other.json")
@@ -127,8 +142,9 @@ func TestPID(t *testing.T) {
 			containedErrMsg: "read file failed",
 		},
 		{
-			name:        "expect root filesystem",
-			containerID: "1234",
+			name:                 "expect root filesystem",
+			containerID:          "1234",
+			containerRuntimePath: "/var/lib/containers/storage",
 			mockFunc: func() {
 				crioStateFile = func(string, string) string {
 					return filepath.FromSlash(testdata.CrioTestDataDir() + "/state.json")
