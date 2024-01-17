@@ -17,6 +17,7 @@ type ProfilingJob struct {
 	Interval                 time.Duration
 	UID                      string
 	ContainerRuntime         api.ContainerRuntime
+	ContainerRuntimePath     string
 	ContainerID              string
 	PodUID                   string
 	Language                 api.ProgrammingLanguage

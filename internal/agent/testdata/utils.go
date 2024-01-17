@@ -23,7 +23,3 @@ func ContainerdTestDataDir() string {
 func ResultTestDataDir() string {
 	return RootDir() + "/testdata/result"
 }
-
-func ConfigmapsTestDataDir() string {
-	return RootDir() + "/testdata/configmaps"
-}

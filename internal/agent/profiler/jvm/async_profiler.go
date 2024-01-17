@@ -76,7 +76,7 @@ func NewAsyncProfiler(commander executil.Commander, publisher publish.Publisher)
 }
 
 func (j *AsyncProfiler) SetUp(job *job.ProfilingJob) error {
-	targetFs, err := util.ContainerFileSystem(job.ContainerRuntime, job.ContainerID)
+	targetFs, err := util.ContainerFileSystem(job.ContainerRuntime, job.ContainerID, job.ContainerRuntimePath)
 	if err != nil {
 		return err
 	}

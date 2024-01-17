@@ -20,8 +20,8 @@ const ContainerRuntimeAndContainerIdMandatoryText = "container runtime and conta
 
 // Container defines how retrieving the root filesystem and the PID of a container
 type Container interface {
-	RootFileSystemLocation(containerID string) (string, error)
-	PID(containerID string) (string, error)
+	RootFileSystemLocation(containerID string, containerRuntimePath string) (string, error)
+	PID(containerID string, containerRuntimePath string) (string, error)
 }
 
 // NormalizeContainerID returns the container ID with suffixes removed
@@ -51,7 +51,7 @@ var runtime = func(r api.ContainerRuntime) (Container, error) {
 }
 
 // ContainerFileSystem returns the root path of the container filesystem
-func ContainerFileSystem(r api.ContainerRuntime, containerID string) (string, error) {
+func ContainerFileSystem(r api.ContainerRuntime, containerID string, containerRuntimePath string) (string, error) {
 	if r == "" || containerID == "" {
 		return "", errors.New(ContainerRuntimeAndContainerIdMandatoryText)
 	}
@@ -59,28 +59,7 @@ func ContainerFileSystem(r api.ContainerRuntime, containerID string) (string, er
 	if err != nil {
 		return "", err
 	}
-	return c.RootFileSystemLocation(containerID)
-}
-
-// ContainerPID returns the PID of the container
-// Deprecated: use GetCandidatePIDs instead
-func ContainerPID(job *job.ProfilingJob) (string, error) {
-	if job.ContainerRuntime == "" || job.ContainerID == "" {
-		return "", errors.New(ContainerRuntimeAndContainerIdMandatoryText)
-	}
-	c, err := runtime(job.ContainerRuntime)
-	if err != nil {
-		return "", err
-	}
-	pid, err := c.PID(job.ContainerID)
-	if err != nil {
-		return "", err
-	}
-
-	// In some cases applications are executed through a shell script,
-	// so the found PID in this point is the one of this script and, therefore,
-	// is needed to guess the PID of the child process which is of the application
-	return getRealPID(pid), nil
+	return c.RootFileSystemLocation(containerID, containerRuntimePath)
 }
 
 type ChildPIDGetter interface {
@@ -111,21 +90,6 @@ func (c childPIDGetter) get(pid string) string {
 
 var childPIDGetterInstance = newChildPIDGetter()
 
-// getRealPID returns the child PID of the given PID if found,
-// otherwise returns the same one.
-func getRealPID(pid string) string {
-	child := childPIDGetterInstance.get(pid)
-	if stringUtils.IsNotBlank(child) {
-		pids := strings.Split(child, "\n")
-		if len(pids) > 1 {
-			log.WarningLogLn(fmt.Sprintf("Detected more than one child process %v for PID: %s", pids, pid))
-			return pid
-		}
-		return getRealPID(child)
-	}
-	return pid
-}
-
 // GetCandidatePIDs returns the candidate PIDs to be profiled
 func GetCandidatePIDs(job *job.ProfilingJob) ([]string, error) {
 	if job.ContainerRuntime == "" || job.ContainerID == "" {
@@ -135,7 +99,7 @@ func GetCandidatePIDs(job *job.ProfilingJob) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	pid, err := c.PID(job.ContainerID)
+	pid, err := c.PID(job.ContainerID, job.ContainerRuntimePath)
 	if err != nil {
 		return nil, err
 	}

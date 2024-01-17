@@ -21,6 +21,7 @@ func ToContainerId(containerName string, pod *apiv1.Pod) (string, error) {
 func GetArgs(targetPod *apiv1.Pod, cfg *config.ProfilerConfig, id string) []string {
 	args := []string{
 		"--target-container-runtime", string(cfg.Target.ContainerRuntime),
+		"--target-container-runtime-path", cfg.Target.ContainerRuntimePath,
 		"--target-pod-uid", string(targetPod.UID),
 		"--target-container-id", cfg.Target.ContainerID,
 		"--lang", string(cfg.Target.Language),

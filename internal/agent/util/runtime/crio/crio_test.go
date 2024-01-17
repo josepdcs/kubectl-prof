@@ -10,21 +10,22 @@ import (
 
 func TestCrioConfigFile(t *testing.T) {
 	assert.Equal(t, "/var/lib/containers/storage/overlay-containers/1234/userdata/config.json",
-		crioConfigFile("1234"))
+		crioConfigFile("1234", "/var/lib/containers/storage"))
 }
 
 func TestCrioStateFile(t *testing.T) {
 	assert.Equal(t, "/var/lib/containers/storage/overlay-containers/1234/userdata/state.json",
-		crioStateFile("1234"))
+		crioStateFile("1234", "/var/lib/containers/storage"))
 }
 
 func TestRootFileSystemLocation(t *testing.T) {
 	tests := []struct {
-		name            string
-		containerID     string
-		mockFunc        func()
-		expected        string
-		containedErrMsg string
+		name                 string
+		containerID          string
+		containerRuntimePath string
+		mockFunc             func()
+		expected             string
+		containedErrMsg      string
 	}{
 		{
 			name:            "empty container ID",
@@ -32,20 +33,28 @@ func TestRootFileSystemLocation(t *testing.T) {
 			containedErrMsg: "container ID is mandatory",
 		},
 		{
-			name:        "unable read root filesystem",
-			containerID: "1234",
+			name:            "empty container runtime path",
+			containerID:     "1234",
+			mockFunc:        func() {},
+			containedErrMsg: "container runtime path is mandatory",
+		},
+		{
+			name:                 "unable read root filesystem",
+			containerID:          "1234",
+			containerRuntimePath: "/var/lib/containers/storage",
 			mockFunc: func() {
-				crioConfigFile = func(string) string {
+				crioConfigFile = func(string, string) string {
 					return filepath.FromSlash(testdata.CrioTestDataDir() + "/other.json")
 				}
 			},
 			containedErrMsg: "read file failed",
 		},
 		{
-			name:        "expect root filesystem",
-			containerID: "1234",
+			name:                 "expect root filesystem",
+			containerID:          "1234",
+			containerRuntimePath: "/var/lib/containers/storage",
 			mockFunc: func() {
-				crioConfigFile = func(string) string {
+				crioConfigFile = func(string, string) string {
 					return filepath.FromSlash(testdata.CrioTestDataDir() + "/config.json")
 				}
 			},
@@ -57,7 +66,7 @@ func TestRootFileSystemLocation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockFunc()
-			location, err := c.RootFileSystemLocation(tt.containerID)
+			location, err := c.RootFileSystemLocation(tt.containerID, tt.containerRuntimePath)
 
 			if err != nil {
 				assert.Contains(t, err.Error(), tt.containedErrMsg)
@@ -103,11 +112,12 @@ func TestRuntimeSpec(t *testing.T) {
 
 func TestPID(t *testing.T) {
 	tests := []struct {
-		name            string
-		containerID     string
-		mockFunc        func()
-		expected        string
-		containedErrMsg string
+		name                 string
+		containerID          string
+		containerRuntimePath string
+		mockFunc             func()
+		expected             string
+		containedErrMsg      string
 	}{
 		{
 			name:            "empty container ID",
@@ -115,20 +125,28 @@ func TestPID(t *testing.T) {
 			containedErrMsg: "container ID is mandatory",
 		},
 		{
-			name:        "unable read root filesystem",
-			containerID: "1234",
+			name:            "empty container runtime path",
+			containerID:     "1234",
+			mockFunc:        func() {},
+			containedErrMsg: "container runtime path is mandatory",
+		},
+		{
+			name:                 "unable read root filesystem",
+			containerID:          "1234",
+			containerRuntimePath: "/var/lib/containers/storage",
 			mockFunc: func() {
-				crioStateFile = func(string) string {
+				crioStateFile = func(string, string) string {
 					return filepath.FromSlash(testdata.CrioTestDataDir() + "/other.json")
 				}
 			},
 			containedErrMsg: "read file failed",
 		},
 		{
-			name:        "expect root filesystem",
-			containerID: "1234",
+			name:                 "expect root filesystem",
+			containerID:          "1234",
+			containerRuntimePath: "/var/lib/containers/storage",
 			mockFunc: func() {
-				crioStateFile = func(string) string {
+				crioStateFile = func(string, string) string {
 					return filepath.FromSlash(testdata.CrioTestDataDir() + "/state.json")
 				}
 			},
@@ -140,7 +158,7 @@ func TestPID(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockFunc()
-			pid, err := c.PID(tt.containerID)
+			pid, err := c.PID(tt.containerID, tt.containerRuntimePath)
 
 			if err != nil {
 				assert.Contains(t, err.Error(), tt.containedErrMsg)

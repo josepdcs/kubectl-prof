@@ -79,6 +79,11 @@ func runApp() error {
 				Required: false,
 			},
 			&cli.StringFlag{
+				Name:     profile.TargetContainerRuntimePath,
+				Usage:    "target container runtime path",
+				Required: false,
+			},
+			&cli.StringFlag{
 				Name:     profile.TargetPodUID,
 				Usage:    "target pod UID",
 				Required: false,
@@ -176,23 +181,24 @@ func runApp() error {
 func toArgs(c *cli.Context) map[string]interface{} {
 
 	return map[string]interface{}{
-		profile.JobId:                    c.String(profile.JobId),
-		profile.TargetContainerRuntime:   c.String(profile.TargetContainerRuntime),
-		profile.TargetPodUID:             c.String(profile.TargetPodUID),
-		profile.TargetContainerID:        c.String(profile.TargetContainerID),
-		profile.Duration:                 c.String(profile.Duration),
-		profile.Interval:                 c.String(profile.Interval),
-		profile.Lang:                     c.String(profile.Lang),
-		profile.EventType:                c.String(profile.EventType),
-		profile.CompressorType:           c.String(profile.CompressorType),
-		profile.ProfilingTool:            c.String(profile.ProfilingTool),
-		profile.OutputType:               c.String(profile.OutputType),
-		profile.Filename:                 c.String(profile.Filename),
-		profile.PrintLogs:                c.Bool(profile.PrintLogs),
-		profile.GracePeriodForEnding:     c.String(profile.GracePeriodForEnding),
-		profile.HeapDumpSplitInChunkSize: c.String(profile.HeapDumpSplitInChunkSize),
-		profile.Pid:                      c.String(profile.Pid),
-		profile.Pgrep:                    c.String(profile.Pgrep),
+		profile.JobId:                      c.String(profile.JobId),
+		profile.TargetContainerRuntime:     c.String(profile.TargetContainerRuntime),
+		profile.TargetContainerRuntimePath: c.String(profile.TargetContainerRuntimePath),
+		profile.TargetPodUID:               c.String(profile.TargetPodUID),
+		profile.TargetContainerID:          c.String(profile.TargetContainerID),
+		profile.Duration:                   c.String(profile.Duration),
+		profile.Interval:                   c.String(profile.Interval),
+		profile.Lang:                       c.String(profile.Lang),
+		profile.EventType:                  c.String(profile.EventType),
+		profile.CompressorType:             c.String(profile.CompressorType),
+		profile.ProfilingTool:              c.String(profile.ProfilingTool),
+		profile.OutputType:                 c.String(profile.OutputType),
+		profile.Filename:                   c.String(profile.Filename),
+		profile.PrintLogs:                  c.Bool(profile.PrintLogs),
+		profile.GracePeriodForEnding:       c.String(profile.GracePeriodForEnding),
+		profile.HeapDumpSplitInChunkSize:   c.String(profile.HeapDumpSplitInChunkSize),
+		profile.Pid:                        c.String(profile.Pid),
+		profile.Pgrep:                      c.String(profile.Pgrep),
 	}
 }
 

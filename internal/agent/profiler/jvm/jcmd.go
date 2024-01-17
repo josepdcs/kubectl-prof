@@ -92,7 +92,7 @@ func NewJcmdProfiler(commander executil.Commander, publisher publish.Publisher) 
 }
 
 func (j *JcmdProfiler) SetUp(job *job.ProfilingJob) error {
-	targetFs, err := util.ContainerFileSystem(job.ContainerRuntime, job.ContainerID)
+	targetFs, err := util.ContainerFileSystem(job.ContainerRuntime, job.ContainerID, job.ContainerRuntimePath)
 	if err != nil {
 		return err
 	}

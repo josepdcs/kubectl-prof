@@ -15,23 +15,24 @@ import (
 
 // arguments passed to the agent
 const (
-	JobId                    string = "job-id"
-	TargetContainerRuntime          = "target-container-runtime"
-	TargetPodUID                    = "target-pod-uid"
-	TargetContainerID               = "target-container-id"
-	Duration                        = "duration"
-	Interval                        = "interval"
-	Lang                            = "lang"
-	EventType                       = "event-type"
-	CompressorType                  = "compressor-type"
-	ProfilingTool                   = "profiling-tool"
-	OutputType                      = "output-type"
-	Filename                        = "filename"
-	PrintLogs                       = "print-logs"
-	GracePeriodForEnding            = "grace-period-ending"
-	HeapDumpSplitInChunkSize        = "heap-dump-split-in-chunk-size"
-	Pid                             = "pid"
-	Pgrep                           = "pgrep"
+	JobId                      string = "job-id"
+	TargetContainerRuntime            = "target-container-runtime"
+	TargetContainerRuntimePath        = "target-container-runtime-path"
+	TargetPodUID                      = "target-pod-uid"
+	TargetContainerID                 = "target-container-id"
+	Duration                          = "duration"
+	Interval                          = "interval"
+	Lang                              = "lang"
+	EventType                         = "event-type"
+	CompressorType                    = "compressor-type"
+	ProfilingTool                     = "profiling-tool"
+	OutputType                        = "output-type"
+	Filename                          = "filename"
+	PrintLogs                         = "print-logs"
+	GracePeriodForEnding              = "grace-period-ending"
+	HeapDumpSplitInChunkSize          = "heap-dump-split-in-chunk-size"
+	Pid                               = "pid"
+	Pgrep                             = "pgrep"
 
 	defaultDuration                 = 60 * time.Second
 	defaultContainerRuntime         = api.Containerd
@@ -114,6 +115,14 @@ func getProfilingJob(args map[string]interface{}) (*job.ProfilingJob, error) {
 		return nil, errors.Errorf("unsupported container runtime, choose one of %s", api.AvailableContainerRuntimes())
 	}
 	j.ContainerRuntime = api.ContainerRuntime(containerRuntime)
+
+	containerRuntimePath := args[TargetContainerRuntimePath].(string)
+	if stringUtils.IsBlank(containerRuntimePath) {
+		j.ContainerRuntimePath = api.GetContainerRuntimeRootPath[j.ContainerRuntime]
+	} else {
+		j.ContainerRuntimePath = containerRuntimePath
+	}
+
 	j.UID = args[JobId].(string)
 	j.PodUID = args[TargetPodUID].(string)
 	j.ContainerID = util.NormalizeContainerID(args[TargetContainerID].(string))
@@ -153,10 +162,10 @@ func getProfilingJob(args map[string]interface{}) (*job.ProfilingJob, error) {
 	// set heap dump split in chunk size
 	setHeapDumpSplitChunkSize(args, j)
 
-	// set pid for testing purposes
+	// set pid if exists
 	setPid(args, j)
 
-	// set pgrep for testing purposes
+	// set pgrep if exists
 	setPgrep(args, j)
 
 	log.DebugLogLn(j.String())

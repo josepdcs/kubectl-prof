@@ -139,8 +139,8 @@ func TestPythonProfiler_Invoke(t *testing.T) {
 			given: func() (fields, args) {
 				pythonManager := newFakePythonManager()
 				pythonManager.On("invoke").
-					Return(nil, 0).
-					Return(nil, 0)
+					Return(nil, time.Duration(0)).
+					Return(nil, time.Duration(0))
 
 				return fields{
 						PythonProfiler: &PythonProfiler{
