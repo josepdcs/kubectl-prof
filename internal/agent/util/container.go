@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"regexp"
 	"strings"
+	"time"
 )
 
 const (
@@ -119,6 +120,19 @@ func GetCandidatePIDs(job *job.ProfilingJob) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// If more than one PID is detected, a notice is shown
+	if len(pidsToProfile) > 1 {
+		_ = log.EventLn(api.Notice,
+			&api.NoticeData{
+				Time: time.Now(),
+				Msg: fmt.Sprintf("Detected more than one PID to profile: %v. "+
+					"It will be attempt to profile all of them. "+
+					"Use the --pid flag specifying the corresponding PID if you only want to profile one of them.", pidsToProfile),
+			},
+		)
+	}
+
 	return pidsToProfile, nil
 }
 
