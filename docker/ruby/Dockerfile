@@ -1,4 +1,4 @@
-FROM golang:1.21.3-bullseye AS agentbuild
+FROM golang:1.21.6-bullseye AS agentbuild
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof
 ADD . /go/src/github.com/josepdcs/kubectl-prof
 RUN go get -d -v ./...
@@ -18,5 +18,7 @@ RUN mkdir -p /app/FlameGraph
 COPY --from=rbspybuild /FlameGraph /app/FlameGraph
 COPY --from=agentbuild /go/bin/agent /app/agent
 COPY --from=rbspybuild /rbspy/target/release/rbspy /app/rbspy
+COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/get-ps-command.sh /app/get-ps-command.sh
+RUN chmod +x /app/get-ps-command.sh
 
 CMD [ "/app/agent" ]

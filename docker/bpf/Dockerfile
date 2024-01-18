@@ -1,4 +1,4 @@
-FROM golang:1.21.3-alpine AS agentbuild
+FROM golang:1.21.6-alpine AS agentbuild
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof
 ADD . /go/src/github.com/josepdcs/kubectl-prof
 RUN go get -d -v ./...
@@ -16,5 +16,7 @@ COPY --from=builder /FlameGraph /app/FlameGraph
 COPY --from=agentbuild /go/bin/agent /app
 COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/bpf/profile.py /app/bcc-profiler/profile
 RUN chmod +x /app/bcc-profiler/profile
+COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/get-ps-command.sh /app/get-ps-command.sh
+RUN chmod +x /app/get-ps-command.sh
 
 CMD [ "/app/agent" ]

@@ -37,6 +37,9 @@ func (h *EventHandler) Handle(events chan string, done chan bool, resultFile cha
 			}
 		case *api.ProgressData:
 			h.reportProgress(eventType, done)
+		case *api.NoticeData:
+			fmt.Printf("⚠️%s\n", eventType.Msg)
+			fmt.Printf("Profiling ... ✔\n")
 		default:
 		}
 	}

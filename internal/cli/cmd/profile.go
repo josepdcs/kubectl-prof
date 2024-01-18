@@ -215,7 +215,7 @@ func NewProfileCommand(streams genericiooptions.IOStreams) *cobra.Command {
 	cmd.Flags().IntVar(&target.PoolSizeRetrieveChunks, "pool-size-retrieve-chunks", defaultPoolSizeRetrieveChunks, "The pool size of go routines to retrieve chunks of the obtained heap dump from the agent.")
 	cmd.Flags().IntVar(&target.RetrieveFileRetries, "retrieve-file-retries", defaultRetrieveFileRetries, "The number of retries to retrieve a file from the remote container.")
 	cmd.Flags().StringVar(&target.PID, "pid", "", "The PID of target process if it is known")
-	//cmd.Flags().StringVarP(&target.Pgrep, "pgrep", "p", "", "Name of the target process")
+	cmd.Flags().StringVarP(&target.Pgrep, "pgrep", "p", "", "Name of the target process")
 	//cmd.Flags().BoolVar(&flags.useEphemeralContainer, "use-ephemeral-container", false, "Launching profiling agent into ephemeral container instead into Job (experimental)")
 
 	options.configFlags.AddFlags(cmd.Flags())

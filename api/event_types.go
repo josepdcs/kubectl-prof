@@ -23,6 +23,7 @@ type ProgressStage string
 const (
 	Progress EventType = "progress"
 	Result   EventType = "result"
+	Notice   EventType = "notice"
 	Log      EventType = "log"
 	Error    EventType = "error"
 
@@ -60,6 +61,11 @@ type ProgressData struct {
 	Stage ProgressStage `json:"stage"`
 }
 
+type NoticeData struct {
+	Time time.Time `json:"time"`
+	Msg  string    `json:"msg"`
+}
+
 type LogData struct {
 	Time  time.Time `json:"time"`
 	Level string    `json:"level"`
@@ -70,6 +76,7 @@ var typeToData = map[EventType]interface{}{
 	Error:    &ErrorData{},
 	Result:   &ResultData{},
 	Progress: &ProgressData{},
+	Notice:   &NoticeData{},
 	Log:      &LogData{},
 }
 
