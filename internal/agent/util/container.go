@@ -14,9 +14,13 @@ import (
 	"github.com/pkg/errors"
 	"regexp"
 	"strings"
+	"time"
 )
 
-const ContainerRuntimeAndContainerIdMandatoryText = "container runtime and container ID are mandatory"
+const (
+	psCommand                                   = "/app/get-ps-command.sh"
+	ContainerRuntimeAndContainerIdMandatoryText = "container runtime and container ID are mandatory"
+)
 
 // Container defines how retrieving the root filesystem and the PID of a container
 type Container interface {
@@ -50,6 +54,8 @@ var runtime = func(r api.ContainerRuntime) (Container, error) {
 	}
 }
 
+var commander = exec.NewCommander()
+
 // ContainerFileSystem returns the root path of the container filesystem
 func ContainerFileSystem(r api.ContainerRuntime, containerID string, containerRuntimePath string) (string, error) {
 	if r == "" || containerID == "" {
@@ -77,7 +83,7 @@ func newChildPIDGetter() ChildPIDGetter {
 func (c childPIDGetter) get(pid string) string {
 	var out bytes.Buffer
 	var stderr bytes.Buffer
-	cmd := exec.Command("pgrep", "-P", pid)
+	cmd := commander.Command("pgrep", "-P", pid)
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 	err := cmd.Run()
@@ -107,6 +113,26 @@ func GetCandidatePIDs(job *job.ProfilingJob) ([]string, error) {
 	// When applications launch subprocesses, their PIDs need to be identified for profiling.
 	var pidsToProfile []string
 	fillWithChildrenPIDs(pid, &pidsToProfile)
+	if len(pidsToProfile) == 0 {
+		return nil, errors.Errorf("no PIDs found for container ID: %s", job.ContainerID)
+	}
+	err = filterPIDsToProfile(&pidsToProfile, job.Pgrep)
+	if err != nil {
+		return nil, err
+	}
+
+	// If more than one PID is detected, a notice is shown
+	if len(pidsToProfile) > 1 {
+		_ = log.EventLn(api.Notice,
+			&api.NoticeData{
+				Time: time.Now(),
+				Msg: fmt.Sprintf("Detected more than one PID to profile: %v. "+
+					"It will be attempt to profile all of them. "+
+					"Use the --pid flag specifying the corresponding PID if you only want to profile one of them.", pidsToProfile),
+			},
+		)
+	}
+
 	return pidsToProfile, nil
 }
 
@@ -128,5 +154,29 @@ func fillWithChildrenPIDs(pid string, pidsToProfile *[]string) {
 	}
 }
 
-// get command line of a process
-// ps 3130 | awk -v p='COMMAND' 'NR==1 {n=index($0, p); next} {print substr($0, n)}'
+func filterPIDsToProfile(pids *[]string, pgrep string) error {
+	if stringUtils.IsBlank(pgrep) {
+		return nil
+	}
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+
+	var filteredPIDs []string
+	for _, pid := range *pids {
+		cmd := commander.Command(psCommand, pid)
+		cmd.Stdout = &out
+		cmd.Stderr = &stderr
+		err := cmd.Run()
+		output := strings.TrimSpace(out.String())
+		if err != nil {
+			return errors.Wrapf(err, "ps command failed with error: %s", stderr.String())
+		}
+		log.DebugLogLn(fmt.Sprintf("ps command output: %s", output))
+		if stringUtils.ContainsIgnoreCase(output, pgrep) {
+			filteredPIDs = append(filteredPIDs, pid)
+		}
+		out.Reset()
+	}
+	*pids = filteredPIDs
+	return nil
+}

@@ -4,11 +4,13 @@ import (
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
+	executil "github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/runtime/containerd"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/runtime/crio"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/runtime/fake"
 	"github.com/stretchr/testify/assert"
 	"os"
+	"os/exec"
 	"strconv"
 	"testing"
 )
@@ -256,6 +258,51 @@ func TestGetCandidatePIDs(t *testing.T) {
 			},
 			expected: []string{"PID_12334_CONTAINERD", "PID_12335_CONTAINERD"},
 		},
+		{
+			name: "more than one child process with pgrep",
+			job: job.ProfilingJob{
+				ContainerRuntime: api.Containerd,
+				ContainerID:      "12334_CONTAINERD",
+				Pgrep:            "12334",
+			},
+			mockFunc: func() {
+				runtime = func(runtime api.ContainerRuntime) (Container, error) {
+					return fake.NewRuntimeFake(), nil
+				}
+				childPIDGetterInstance = &childPIDGetterMock{
+					interation: 0,
+					results:    []string{"PID_12334_CONTAINERD\nPID_12335_CONTAINERD"},
+				}
+				commander = executil.NewFakeCommander()
+				commander.(executil.FakeCommander).
+					On("Command").
+					Return(exec.Command("echo", "PID_12334_CONTAINERD")).
+					Return(exec.Command("echo", ""))
+			},
+			expected: []string{"PID_12334_CONTAINERD"},
+		},
+		{
+			name: "more than one child process with pgrep but error",
+			job: job.ProfilingJob{
+				ContainerRuntime: api.Containerd,
+				ContainerID:      "12334_CONTAINERD",
+				Pgrep:            "12334",
+			},
+			mockFunc: func() {
+				runtime = func(runtime api.ContainerRuntime) (Container, error) {
+					return fake.NewRuntimeFake(), nil
+				}
+				childPIDGetterInstance = &childPIDGetterMock{
+					interation: 0,
+					results:    []string{"PID_12334_CONTAINERD\nPID_12335_CONTAINERD"},
+				}
+				commander = executil.NewFakeCommander()
+				commander.(executil.FakeCommander).
+					On("Command").
+					Return(&exec.Cmd{})
+			},
+			containedErrMsg: "ps command failed with error:",
+		},
 	}
 
 	// preserve the original function
@@ -301,6 +348,8 @@ func Test_childPIDGetter_get(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		commander = executil.NewCommander()
+
 		t.Run(tt.name, func(t *testing.T) {
 			c := childPIDGetter{}
 			assert.Equalf(t, tt.want, c.get(tt.args.pid), "get(%v)", tt.args.pid)

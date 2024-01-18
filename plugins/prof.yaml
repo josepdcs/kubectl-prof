@@ -4,13 +4,13 @@ metadata:
   name: prof
 spec:
   homepage: https://github.com/josepdcs/kubectl-prof
-  shortDescription: Generate CPU profiling graphs from pods (Docker, Cri-o are supported). This is a fork of flame plugin.
+  shortDescription: Generate CPU profiling graphs and other several outputs as JFR and heap dumps (Java), thread dumps (Java, Python), etc. from pods (Containerd, Cri-o are supported). This is a fork of flame plugin.
   version: "v1.2.0"
   description: |
-    Generate CPU profiling graphs without restarting pods and with low overhead. Docker, Cri-o are supported, Containerd support is coming soon. 
+    Generate CPU profiling graphs and other several outputs as JFR and heap dumps (Java), thread dumps (Java, Python), etc. without restarting pods and with low overhead. Containerd and Cri-o are supported. 
     This is an open source fork of https://github.com/yahoo/kubectl-flame with several new features and bug fixes.
   caveats: |
-    Currently supported languages: Go, Java (any JVM based language), Python, Ruby, and NodeJS.
+    Currently supported languages: Go, Java (any JVM based language), Python, Ruby, NodeJS, Clang and Clang++.
   platforms:
     - uri: https://github.com/josepdcs/kubectl-prof/releases/download/1.2.0/kubectl-prof_1.2.0_darwin_amd64.tar.gz
       sha256: fac1bd88f4235e2713e7e9c05c8b90dcc9cf40b43e6463bc5b62982042364e2a
