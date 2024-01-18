@@ -212,13 +212,13 @@ kubectl prof --help
 
 ### Pre-built binaries
 
-See the [release](https://github.com/josepdcs/kubectl-prof/releases/tag/1.1.0) page for the full list of pre-built
+See the [release](https://github.com/josepdcs/kubectl-prof/releases/tag/1.2.0) page for the full list of pre-built
 assets. And download the binary according yours architecture.
 
 ### Installing for Linux x86_64
 
 ```shell
-curl -sL https://github.com/josepdcs/kubectl-prof/releases/download/1.1.0/kubectl-prof_1.1.0_linux_x86_64.tar.gz -o kubectl-prof.tar.gz
+curl -sL https://github.com/josepdcs/kubectl-prof/releases/download/1.2.0/kubectl-prof_1.2.0_linux_x86_64.tar.gz -o kubectl-prof.tar.gz
 tar xvfz kubectl-prof.tar.gz && sudo install kubectl-prof /usr/local/bin/
 ```
 
@@ -300,6 +300,16 @@ The raw output is a text file with the raw data from the profiler. It could be u
   every interval until the profiling session finishes. Only the last produced result is available. It is client
   responsibility to store all the session results.
     * For using this option you must use the `--interval time` option in addition to `-t time`.
+
+In addition, `kubectl-prof` will attempt to profile all the processes detected in the container. 
+It will try to profile them all based on the provided language. When this happens, the tool will display a warning similar to:
+
+
+    ⚠ Detected more than one PID to profile: [2508 2509]. It will be attempt to profile all of them. Use the --pid flag specifying the corresponding PID if you only want to profile one of them.
+
+But if you want to profile a specific process, you have two options:
+* Provide the specific PID using the `--pid PID` flag if you know the PID (the previous warning can help you identify the PID you want to profile). 
+* Provide a process name using the `--pgrep process-matching-name` flag.
 
 ## Contribute
 
