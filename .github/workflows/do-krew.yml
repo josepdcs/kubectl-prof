@@ -1,4 +1,4 @@
-name: Do Release
+name: Do Krew Release
 on:
   workflow_dispatch:
     inputs:
@@ -32,6 +32,8 @@ jobs:
           popd
           export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
           export TAG=$(tags=$(curl -s --header "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/tags?sort=created&direction=desc" | jq -r '.[].name' | sort -V))
+          
+          ls -la ./
           
           docker run --rm -v ./.krew.yaml:/tmp/template-file.yaml ghcr.io/rajatjindal/krew-release-bot:latest krew-release-bot template --tag ${TAG} --template-file /tmp/template-file.yaml 1> ./plugins/prof.yaml
           go install sigs.k8s.io/krew/cmd/validate-krew-manifest@latest
