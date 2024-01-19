@@ -1,0 +1,44 @@
+name: Do Release
+on:
+  workflow_dispatch:
+    inputs:
+      VERSION:
+        description: 'The release version to publish'
+        required: true
+        default: ''
+
+env:
+  SCM_USERNAME: josepdcs
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      # let's use kustom krew-index after https://github.com/kubernetes-sigs/krew-index/pull/2103
+      - name: Update new version in krew-index following to https://krew.sigs.k8s.io/docs/developer-guide/custom-indexes/
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          KREW_VERSION=v0.4.4
+          pushd "$(mktemp -d)"
+          curl -fsSLO "https://github.com/kubernetes-sigs/krew/releases/download/${KREW_VERSION}/krew.yaml"
+          curl -fsSLO "https://github.com/kubernetes-sigs/krew/releases/download/${KREW_VERSION}/krew-linux_amd64.tar.gz"
+          tar zxvf krew-linux_amd64.tar.gz
+          ./krew-linux_amd64 install --manifest=krew.yaml --archive=krew-linux_amd64.tar.gz
+          popd
+          export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
+          export TAG=$(tags=$(curl -s --header "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/tags?sort=created&direction=desc" | jq -r '.[].name' | sort -V))
+          
+          docker run --rm -v ./.krew.yaml:/tmp/template-file.yaml ghcr.io/rajatjindal/krew-release-bot:latest krew-release-bot template --tag ${TAG} --template-file /tmp/template-file.yaml 1> ./plugins/prof.yaml
+          go install sigs.k8s.io/krew/cmd/validate-krew-manifest@latest
+          ~/go/bin/validate-krew-manifest -manifest ./plugins/prof.yaml
+          
+          git add plugins
+          git commit -m "publish ${TAG} custom krew index" origin
+
+      #- name: Update new version in krew-index
+      #  uses: rajatjindal/krew-release-bot@v0.0.46
