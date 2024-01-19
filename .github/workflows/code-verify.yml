@@ -5,8 +5,7 @@ on:
   push:
     branches-ignore: [main, bugfix/GH-19-krew-not-working ]
   pull_request:
-    #branches: ['*']
-    branches-ignore: [main, bugfix/GH-19-krew-not-working ]
+    branches: ['*']
 
 jobs:
 
