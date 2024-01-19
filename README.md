@@ -218,8 +218,8 @@ assets. And download the binary according yours architecture.
 ### Installing for Linux x86_64
 
 ```shell
-curl -sL https://github.com/josepdcs/kubectl-prof/releases/download/1.2.0/kubectl-prof_1.2.0_linux_x86_64.tar.gz -o kubectl-prof.tar.gz
-tar xvfz kubectl-prof.tar.gz && sudo install kubectl-prof /usr/local/bin/
+curl -sL https://github.com/josepdcs/kubectl-prof/releases/download/1.2.0/kubectl-prof_1.2.0_linux_x86_64.tar.gz
+tar xvfz kubectl-prof_1.2.0_linux_x86_64.tar.gz && sudo install kubectl-prof /usr/local/bin/
 ```
 
 ## Building
