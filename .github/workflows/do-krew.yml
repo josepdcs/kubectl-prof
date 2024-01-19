@@ -11,7 +11,7 @@ env:
   SCM_USERNAME: josepdcs
 
 jobs:
-  goreleaser:
+  krew-release-bot:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
