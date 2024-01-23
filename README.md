@@ -318,7 +318,7 @@ issues, questions, and pull requests
 
 ## Maintainers
 
-- Josep Damià Carbonell Seguí: josepdcs@gmail.com, josepdcs@ext.inditex.com
+- Josep Damià Carbonell Seguí: josepdcs@gmail.com
 
 ### Special thanks to the original Author of [kubectl-flame](https://github.com/yahoo/kubectl-flame)
 
