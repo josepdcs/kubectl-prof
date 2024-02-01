@@ -26,7 +26,7 @@ func Get(lang api.ProgrammingLanguage, tool api.ProfilingTool) (Creator, error) 
 	switch lang {
 	case api.Java:
 		return &jvmCreator{}, nil
-	case api.Go, api.Clang, api.ClangPlusPlus, api.Node:
+	case api.Go, api.Clang, api.ClangPlusPlus, api.Node, api.Rust:
 		if tool == api.Perf {
 			return &perfCreator{}, nil
 		}

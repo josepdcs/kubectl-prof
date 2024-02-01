@@ -41,7 +41,7 @@ var GetProfilingTool = func(l ProgrammingLanguage, o OutputType) ProfilingTool {
 		}
 	case Python:
 		return Pyspy
-	case Go, Node:
+	case Go, Node, Rust:
 		return Bpf
 	case Clang, ClangPlusPlus:
 		return Bpf

@@ -1,25 +1,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: jvm-deployment
+  name: rust-deployment
   namespace: stupid-apps
   labels:
-    app: jvm
+    app: rust
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: jvm
+      app: rust
   template:
     metadata:
       labels:
-        app: jvm
+        app: rust
     spec:
       containers:
-      - name: jvm
-        #image: localhost/stupid-apps/jvm:latest
+      - name: rust
+        #image: localhost/stupid-apps/rust:latest
         #imagePullPolicy: Never
-        image: docker.io/josepdcs/jvm:latest
+        image: docker.io/josepdcs/rust:latest
         imagePullPolicy: Always
         resources:
           limits:
