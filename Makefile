@@ -253,6 +253,55 @@ minikube-build-and-push-python-stupid-app:
 minikube-build-and-push-jvm-stupid-app:
 	@test/minikube-lab/build_and_push_image.sh "test/stupid-apps/jvm" "stupid-apps" "jvm"
 
+## minikube-build-and-push-rust-stupid-app: Build image of rust stupid app and load it into minikube
+.PHONY: minikube-build-and-push-rust-stupid-app
+minikube-build-and-push-rust-stupid-app:
+	@test/minikube-lab/build_and_push_image.sh "test/stupid-apps/rust" "stupid-apps" "rust"
+
+## build-and-push-clang-stupid-app: Build image of clang stupid app and push it to DockerHub
+.PHONY: build-and-push-clang-stupid-app
+build-and-push-clang-stupid-app:
+	REGISTRY=docker.io test/minikube-lab/build_and_push_image.sh "test/stupid-apps/clang" "josepdcs" "clang"
+
+## build-and-push-golang-stupid-app: Build image of golang stupid app and push it to DockerHub
+.PHONY: build-and-push-golang-stupid-app
+build-and-push-golang-stupid-app:
+	REGISTRY=docker.io test/minikube-lab/build_and_push_image.sh "test/stupid-apps/golang" "josepdcs" "golang"
+
+## build-and-push-jvm-stupid-app: Build image of jvm stupid app and push it to DockerHub
+.PHONY: build-and-push-jvm-stupid-app
+build-and-push-jvm-stupid-app:
+	REGISTRY=docker.io test/minikube-lab/build_and_push_image.sh "test/stupid-apps/jvm" "josepdcs" "jvm"
+
+## build-and-push-multiprocess-stupid-app: Build image of multiprocess stupid app and push it to DockerHub
+.PHONY: build-and-push-multiprocess-stupid-app
+build-and-push-multiprocess-stupid-app:
+	REGISTRY=docker.io test/minikube-lab/build_and_push_image.sh "test/stupid-apps/multiprocess" "josepdcs" "multiprocess"
+
+## build-and-push-node-stupid-app: Build image of node stupid app and push it to DockerHub
+.PHONY: build-and-push-node-stupid-app
+build-and-push-node-stupid-app:
+	REGISTRY=docker.io test/minikube-lab/build_and_push_image.sh "test/stupid-apps/node" "josepdcs" "node"
+
+## build-and-push-python-stupid-app: Build image of python stupid app and push it to DockerHub
+.PHONY: build-and-push-python-stupid-app
+build-and-push-python-stupid-app:
+	REGISTRY=docker.io test/minikube-lab/build_and_push_image.sh "test/stupid-apps/python" "josepdcs" "python"
+
+## build-and-push-ruby-stupid-app: Build image of ruby stupid app and push it to DockerHub
+.PHONY: build-and-push-ruby-stupid-app
+build-and-push-ruby-stupid-app:
+	REGISTRY=docker.io test/minikube-lab/build_and_push_image.sh "test/stupid-apps/ruby" "josepdcs" "ruby"
+
+## build-and-push-rust-stupid-app: Build image of rust stupid app and push it to DockerHub
+.PHONY: build-and-push-rust-stupid-app
+build-and-push-rust-stupid-app:
+	REGISTRY=docker.io test/minikube-lab/build_and_push_image.sh "test/stupid-apps/rust" "josepdcs" "rust"
+
+## build-and-push-stupid-apps: Build images of stupid-apps and push them to DockerHub
+.PHONY: build-and-push-stupid-apps
+build-and-push-stupid-apps: build-and-push-clang-stupid-app build-and-push-golang-stupid-app build-and-push-jvm-stupid-app build-and-push-multiprocess-stupid-app build-and-push-node-stupid-app build-and-push-python-stupid-app build-and-push-ruby-stupid-app build-and-push-rust-stupid-app
+
 ## minikube-configure-profiling: Configure all needed for profiling (service account, namespace, etc.)
 .PHONY: minikube-configure-profiling
 minikube-configure-profiling:

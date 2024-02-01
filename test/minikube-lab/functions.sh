@@ -73,6 +73,26 @@ function build_docker_image_and_push_to_minikube() {
   docker rmi $(docker images --filter "dangling=true" -q --no-trunc) ${fullImageName} || true
 }
 
+# shellcheck disable=SC2046,SC2086
+function build_docker_image_and_push_to_docker() {
+  # Receives the directory where we will build the image
+  local workDir=${1}
+  local user=${2}
+  local image=${3}
+  local fullImageName=docker.io/${user}/${image}:latest
+  local dockerfile="${workDir}/Dockerfile"
+
+  echo "Building image: ${fullImageName}. Dockerfile: ${dockerfile}"
+
+  docker build -t ${fullImageName} -f "${dockerfile}" .
+
+  echo "Pushing image ${fullImageName} to Docker"
+  docker push ${fullImageName}
+
+  echo "Removing image ${fullImageName} from local registry"
+  docker rmi $(docker images --filter "dangling=true" -q --no-trunc) ${fullImageName} || true
+}
+
 function process_images_dir() {
   local file=${1}
 

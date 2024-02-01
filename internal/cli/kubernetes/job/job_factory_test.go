@@ -61,6 +61,21 @@ func TestGet(t *testing.T) {
 			want: &perfCreator{},
 		},
 		{
+			name: "rust creator is instanced",
+			args: args{
+				lang: api.Rust,
+			},
+			want: &bpfCreator{},
+		},
+		{
+			name: "rust with perf creator is instanced",
+			args: args{
+				lang: api.Rust,
+				tool: api.Perf,
+			},
+			want: &perfCreator{},
+		},
+		{
 			name: "fake creator is instanced",
 			args: args{
 				lang: api.FakeLang,
