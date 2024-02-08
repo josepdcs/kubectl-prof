@@ -212,14 +212,14 @@ kubectl prof --help
 
 ### Pre-built binaries
 
-See the [release](https://github.com/josepdcs/kubectl-prof/releases/tag/1.2.0) page for the full list of pre-built
+See the [release](https://github.com/josepdcs/kubectl-prof/releases/tag/1.2.1) page for the full list of pre-built
 assets. And download the binary according yours architecture.
 
 ### Installing for Linux x86_64
 
 ```shell
-curl -sL https://github.com/josepdcs/kubectl-prof/releases/download/1.2.0/kubectl-prof_1.2.0_linux_x86_64.tar.gz
-tar xvfz kubectl-prof_1.2.0_linux_x86_64.tar.gz && sudo install kubectl-prof /usr/local/bin/
+curl -sL https://github.com/josepdcs/kubectl-prof/releases/download/1.2.1/kubectl-prof_1.2.1_linux_x86_64.tar.gz
+tar xvfz kubectl-prof_1.2.1_linux_x86_64.tar.gz && sudo install kubectl-prof /usr/local/bin/
 ```
 
 ## Building
