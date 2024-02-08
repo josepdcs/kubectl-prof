@@ -10,6 +10,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
 	"io"
 	"os"
@@ -166,24 +167,28 @@ func retrieveChunks(pod *v1.Pod, containerName string, remoteFile result.File, e
 func retrieveFileOrRetry(pod *v1.Pod, containerName string, exec podexec.Executor, remoteFile result.File, target *config.TargetConfig) ([]byte, error) {
 	fileBuff := make([]byte, 0, remoteFile.FileSizeInBytes)
 	for i := 0; i <= target.RetrieveFileRetries; i++ {
+		offset := 0
 		n := 0
 		for (remoteFile.FileSizeInBytes - int64(n)) > 0 {
-			_, out, errOut, err := exec.Execute(pod.Namespace, pod.Name, containerName, []string{"sh", "-c", fmt.Sprintf("tail -c+%d %s", n, remoteFile.FileName)})
+			_, out, errOut, err := exec.Execute(pod.Namespace, pod.Name, containerName, []string{"sh", "-c", fmt.Sprintf("tail -c+%d %s", offset, remoteFile.FileName)})
 			if err != nil {
 				return nil, errors.Wrapf(err, "could not download profiler result file from pod: %s", errOut.String())
 			}
-			n += out.Len() + 1
+			n += out.Len()
+			offset += out.Len() + 1
 			fileBuff = append(fileBuff, out.Bytes()...)
 		}
 
 		// check the checksum of the downloaded file
 		checksum := getMD5Hash(fileBuff)
-		//fmt.Printf("\nFile %s downloaded (local: %s | remote: %s)", remoteFile.FileName, checksum, remoteFile.Checksum)
+		log.Debugf("File %s downloaded (local: %s (%d bytes) | remote: %s (%d bytes))", remoteFile.FileName, checksum, len(fileBuff), remoteFile.Checksum, remoteFile.FileSizeInBytes)
 
 		if checksum == remoteFile.Checksum {
 			return fileBuff, nil
 		}
-		fmt.Printf("\nChecksum does not match, retrying: %s...", remoteFile.FileName)
+		log.Debugf("Checksum does not match, retrying: %s...", remoteFile.FileName)
+
+		fileBuff = make([]byte, 0, remoteFile.FileSizeInBytes)
 	}
 
 	// if the checksum does not match after the last retry, return an error
@@ -200,7 +205,7 @@ func retrieveChunkOrRetry(chunk api.ChunkData, pod *v1.Pod, containerName string
 
 		// check the checksum of the downloaded chunk
 		checksum := getMD5Hash(fileBuff)
-		//fmt.Printf("\nChunk file %s downloaded (local: %s | remote: %s)", chunk.File, checksum, chunk.Checksum)
+		log.Debugf("Chunk file %s downloaded (local: %s (%d bytes) | remote: %s (%d bytes))", chunk.File, checksum, len(fileBuff), chunk.Checksum, chunk.FileSizeInBytes)
 
 		// if the checksum matches, write the chunk file to the local filesystem
 		// and return the file name
@@ -213,7 +218,7 @@ func retrieveChunkOrRetry(chunk api.ChunkData, pod *v1.Pod, containerName string
 
 			return fileName, nil
 		}
-		fmt.Printf("\nChecksum does not match, retrying: %s...", chunk.File)
+		log.Debugf("Checksum does not match, retrying: %s...", chunk.File)
 	}
 
 	// if the checksum does not match after the last retry, return an error
@@ -223,14 +228,16 @@ func retrieveChunkOrRetry(chunk api.ChunkData, pod *v1.Pod, containerName string
 // retrieveChunk retrieves the chunk of the remote file from the pod's container
 func retrieveChunk(chunk api.ChunkData, pod *v1.Pod, containerName string, exec podexec.Executor) ([]byte, error) {
 	fileBuff := make([]byte, 0, chunk.FileSizeInBytes)
+	offset := 0
 	n := 0
-	// fmt.Printf("\nDownloading chunk file %s ...", chunk.File)
+	log.Debugf("Downloading chunk file %s ...", chunk.File)
 	for (chunk.FileSizeInBytes - int64(n)) > 0 {
-		_, out, errOut, err := exec.Execute(pod.Namespace, pod.Name, containerName, []string{"sh", "-c", fmt.Sprintf("tail -c+%d %s", n, chunk.File)})
+		_, out, errOut, err := exec.Execute(pod.Namespace, pod.Name, containerName, []string{"sh", "-c", fmt.Sprintf("tail -c+%d %s", offset, chunk.File)})
 		if err != nil {
 			return nil, errors.Wrapf(err, "could not download profiler chunk file from pod: %s", errOut.String())
 		}
-		n += out.Len() + 1
+		n += out.Len()
+		offset += out.Len() + 1
 		fileBuff = append(fileBuff, out.Bytes()...)
 	}
 	return fileBuff, nil

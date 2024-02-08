@@ -5,19 +5,18 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/genericiooptions"
 	"os"
 )
 
 func main() {
-	log.SetFormatter(&log.JSONFormatter{})
 	log.SetLevel(log.InfoLevel)
 	log.SetOutput(os.Stdout)
 
 	flags := pflag.NewFlagSet("kubectl-prof", pflag.ExitOnError)
 	pflag.CommandLine = flags
 
-	streams := genericclioptions.IOStreams{
+	streams := genericiooptions.IOStreams{
 		In:     os.Stdin,
 		Out:    os.Stdout,
 		ErrOut: os.Stderr,

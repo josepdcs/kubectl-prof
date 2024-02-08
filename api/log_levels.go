@@ -8,11 +8,13 @@ const (
 	InfoLevel  LogLevel = "info"
 	WarnLevel  LogLevel = "warn"
 	DebugLevel LogLevel = "debug"
+	TraceLevel LogLevel = "trace"
 	ErrorLevel LogLevel = "error"
+	PanicLevel LogLevel = "panic"
 )
 
 var (
-	logLevels = []LogLevel{InfoLevel, WarnLevel, DebugLevel, ErrorLevel}
+	logLevels = []LogLevel{InfoLevel, WarnLevel, DebugLevel, TraceLevel, ErrorLevel, PanicLevel}
 )
 
 func AvailableLogLevels() []LogLevel {
