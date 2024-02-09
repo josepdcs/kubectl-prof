@@ -130,9 +130,9 @@ func (m *perfManager) invoke(job *job.ProfilingJob, pid string) (error, time.Dur
 }
 
 func (m *perfManager) runPerfRecord(job *job.ProfilingJob, pid string) error {
-	duration := strconv.Itoa(int(job.Duration.Seconds()))
+	interval := strconv.Itoa(int(job.Interval.Seconds()))
 	var stderr bytes.Buffer
-	cmd := m.commander.Command(perfLocation, "record", "-p", pid, "-o", fmt.Sprintf(perfRecordOutputFileName, pid, job.Iteration), "-g", "--", "sleep", duration)
+	cmd := m.commander.Command(perfLocation, "record", "-p", pid, "-o", fmt.Sprintf(perfRecordOutputFileName, pid, job.Iteration), "-g", "--", "sleep", interval)
 	cmd.Stderr = &stderr
 
 	err := cmd.Run()
