@@ -289,8 +289,8 @@ func Test_pythonManager_invoke(t *testing.T) {
 				log.SetPrintLogs(true)
 				var b bytes.Buffer
 				b.Write([]byte("test"))
-				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000.txt"), b.String())
-				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"), b.String())
+				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000-1.txt"), b.String())
+				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000-1.svg"), b.String())
 
 				commander := executil.NewFakeCommander()
 				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
@@ -308,6 +308,7 @@ func Test_pythonManager_invoke(t *testing.T) {
 							Language:         api.FakeLang,
 							Tool:             api.Pyspy,
 							Compressor:       compressor.None,
+							Iteration:        1,
 						},
 						pid: "1000",
 					}
@@ -317,12 +318,12 @@ func Test_pythonManager_invoke(t *testing.T) {
 			},
 			then: func(t *testing.T, fields fields, err error) {
 				assert.Nil(t, err)
-				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
+				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000-1.svg")))
 				assert.True(t, fields.PythonProfiler.PythonManager.(*pythonManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 1)
 			},
 			after: func() {
-				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000.txt"))
-				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"))
+				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000-1.txt"))
+				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000-1.svg"))
 			},
 		},
 		{
@@ -344,6 +345,7 @@ func Test_pythonManager_invoke(t *testing.T) {
 							Language:         api.FakeLang,
 							Compressor:       compressor.None,
 							Tool:             api.Pyspy,
+							Iteration:        1,
 						},
 						pid: "1000",
 					}
@@ -353,11 +355,11 @@ func Test_pythonManager_invoke(t *testing.T) {
 			},
 			then: func(t *testing.T, fields fields, err error) {
 				assert.Nil(t, err)
-				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"threaddump-1000.txt")))
+				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"threaddump-1000-1.txt")))
 				assert.True(t, fields.PythonProfiler.PythonManager.(*pythonManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 1)
 			},
 			after: func() {
-				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"threaddump-1000.txt"))
+				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"threaddump-1000-1.txt"))
 			},
 		},
 		{
@@ -427,8 +429,8 @@ func Test_pythonManager_invoke(t *testing.T) {
 				log.SetPrintLogs(true)
 				var b bytes.Buffer
 				b.Write([]byte("test"))
-				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000.txt"), b.String())
-				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"), b.String())
+				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000-1.txt"), b.String())
+				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000-1.svg"), b.String())
 
 				commander := executil.NewFakeCommander()
 				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
@@ -446,6 +448,7 @@ func Test_pythonManager_invoke(t *testing.T) {
 							Language:         api.FakeLang,
 							Tool:             api.Pyspy,
 							Compressor:       compressor.None,
+							Iteration:        1,
 						},
 						pid: "1000",
 					}
@@ -456,12 +459,12 @@ func Test_pythonManager_invoke(t *testing.T) {
 			then: func(t *testing.T, fields fields, err error) {
 				require.Error(t, err)
 				assert.ErrorContains(t, err, "fake publisher with error")
-				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
+				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000-1.svg")))
 				assert.True(t, fields.PythonProfiler.PythonManager.(*pythonManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 1)
 			},
 			after: func() {
-				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000.txt"))
-				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"))
+				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000-1.txt"))
+				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000-1.svg"))
 			},
 		},
 	}

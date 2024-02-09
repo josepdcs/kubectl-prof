@@ -64,6 +64,7 @@ func Run(p profiler.Profiler, job *job.ProfilingJob) error {
 	iterations := int64(job.Duration.Seconds() / job.Interval.Seconds())
 	var i int64
 	for i = 0; i < iterations; i++ {
+		job.Iteration = int(i) + 1
 		err, d := p.Invoke(job)
 		if err != nil {
 			return err

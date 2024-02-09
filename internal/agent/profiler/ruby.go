@@ -108,7 +108,7 @@ func (p *rubyManager) invoke(job *job.ProfilingJob, pid string) (error, time.Dur
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 
-	fileName := common.GetResultFileWithPID(common.TmpDir(), job.Tool, job.OutputType, pid)
+	fileName := common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType, pid, job.Iteration)
 	cmd := rubyCommand(p.commander, job, pid, fileName)
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr

@@ -116,8 +116,8 @@ func (b *bpfManager) invoke(job *job.ProfilingJob, pid string) (error, time.Dura
 	}
 
 	// out file names is composed by the job info and the pid
-	resultFileName := common.GetResultFileWithPID(common.TmpDir(), job.Tool, job.OutputType, pid)
-	fileName := common.GetResultFileWithPID(common.TmpDir(), job.Tool, api.Raw, pid)
+	resultFileName := common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType, pid, job.Iteration)
+	fileName := common.GetResultFile(common.TmpDir(), job.Tool, api.Raw, pid, job.Iteration)
 	// add process pid legend to each line of the output and write it to the file
 	file.Write(fileName, addProcessPIDLegend(out.String(), pid))
 

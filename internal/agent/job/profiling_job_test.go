@@ -24,6 +24,7 @@ func TestProfilingJob_String(t *testing.T) {
 			"maxsize":  "1024M",
 			"settings": "custom",
 		},
+		Iteration: 0,
 	}
 
 	out := p.String()
@@ -43,6 +44,7 @@ func TestProfilingJob_String(t *testing.T) {
 	assert.Contains(t, out, "FileName")
 	assert.Contains(t, out, "\"maxsize\":\"1024M\"")
 	assert.Contains(t, out, "\"settings\":\"custom\"")
+	assert.Contains(t, out, "0")
 }
 
 func TestProfilingJob_ToMap(t *testing.T) {
@@ -67,12 +69,13 @@ func TestProfilingJob_ToMap(t *testing.T) {
 			"maxsize":  "1024M",
 			"settings": "custom",
 		},
+		Iteration: 0,
 	}
 
 	out := p.ToMap()
 
 	assert.NotEmpty(t, out)
-	assert.Len(t, out, 17)
+	assert.Len(t, out, 18)
 	assert.Equal(t, float64(10), out["Duration"])
 	assert.Equal(t, float64(5), out["Interval"])
 	assert.Equal(t, "ID", out["UID"])
@@ -93,6 +96,7 @@ func TestProfilingJob_ToMap(t *testing.T) {
 		"maxsize":  "1024M",
 		"settings": "custom",
 	}, out["AdditionalArguments"])
+	assert.Equal(t, float64(0), out["Iteration"])
 }
 
 func TestProfilingJob_GetWidthAdditionalArgument(t *testing.T) {

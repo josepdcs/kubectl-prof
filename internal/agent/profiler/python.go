@@ -121,9 +121,9 @@ func (p *pythonManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 
-	fileName := common.GetResultFileWithPID(common.TmpDir(), job.Tool, job.OutputType, pid)
+	fileName := common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType, pid, job.Iteration)
 	if job.OutputType == api.FlameGraph {
-		fileName = common.GetResultFileWithPID(common.TmpDir(), job.Tool, api.Raw, pid)
+		fileName = common.GetResultFile(common.TmpDir(), job.Tool, api.Raw, pid, job.Iteration)
 	}
 	cmd := pythonCommand(p.commander, job, pid, fileName)
 	cmd.Stdout = &out
@@ -135,7 +135,7 @@ func (p *pythonManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 	}
 
 	// result file name is composed by the job info and the pid
-	resultFileName := common.GetResultFileWithPID(common.TmpDir(), job.Tool, job.OutputType, pid)
+	resultFileName := common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType, pid, job.Iteration)
 	if job.OutputType == api.ThreadDump {
 		file.Write(resultFileName, out.String())
 	} else {

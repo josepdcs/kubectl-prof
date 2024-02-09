@@ -12,6 +12,9 @@ import (
 func main() {
 	log.SetLevel(log.InfoLevel)
 	log.SetOutput(os.Stdout)
+	log.SetFormatter(&log.TextFormatter{
+		FullTimestamp: true,
+	})
 
 	flags := pflag.NewFlagSet("kubectl-prof", pflag.ExitOnError)
 	pflag.CommandLine = flags
