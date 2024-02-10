@@ -137,7 +137,7 @@ func (f *fakeJcmdManager) handleProfilingResult(job *job.ProfilingJob, fileName 
 	return err
 }
 
-func (f *fakeJcmdManager) handleJcmdRecording(targetPID string, outputType string) {
+func (f *fakeJcmdManager) handleJcmdRecording(targetPID string, iteration int, outputType string) {
 	f.fakeMethods["handleJcmdRecording"].invokes++
 	if f.fakeMethods["handleJcmdRecording"].fakeReturnValues != nil && len(f.fakeMethods["handleJcmdRecording"].fakeReturnValues) > 0 {
 		f.fakeMethods["handleJcmdRecording"].indexExecution++

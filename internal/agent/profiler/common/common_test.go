@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestGetResultFile(t *testing.T) {
+func TestGetResultFileWithPID(t *testing.T) {
 	type args struct {
 		targetDir string
 		job       *job.ProfilingJob
@@ -28,14 +28,15 @@ func TestGetResultFile(t *testing.T) {
 					job: &job.ProfilingJob{
 						Tool:       api.Jcmd,
 						OutputType: api.Jfr,
+						Iteration:  1,
 					},
 				}
 			},
 			when: func(args args) string {
-				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType)
+				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType, "PID", args.job.Iteration)
 			},
 			then: func(t *testing.T, result string) {
-				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"jfr.jfr"), result)
+				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"jfr-PID-1.jfr"), result)
 			},
 		},
 		{
@@ -46,14 +47,15 @@ func TestGetResultFile(t *testing.T) {
 					job: &job.ProfilingJob{
 						Tool:       api.Jcmd,
 						OutputType: api.ThreadDump,
+						Iteration:  1,
 					},
 				}
 			},
 			when: func(args args) string {
-				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType)
+				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType, "PID", args.job.Iteration)
 			},
 			then: func(t *testing.T, result string) {
-				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"threaddump.txt"), result)
+				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"threaddump-PID-1.txt"), result)
 			},
 		},
 		{
@@ -64,14 +66,15 @@ func TestGetResultFile(t *testing.T) {
 					job: &job.ProfilingJob{
 						Tool:       api.Jcmd,
 						OutputType: api.HeapDump,
+						Iteration:  1,
 					},
 				}
 			},
 			when: func(args args) string {
-				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType)
+				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType, "PID", args.job.Iteration)
 			},
 			then: func(t *testing.T, result string) {
-				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"heapdump.hprof"), result)
+				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"heapdump-PID-1.hprof"), result)
 			},
 		},
 		{
@@ -82,14 +85,15 @@ func TestGetResultFile(t *testing.T) {
 					job: &job.ProfilingJob{
 						Tool:       api.Jcmd,
 						OutputType: api.HeapHistogram,
+						Iteration:  1,
 					},
 				}
 			},
 			when: func(args args) string {
-				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType)
+				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType, "PID", args.job.Iteration)
 			},
 			then: func(t *testing.T, result string) {
-				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"heaphistogram.txt"), result)
+				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"heaphistogram-PID-1.txt"), result)
 			},
 		},
 		{
@@ -100,14 +104,15 @@ func TestGetResultFile(t *testing.T) {
 					job: &job.ProfilingJob{
 						Tool:       api.AsyncProfiler,
 						OutputType: api.Flat,
+						Iteration:  1,
 					},
 				}
 			},
 			when: func(args args) string {
-				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType)
+				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType, "PID", args.job.Iteration)
 			},
 			then: func(t *testing.T, result string) {
-				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"flat.txt"), result)
+				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"flat-PID-1.txt"), result)
 			},
 		},
 		{
@@ -118,14 +123,15 @@ func TestGetResultFile(t *testing.T) {
 					job: &job.ProfilingJob{
 						Tool:       api.AsyncProfiler,
 						OutputType: api.Traces,
+						Iteration:  1,
 					},
 				}
 			},
 			when: func(args args) string {
-				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType)
+				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType, "PID", args.job.Iteration)
 			},
 			then: func(t *testing.T, result string) {
-				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"traces.txt"), result)
+				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"traces-PID-1.txt"), result)
 			},
 		},
 		{
@@ -136,14 +142,15 @@ func TestGetResultFile(t *testing.T) {
 					job: &job.ProfilingJob{
 						Tool:       api.AsyncProfiler,
 						OutputType: api.Collapsed,
+						Iteration:  1,
 					},
 				}
 			},
 			when: func(args args) string {
-				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType)
+				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType, "PID", args.job.Iteration)
 			},
 			then: func(t *testing.T, result string) {
-				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"collapsed.txt"), result)
+				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"collapsed-PID-1.txt"), result)
 			},
 		},
 		{
@@ -154,14 +161,15 @@ func TestGetResultFile(t *testing.T) {
 					job: &job.ProfilingJob{
 						Tool:       api.AsyncProfiler,
 						OutputType: api.Raw,
+						Iteration:  1,
 					},
 				}
 			},
 			when: func(args args) string {
-				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType)
+				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType, "PID", args.job.Iteration)
 			},
 			then: func(t *testing.T, result string) {
-				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"raw.txt"), result)
+				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"raw-PID-1.txt"), result)
 			},
 		},
 		{
@@ -172,14 +180,15 @@ func TestGetResultFile(t *testing.T) {
 					job: &job.ProfilingJob{
 						Tool:       api.AsyncProfiler,
 						OutputType: api.Tree,
+						Iteration:  1,
 					},
 				}
 			},
 			when: func(args args) string {
-				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType)
+				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType, "PID", args.job.Iteration)
 			},
 			then: func(t *testing.T, result string) {
-				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"tree.html"), result)
+				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"tree-PID-1.html"), result)
 			},
 		},
 		{
@@ -190,14 +199,15 @@ func TestGetResultFile(t *testing.T) {
 					job: &job.ProfilingJob{
 						Tool:       api.AsyncProfiler,
 						OutputType: api.FlameGraph,
+						Iteration:  1,
 					},
 				}
 			},
 			when: func(args args) string {
-				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType)
+				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType, "PID", args.job.Iteration)
 			},
 			then: func(t *testing.T, result string) {
-				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"flamegraph.html"), result)
+				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"flamegraph-PID-1.html"), result)
 			},
 		},
 		{
@@ -208,14 +218,15 @@ func TestGetResultFile(t *testing.T) {
 					job: &job.ProfilingJob{
 						Tool:       api.Pyspy,
 						OutputType: api.SpeedScope,
+						Iteration:  1,
 					},
 				}
 			},
 			when: func(args args) string {
-				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType)
+				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType, "PID", args.job.Iteration)
 			},
 			then: func(t *testing.T, result string) {
-				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"speedscope.json"), result)
+				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"speedscope-PID-1.json"), result)
 			},
 		},
 		{
@@ -226,14 +237,15 @@ func TestGetResultFile(t *testing.T) {
 					job: &job.ProfilingJob{
 						Tool:       api.Pyspy,
 						OutputType: api.ThreadDump,
+						Iteration:  1,
 					},
 				}
 			},
 			when: func(args args) string {
-				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType)
+				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType, "PID", args.job.Iteration)
 			},
 			then: func(t *testing.T, result string) {
-				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"threaddump.txt"), result)
+				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"threaddump-PID-1.txt"), result)
 			},
 		},
 		{
@@ -244,14 +256,15 @@ func TestGetResultFile(t *testing.T) {
 					job: &job.ProfilingJob{
 						Tool:       api.Pyspy,
 						OutputType: api.FlameGraph,
+						Iteration:  1,
 					},
 				}
 			},
 			when: func(args args) string {
-				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType)
+				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType, "PID", args.job.Iteration)
 			},
 			then: func(t *testing.T, result string) {
-				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"flamegraph.svg"), result)
+				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"flamegraph-PID-1.svg"), result)
 			},
 		},
 		{
@@ -262,14 +275,15 @@ func TestGetResultFile(t *testing.T) {
 					job: &job.ProfilingJob{
 						Tool:       api.Bpf,
 						OutputType: api.FlameGraph,
+						Iteration:  1,
 					},
 				}
 			},
 			when: func(args args) string {
-				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType)
+				return GetResultFile(args.targetDir, args.job.Tool, args.job.OutputType, "PID", args.job.Iteration)
 			},
 			then: func(t *testing.T, result string) {
-				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"flamegraph.svg"), result)
+				assert.Equal(t, filepath.Join(TmpDir(), config.ProfilingPrefix+"flamegraph-PID-1.svg"), result)
 			},
 		},
 	}

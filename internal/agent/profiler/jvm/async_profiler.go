@@ -154,7 +154,7 @@ func (j *asyncProfilerManager) invoke(job *job.ProfilingJob, pid string) (error,
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 
-	resultFileName := common.GetResultFileWithPID(common.TmpDir(), job.Tool, job.OutputType, pid)
+	resultFileName := common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType, pid, job.Iteration)
 	cmd := asyncProfilerCommand(j.commander, job, pid, resultFileName)
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr

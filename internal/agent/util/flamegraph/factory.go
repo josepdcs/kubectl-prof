@@ -15,8 +15,7 @@ type FrameGrapher interface {
 // Get returns an instance of FrameGrapher
 func Get(job *job.ProfilingJob) FrameGrapher {
 	language := strings.ToTitle(string(job.Language))
-	event := strings.ToTitle(string(job.Event))
-	title := fmt.Sprintf("%s - %s Flamegraph", language, event)
+	title := fmt.Sprintf("%s - CPU Flamegraph", language)
 	switch job.Language {
 	case api.Python, api.Go:
 		return NewFlameGrapherScript(

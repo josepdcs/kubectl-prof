@@ -16,14 +16,9 @@ var TmpDir = func() string {
 	return os.TempDir()
 }
 
-func GetResultFile(targetDir string, tool api.ProfilingTool, outputType api.OutputType) string {
+func GetResultFile(targetDir string, tool api.ProfilingTool, outputType api.OutputType, pid string, iteration int) string {
 	prefix := filepath.Join(targetDir, config.ProfilingPrefix)
-	return prefix + string(outputType) + GetFileExtension(tool, outputType)
-}
-
-func GetResultFileWithPID(targetDir string, tool api.ProfilingTool, outputType api.OutputType, pid string) string {
-	prefix := filepath.Join(targetDir, config.ProfilingPrefix)
-	return fmt.Sprint(prefix, string(outputType), "-", pid, GetFileExtension(tool, outputType))
+	return fmt.Sprint(prefix, string(outputType), "-", pid, "-", iteration, GetFileExtension(tool, outputType))
 }
 
 func GetFileExtension(tool api.ProfilingTool, outputType api.OutputType) string {

@@ -24,9 +24,9 @@ import (
 
 const (
 	perfLocation                    = "/app/perf"
-	perfRecordOutputFileName        = "/tmp/perf-%s.data"
+	perfRecordOutputFileName        = "/tmp/perf-%s-%d.data"
 	flameGraphStackCollapseLocation = "/app/FlameGraph/stackcollapse-perf.pl"
-	perfScriptOutputFileName        = "/tmp/perf-%s.out"
+	perfScriptOutputFileName        = "/tmp/perf-%s-%d.out"
 	perfDelayBetweenJobs            = 2 * time.Second
 )
 
@@ -118,7 +118,7 @@ func (m *perfManager) invoke(job *job.ProfilingJob, pid string) (error, time.Dur
 	}
 
 	// out file names is composed by the job info and the pid
-	resultFileName := common.GetResultFileWithPID(common.TmpDir(), job.Tool, job.OutputType, pid)
+	resultFileName := common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType, pid, job.Iteration)
 
 	err = m.handleFlamegraph(job, flamegraph.Get(job), fileName, resultFileName)
 	if err != nil {
@@ -130,9 +130,9 @@ func (m *perfManager) invoke(job *job.ProfilingJob, pid string) (error, time.Dur
 }
 
 func (m *perfManager) runPerfRecord(job *job.ProfilingJob, pid string) error {
-	duration := strconv.Itoa(int(job.Duration.Seconds()))
+	interval := strconv.Itoa(int(job.Interval.Seconds()))
 	var stderr bytes.Buffer
-	cmd := m.commander.Command(perfLocation, "record", "-p", pid, "-o", fmt.Sprintf(perfRecordOutputFileName, pid), "-g", "--", "sleep", duration)
+	cmd := m.commander.Command(perfLocation, "record", "-p", pid, "-o", fmt.Sprintf(perfRecordOutputFileName, pid, job.Iteration), "-g", "--", "sleep", interval)
 	cmd.Stderr = &stderr
 
 	err := cmd.Run()
@@ -143,7 +143,7 @@ func (m *perfManager) runPerfRecord(job *job.ProfilingJob, pid string) error {
 }
 
 func (m *perfManager) runPerfScript(job *job.ProfilingJob, pid string) error {
-	f, err := os.Create(fmt.Sprintf(perfScriptOutputFileName, pid))
+	f, err := os.Create(fmt.Sprintf(perfScriptOutputFileName, pid, job.Iteration))
 	if err != nil {
 		return err
 	}
@@ -156,7 +156,7 @@ func (m *perfManager) runPerfScript(job *job.ProfilingJob, pid string) error {
 	}(f)
 
 	var stderr bytes.Buffer
-	cmd := m.commander.Command(perfLocation, "script", "-i", fmt.Sprintf(perfRecordOutputFileName, pid))
+	cmd := m.commander.Command(perfLocation, "script", "-i", fmt.Sprintf(perfRecordOutputFileName, pid, job.Iteration))
 	cmd.Stdout = f
 	cmd.Stderr = &stderr
 
@@ -171,7 +171,7 @@ func (m *perfManager) foldPerfOutput(job *job.ProfilingJob, pid string) (error, 
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 
-	cmd := m.commander.Command(flameGraphStackCollapseLocation, fmt.Sprintf(perfScriptOutputFileName, pid))
+	cmd := m.commander.Command(flameGraphStackCollapseLocation, fmt.Sprintf(perfScriptOutputFileName, pid, job.Iteration))
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 
@@ -182,7 +182,7 @@ func (m *perfManager) foldPerfOutput(job *job.ProfilingJob, pid string) (error, 
 	}
 
 	// out file name is composed by the job info and the pid
-	fileName := common.GetResultFileWithPID(common.TmpDir(), job.Tool, api.Raw, pid)
+	fileName := common.GetResultFile(common.TmpDir(), job.Tool, api.Raw, pid, job.Iteration)
 	// add process pid legend to each line of the output and write it to the file
 	file.Write(fileName, addProcessPIDLegend(out.String(), pid))
 

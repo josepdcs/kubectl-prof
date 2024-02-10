@@ -30,6 +30,7 @@ type ProfilingJob struct {
 	PID                      string
 	Pgrep                    string
 	AdditionalArguments      map[string]string
+	Iteration                int
 }
 
 func (p *ProfilingJob) String() string {
