@@ -29,7 +29,7 @@ const (
 	jcmd                     = "/opt/jdk/bin/jcmd"
 	jfrSettingsImageFilePath = "/app/jfr/settings/jfr-profile.jfc"
 	jfrSettingsTmpFilePath   = "/tmp/jfr-profile.jfc"
-	invocationName           = "name=pid_"
+	invocationName           = "name=pid_%s_%d_%s"
 	jcmdDelayBetweenJobs     = 2 * time.Second
 )
 
@@ -52,12 +52,14 @@ var jcmdCommand = func(commander executil.Commander, job *job.ProfilingJob, pid 
 
 	// default api.Jfr
 	interval := strconv.Itoa(int(job.Interval.Seconds()))
-	args := []string{pid, "JFR.start", "duration=" + interval + "s", "filename=" + fileName, invocationName + pid + "_" + string(job.OutputType), "settings=" + jfrSettingsTmpFilePath}
+	name := fmt.Sprintf(invocationName, pid, job.Iteration, string(job.OutputType))
+	args := []string{pid, "JFR.start", "duration=" + interval + "s", "filename=" + fileName, name, "settings=" + jfrSettingsTmpFilePath}
 	return commander.Command(jcmd, args...)
 }
 
 var jcmdStopCommand = func(commander executil.Commander, job *job.ProfilingJob, pid string) *exec.Cmd {
-	return commander.Command(jcmd, pid, "JFR.stop", invocationName+pid+"_"+string(job.OutputType))
+	name := fmt.Sprintf(invocationName, pid, job.Iteration, string(job.OutputType))
+	return commander.Command(jcmd, pid, "JFR.stop", name)
 }
 
 type JcmdProfiler struct {
@@ -72,7 +74,7 @@ type JcmdManager interface {
 	copyJfrSettingsToTmpDir() error
 	invoke(*job.ProfilingJob, string) (error, time.Duration)
 	handleProfilingResult(job *job.ProfilingJob, fileName string, out bytes.Buffer, targetPID string) error
-	handleJcmdRecording(targetPID string, outputType string)
+	handleJcmdRecording(targetPID string, iteration int, outputType string)
 	publishResult(compressor compressor.Type, fileName string, outputType api.OutputType, heapDumpSplitInChunkSize string) error
 	cleanUp(*job.ProfilingJob, string)
 }
@@ -193,7 +195,7 @@ func (j *jcmdManager) invoke(job *job.ProfilingJob, pid string) (error, time.Dur
 func (j *jcmdManager) handleProfilingResult(job *job.ProfilingJob, fileName string, out bytes.Buffer, pid string) error {
 	switch job.OutputType {
 	case api.Jfr:
-		j.handleJcmdRecording(pid, string(job.OutputType))
+		j.handleJcmdRecording(pid, job.Iteration, string(job.OutputType))
 	case api.ThreadDump, api.HeapHistogram:
 		err := os.WriteFile(fileName, out.Bytes(), 0644)
 		if err != nil {
@@ -206,7 +208,7 @@ func (j *jcmdManager) handleProfilingResult(job *job.ProfilingJob, fileName stri
 	return nil
 }
 
-func (j *jcmdManager) handleJcmdRecording(pid string, outputType string) {
+func (j *jcmdManager) handleJcmdRecording(pid string, iteration int, outputType string) {
 	done := make(chan bool)
 
 	go func(pid string) {
@@ -221,7 +223,8 @@ func (j *jcmdManager) handleJcmdRecording(pid string, outputType string) {
 			default:
 				var out bytes.Buffer
 				var stderr bytes.Buffer
-				cmd := silentJcmdCommander.Command(jcmd, pid, "JFR.check", "name=pid_"+pid+"_"+outputType)
+				name := fmt.Sprintf(invocationName, pid, iteration, outputType)
+				cmd := silentJcmdCommander.Command(jcmd, pid, "JFR.check", name)
 				cmd.Stdout = &out
 				cmd.Stderr = &stderr
 				err := cmd.Run()
