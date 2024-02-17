@@ -1,25 +1,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ruby-deployment
+  name: php-deployment
   namespace: stupid-apps
   labels:
-    app: ruby
+    app: php
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ruby
+      app: php
   template:
     metadata:
       labels:
-        app: ruby
+        app: php
     spec:
       containers:
-      - name: ruby
-        #image: localhost/stupid-apps/ruby:latest
+      - name: php
+        #image: localhost/stupid-apps/php:latest
         #imagePullPolicy: Never
-        image: docker.io/josepdcs/ruby:latest
+        image: docker.io/josepdcs/php:latest
         imagePullPolicy: Always
         resources:
           limits:
