@@ -118,7 +118,7 @@ func (b *bpfCreator) getImageName(t *config.TargetConfig) string {
 
 func (b *bpfCreator) getObjectMeta(id string, cfg *config.ProfilerConfig) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
-		Name:      fmt.Sprintf("%s-%s-bpf-%s", ContainerName, cfg.Target.Language, id),
+		Name:      fmt.Sprintf("%s-bpf-%s", ContainerName, id),
 		Namespace: cfg.Job.Namespace,
 		Labels: map[string]string{
 			LabelID: id,
