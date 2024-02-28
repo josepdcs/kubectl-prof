@@ -34,6 +34,8 @@ func Get(tool api.ProfilingTool) Profiler {
 		return NewPerfProfiler(executil.NewCommander(), publish.NewPublisher())
 	case api.Rbspy:
 		return NewRubyProfiler(executil.NewCommander(), publish.NewPublisher())
+	case api.Phpspy:
+		return NewPhpProfiler(executil.NewCommander(), publish.NewPublisher())
 	default:
 		// util for tests
 		return NewMockProfiler()

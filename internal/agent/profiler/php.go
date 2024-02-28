@@ -17,13 +17,12 @@ import (
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
 	"github.com/pkg/errors"
-	"os"
 	"strconv"
 	"time"
 )
 
 const (
-	phpLocation              = "/app/php"
+	phpSpyLocation           = "/app/phpspy"
 	phpRecordOutputFileName  = "/tmp/php-%s-%d.data"
 	phpStackCollapseLocation = "/app/stackcollapse-phpspy.pl"
 	phpScriptOutputFileName  = "/tmp/php-%s-%d.out"
@@ -39,7 +38,6 @@ type PhpProfiler struct {
 type PhpManager interface {
 	invoke(job *job.ProfilingJob, pid string) (error, time.Duration)
 	runPhpRecord(job *job.ProfilingJob, pid string) error
-	runPhpScript(job *job.ProfilingJob, pid string) error
 	foldPhpOutput(job *job.ProfilingJob, pid string) (error, string)
 	handleFlamegraph(*job.ProfilingJob, flamegraph.FrameGrapher, string, string) error
 }
@@ -107,11 +105,6 @@ func (m *phpManager) invoke(job *job.ProfilingJob, pid string) (error, time.Dura
 		return errors.Wrap(err, "php record failed"), time.Since(start)
 	}
 
-	err = m.runPhpScript(job, pid)
-	if err != nil {
-		return errors.Wrap(err, "php script failed"), time.Since(start)
-	}
-
 	err, fileName := m.foldPhpOutput(job, pid)
 	if err != nil {
 		return errors.Wrap(err, "folding php output failed"), time.Since(start)
@@ -129,38 +122,16 @@ func (m *phpManager) invoke(job *job.ProfilingJob, pid string) (error, time.Dura
 	return m.publisher.Do(job.Compressor, resultFileName, job.OutputType), time.Since(start)
 }
 
+//./phpspy -c -p 62007 -i 3000 -o traces.data
+//./stackcollapse-phpspy.pl <traces.data | ./vendor/flamegraph.pl >flame.svg
+
 func (m *phpManager) runPhpRecord(job *job.ProfilingJob, pid string) error {
-	interval := strconv.Itoa(int(job.Interval.Seconds()))
+	interval := strconv.Itoa(int(job.Interval.Milliseconds()))
 	var stderr bytes.Buffer
-	cmd := m.commander.Command(phpLocation, "record", "-p", pid, "-o", fmt.Sprintf(phpRecordOutputFileName, pid, job.Iteration), "-g", "--", "sleep", interval)
+	cmd := m.commander.Command(phpSpyLocation, "-c", "-p", pid, "-o", fmt.Sprintf(phpRecordOutputFileName, pid, job.Iteration), "-i", interval)
 	cmd.Stderr = &stderr
 
 	err := cmd.Run()
-	if err != nil {
-		log.ErrorLogLn(stderr.String())
-	}
-	return err
-}
-
-func (m *phpManager) runPhpScript(job *job.ProfilingJob, pid string) error {
-	f, err := os.Create(fmt.Sprintf(phpScriptOutputFileName, pid, job.Iteration))
-	if err != nil {
-		return err
-	}
-	defer func(f *os.File) {
-		err := f.Close()
-		if err != nil {
-			fmt.Printf("error closing resource: %s", err)
-			return
-		}
-	}(f)
-
-	var stderr bytes.Buffer
-	cmd := m.commander.Command(phpLocation, "script", "-i", fmt.Sprintf(phpRecordOutputFileName, pid, job.Iteration))
-	cmd.Stdout = f
-	cmd.Stderr = &stderr
-
-	err = cmd.Run()
 	if err != nil {
 		log.ErrorLogLn(stderr.String())
 	}
@@ -171,7 +142,7 @@ func (m *phpManager) foldPhpOutput(job *job.ProfilingJob, pid string) (error, st
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 
-	cmd := m.commander.Command(flameGraphStackCollapseLocation, fmt.Sprintf(phpScriptOutputFileName, pid, job.Iteration))
+	cmd := m.commander.Command(phpStackCollapseLocation, fmt.Sprintf(phpRecordOutputFileName, pid, job.Iteration))
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 

@@ -14,8 +14,10 @@ RUN make
 WORKDIR /
 RUN git clone https://github.com/brendangregg/FlameGraph
 
+
+#https://github.com/jish/pre-commit/issues/265
 FROM php:7.3-fpm-alpine
-RUN apk add --update --no-cache perl procps strace
+RUN apk add --update --no-cache perl procps strace binutils
 RUN mkdir -p /app/FlameGraph
 COPY --from=phpspybuild /phpspy/phpspy /app/phpspy
 COPY --from=phpspybuild /phpspy/stackcollapse-phpspy.pl /app/stackcollapse-phpspy.pl

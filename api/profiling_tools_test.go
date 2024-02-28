@@ -39,6 +39,11 @@ func TestIsSupportedProfilingTool(t *testing.T) {
 			then:  true,
 		},
 		{
+			name:  "phpspy",
+			given: "phpspy",
+			then:  true,
+		},
+		{
 			name:  "not found",
 			given: "bpf2",
 			then:  false,
