@@ -7,20 +7,39 @@ RUN go get -d -v ./...
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof/cmd/agent
 RUN go build -o /go/bin/agent
 
-FROM --platform=$BUILDPLATFORM alpine:3.18.4 AS tools
+FROM --platform=$BUILDPLATFORM amazoncorretto:11-alpine-jdk AS async-profiler-builder
 ARG TARGETPLATFORM
-RUN apk add --no-cache curl wget
-# Download async-profiler
-RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then ARCHITECTURE=x64; elif [ "$TARGETPLATFORM" = "linux/arm64" ]; then ARCHITECTURE=arm64; else ARCHITECTURE=x64; fi \
-&& wget -O async-profiler-${ASYNCP_VERSION}-linux-${ARCHITECTURE}.tar.gz https://github.com/jvm-profiling-tools/async-profiler/releases/download/v${ASYNCP_VERSION}/async-profiler-${ASYNCP_VERSION}-linux-${ARCHITECTURE}.tar.gz \
-&& tar -xf async-profiler-${ASYNCP_VERSION}-linux-${ARCHITECTURE}.tar.gz && mv async-profiler-${ASYNCP_VERSION}-linux-${ARCHITECTURE} async-profiler
+ARG ASYNCP_VERSION=2.9
+RUN apk add --no-cache curl tar wget g++ linux-headers musl-dev git make
+WORKDIR /src
+RUN git clone --branch v${ASYNCP_VERSION} --depth 1 https://github.com/async-profiler/async-profiler
+WORKDIR /src/async-profiler
+RUN make CXXFLAGS='-O3 -fno-omit-frame-pointer -fvisibility=hidden -D_LARGEFILE64_SOURCE' all native; \
+    tree -d /src;
 
-FROM --platform=$TARGETPLATFORM amazoncorretto:$JAVA_VERSION_TAG-alpine
+FROM --platform=$BUILDPLATFORM eclipse-temurin:$JAVA_VERSION_TAG-alpine AS tools
+ARG TARGETPLATFORM
+ARG ASYNCP_VERSION=2.9
+RUN apk add --no-cache curl tar wget g++ linux-headers git make
+# Echo variables to debug and ensure they hold the expected values
+RUN echo "ASYNCP_VERSION=${ASYNCP_VERSION}, TARGETPLATFORM=${TARGETPLATFORM}"
+
+RUN $JAVA_HOME/bin/jlink \
+         --module-path jmods \
+         --add-modules jdk.jcmd \
+         --strip-debug \
+         --no-man-pages \
+         --no-header-files \
+         --compress=2 \
+         --output /jcmd
+
+FROM --platform=$TARGETPLATFORM alpine:3.18.4
 RUN mkdir -p /app/async-profiler/build
 RUN apk add --no-cache procps
 COPY --from=agentbuild /go/bin/agent /app
 COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/jvm/profiler.sh /app/async-profiler
-COPY --from=tools /async-profiler/build /app/async-profiler/build
+COPY --from=async-profiler-builder /src/async-profiler/build /app/async-profiler/build
+COPY --from=tools /jcmd /opt/jdk
 RUN chmod +x /app/async-profiler/profiler.sh
 RUN mkdir -p /app/jfr/settings
 COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/jvm/jfr-profile.jfc /app/jfr/settings
