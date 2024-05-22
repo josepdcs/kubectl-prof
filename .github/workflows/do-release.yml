@@ -42,6 +42,12 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -49,9 +55,10 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
       - name: Build and Push JVM Agent Image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v5
         with:
           context: .
+          platforms: linux/amd64,linux/arm64
           file: 'docker/jvm/Dockerfile'
           push: true
           tags: |
@@ -59,9 +66,10 @@ jobs:
             ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-jvm
 
       - name: Build and Push JVM Alpine Agent Image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v5
         with:
           context: .
+          platforms: linux/amd64,linux/arm64
           file: 'docker/jvm/alpine/Dockerfile'
           push: true
           tags: |
@@ -69,9 +77,10 @@ jobs:
             ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-jvm-alpine
 
       - name: Build and Push BPF Agent Image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v5
         with:
           context: .
+          platforms: linux/amd64,linux/arm64
           file: 'docker/bpf/Dockerfile'
           push: true
           tags: |
@@ -79,9 +88,10 @@ jobs:
             ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-bpf
 
       - name: Build and Push Python Agent Image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v5
         with:
           context: .
+          platforms: linux/amd64,linux/arm64
           file: 'docker/python/Dockerfile'
           push: true
           tags: |
@@ -89,9 +99,10 @@ jobs:
             ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-python
 
       - name: Build and Push Ruby Agent Image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v5
         with:
           context: .
+          platforms: linux/amd64,linux/arm64
           file: 'docker/ruby/Dockerfile'
           push: true
           tags: |
@@ -99,9 +110,10 @@ jobs:
             ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-ruby
 
       - name: Build and Push Perf Agent Image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v5
         with:
           context: .
+          platforms: linux/amd64,linux/arm64
           file: 'docker/perf/Dockerfile'
           push: true
           tags: |
