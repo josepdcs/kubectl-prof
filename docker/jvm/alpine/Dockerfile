@@ -35,7 +35,7 @@ RUN $JAVA_HOME/bin/jlink \
 
 FROM --platform=$TARGETPLATFORM alpine:3.18.4
 RUN mkdir -p /app/async-profiler/build
-RUN apk add --no-cache procps
+RUN apk add --no-cache procps coreutils
 COPY --from=agentbuild /go/bin/agent /app
 COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/jvm/profiler.sh /app/async-profiler
 COPY --from=async-profiler-builder /src/async-profiler/build /app/async-profiler/build

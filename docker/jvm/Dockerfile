@@ -7,10 +7,10 @@ WORKDIR /go/src/github.com/josepdcs/kubectl-prof/cmd/agent
 RUN go build -o /go/bin/agent
 
 
-FROM --platform=$BUILDPLATFORM eclipse-temurin:$JAVA_VERSION_TAG-alpine AS tools
+FROM --platform=$BUILDPLATFORM eclipse-temurin:$JAVA_VERSION_TAG AS tools
 ARG TARGETPLATFORM
 ARG ASYNCP_VERSION=2.9
-RUN apk add --no-cache curl tar wget
+RUN apt-get update && apt-get install -y curl tar wget
 # Echo variables to debug and ensure they hold the expected values
 RUN echo "ASYNCP_VERSION=${ASYNCP_VERSION}, TARGETPLATFORM=${TARGETPLATFORM}"
 
@@ -34,11 +34,10 @@ RUN mkdir -p /app/async-profiler/build
 COPY --from=agentbuild /go/bin/agent /app
 COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/jvm/profiler.sh /app/async-profiler
 COPY --from=tools /async-profiler/build /app/async-profiler/build
-COPY --from=tools /jcmd /opt/jdk/bin/jcmd
+COPY --from=tools /jcmd /opt/jdk
 RUN chmod +x /app/async-profiler/profiler.sh
 RUN mkdir -p /app/jfr/settings
 COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/jvm/jfr-profile.jfc /app/jfr/settings
-# COPY --from=tools /jdk /opt/jdk
 COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/get-ps-command.sh /app/get-ps-command.sh
 RUN chmod +x /app/get-ps-command.sh
 
