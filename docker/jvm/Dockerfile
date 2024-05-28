@@ -1,31 +1,43 @@
-FROM golang:1.21.6-bullseye AS agentbuild
+ARG JAVA_VERSION_TAG=21
+FROM --platform=$BUILDPLATFORM golang:1.21.6-bullseye AS agentbuild
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof
 ADD . /go/src/github.com/josepdcs/kubectl-prof
 RUN go get -d -v ./...
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof/cmd/agent
 RUN go build -o /go/bin/agent
 
-FROM alpine:3.18.4 AS tools
-RUN apk add --no-cache curl
-# Download async-profiler
-RUN curl -o async-profiler-2.9-linux-x64.tar.gz -L \
-    https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.9/async-profiler-2.9-linux-x64.tar.gz
-RUN tar -xf async-profiler-2.9-linux-x64.tar.gz && mv async-profiler-2.9-linux-x64 async-profiler
-# Download jdk-21
-RUN curl -o jdk-21.0.1+12.tar.gz -L \
-    https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.1+12/OpenJDK21U-jdk_x64_linux_hotspot_21.0.1_12.tar.gz
-RUN tar -xf jdk-21.0.1+12.tar.gz && mv jdk-21.0.1+12 jdk
 
-FROM bitnami/minideb:bullseye
+FROM --platform=$BUILDPLATFORM eclipse-temurin:$JAVA_VERSION_TAG AS tools
+ARG TARGETPLATFORM
+ARG ASYNCP_VERSION=2.9
+RUN apt-get update && apt-get install -y curl tar wget
+# Echo variables to debug and ensure they hold the expected values
+RUN echo "ASYNCP_VERSION=${ASYNCP_VERSION}, TARGETPLATFORM=${TARGETPLATFORM}"
+
+RUN $JAVA_HOME/bin/jlink \
+         --module-path jmods \
+         --add-modules jdk.jcmd \
+         --strip-debug \
+         --no-man-pages \
+         --no-header-files \
+         --compress=2 \
+         --output /jcmd
+
+# Determine the architecture based on the platform
+RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then ARCHITECTURE=x64; elif [ "$TARGETPLATFORM" = "linux/arm64" ]; then ARCHITECTURE=arm64; else ARCHITECTURE=x64; fi \
+&& wget -O async-profiler-${ASYNCP_VERSION}-linux-${ARCHITECTURE}.tar.gz https://github.com/jvm-profiling-tools/async-profiler/releases/download/v${ASYNCP_VERSION}/async-profiler-${ASYNCP_VERSION}-linux-${ARCHITECTURE}.tar.gz \
+&& tar -xf async-profiler-${ASYNCP_VERSION}-linux-${ARCHITECTURE}.tar.gz && mv async-profiler-${ASYNCP_VERSION}-linux-${ARCHITECTURE} async-profiler
+
+FROM --platform=$TARGETPLATFORM bitnami/minideb:bullseye
 RUN apt-get update && apt-get install -y procps strace sudo gzip
 RUN mkdir -p /app/async-profiler/build
 COPY --from=agentbuild /go/bin/agent /app
 COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/jvm/profiler.sh /app/async-profiler
 COPY --from=tools /async-profiler/build /app/async-profiler/build
+COPY --from=tools /jcmd /opt/jdk
 RUN chmod +x /app/async-profiler/profiler.sh
 RUN mkdir -p /app/jfr/settings
 COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/jvm/jfr-profile.jfc /app/jfr/settings
-COPY --from=tools /jdk /opt/jdk
 COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/get-ps-command.sh /app/get-ps-command.sh
 RUN chmod +x /app/get-ps-command.sh
 

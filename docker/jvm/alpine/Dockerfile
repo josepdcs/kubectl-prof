@@ -1,31 +1,48 @@
-FROM golang:1.21.6-alpine AS agentbuild
+ARG JAVA_VERSION_TAG=21
+ARG ASYNCP_VERSION=2.9
+FROM --platform=$BUILDPLATFORM golang:1.21.6-alpine AS agentbuild
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof
 ADD . /go/src/github.com/josepdcs/kubectl-prof
 RUN go get -d -v ./...
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof/cmd/agent
 RUN go build -o /go/bin/agent
 
-FROM alpine:3.18.4 AS tools
-RUN apk add --no-cache curl
-# Download async-profiler
-RUN curl -o async-profiler-2.8-linux-musl-x64.tar.gz -L \
-    https://github.com/async-profiler/async-profiler/releases/download/v2.9/async-profiler-2.9-linux-musl-x64.tar.gz
-RUN tar -xvf async-profiler-2.8-linux-musl-x64.tar.gz && mv async-profiler-2.9-linux-musl-x64 async-profiler
-# Download jdk
-RUN curl -o jdk-21.0.1+12.tar.gz -L \
-    https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.1+12/OpenJDK21U-jdk_x64_alpine-linux_hotspot_21.0.1_12.tar.gz
-RUN tar -xf jdk-21.0.1+12.tar.gz && mv jdk-21.0.1+12 jdk
+FROM --platform=$BUILDPLATFORM amazoncorretto:11-alpine-jdk AS async-profiler-builder
+ARG TARGETPLATFORM
+ARG ASYNCP_VERSION=2.9
+RUN apk add --no-cache curl tar wget g++ linux-headers musl-dev git make
+WORKDIR /src
+RUN git clone --branch v${ASYNCP_VERSION} --depth 1 https://github.com/async-profiler/async-profiler
+WORKDIR /src/async-profiler
+RUN make CXXFLAGS='-O3 -fno-omit-frame-pointer -fvisibility=hidden -D_LARGEFILE64_SOURCE' all native; \
+    tree -d /src;
 
-FROM alpine:3.18.4
+FROM --platform=$BUILDPLATFORM eclipse-temurin:$JAVA_VERSION_TAG-alpine AS tools
+ARG TARGETPLATFORM
+ARG ASYNCP_VERSION=2.9
+RUN apk add --no-cache curl tar wget g++ linux-headers git make
+# Echo variables to debug and ensure they hold the expected values
+RUN echo "ASYNCP_VERSION=${ASYNCP_VERSION}, TARGETPLATFORM=${TARGETPLATFORM}"
+
+RUN $JAVA_HOME/bin/jlink \
+         --module-path jmods \
+         --add-modules jdk.jcmd \
+         --strip-debug \
+         --no-man-pages \
+         --no-header-files \
+         --compress=2 \
+         --output /jcmd
+
+FROM --platform=$TARGETPLATFORM alpine:3.18.4
 RUN mkdir -p /app/async-profiler/build
-RUN apk add --no-cache procps
+RUN apk add --no-cache procps coreutils
 COPY --from=agentbuild /go/bin/agent /app
 COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/jvm/profiler.sh /app/async-profiler
-COPY --from=tools /async-profiler/build /app/async-profiler/build
+COPY --from=async-profiler-builder /src/async-profiler/build /app/async-profiler/build
+COPY --from=tools /jcmd /opt/jdk
 RUN chmod +x /app/async-profiler/profiler.sh
 RUN mkdir -p /app/jfr/settings
 COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/jvm/jfr-profile.jfc /app/jfr/settings
-COPY --from=tools /jdk /opt/jdk
 COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/get-ps-command.sh /app/get-ps-command.sh
 RUN chmod +x /app/get-ps-command.sh
 

@@ -18,6 +18,8 @@ DOCKER_PYTHON_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-python
 DOCKERFILE_PYTHON ?= ./docker/python/Dockerfile
 DOCKER_RUBY_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-ruby
 DOCKERFILE_RUBY ?= ./docker/ruby/Dockerfile
+DOCKER_TARGET_PLATFORM ?= linux/amd64,linux/arm64
+DOCKER_BUILD_ADDITIONAL_ARGS ?= 
 
 M = $(shell printf "\033[34;1m▶\033[0m")
 
@@ -55,7 +57,7 @@ build-agent: install-deps ## Build the binary file
 .PHONY: build-docker-jvm
 build-docker-jvm:
 	$(info $(M) building JVM docker image...)
-	@docker build -t ${DOCKER_JVM_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_JVM) .
+	@docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} --progress plain --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_JVM_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_JVM) .
 
 ## push-docker-jvm: Build and push the JVM docker image
 .PHONY: push-docker-jvm
@@ -67,7 +69,7 @@ push-docker-jvm: build-docker-jvm
 .PHONY: build-docker-jvm-alpine
 build-docker-jvm-alpine:
 	$(info $(M) building JVM Alpine docker image...)
-	@docker build -t ${DOCKER_JVM_ALPINE_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_JVM_ALPINE) .
+	@docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} --progress plain --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_JVM_ALPINE_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_JVM_ALPINE) .
 
 ## push-docker-jvm-alpine: Build and push the JVM docker image for Alpine
 .PHONY: push-docker-jvm-alpine
@@ -79,7 +81,7 @@ push-docker-jvm-alpine: build-docker-jvm-alpine
 .PHONY: build-docker-bpf
 build-docker-bpf:
 	$(info $(M) building BPF docker image...)
-	docker build -t ${DOCKER_BPF_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_BPF) .
+	docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_BPF_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_BPF) .
 
 ## push-docker-bpf: Build and push the BPF docker image
 .PHONY: push-docker-bpf
@@ -91,7 +93,7 @@ push-docker-bpf: build-docker-bpf
 .PHONY: build-docker-perf
 build-docker-perf:
 	$(info $(M) building PERF docker image...)
-	docker build --no-cache -t ${DOCKER_PERF_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_PERF) .
+	docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} --platform=${DOCKER_TARGET_PLATFORM} --no-cache -t ${DOCKER_PERF_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_PERF) .
 
 ## push-docker-perf: Build and push the PERF docker image
 .PHONY: push-docker-perf
@@ -103,7 +105,7 @@ push-docker-perf: build-docker-perf
 .PHONY: build-docker-python
 build-docker-python:
 	$(info $(M) building PYTHON docker image...)
-	docker build -t ${DOCKER_PYTHON_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_PYTHON) .
+	docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_PYTHON_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_PYTHON) .
 
 ## push-docker-python: Build and push the PYTHON docker image
 .PHONY: push-docker-python
@@ -115,7 +117,7 @@ push-docker-python: build-docker-python
 .PHONY: build-docker-ruby
 build-docker-ruby:
 	$(info $(M) building RUBY docker image...)
-	docker build -t ${DOCKER_RUBY_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_RUBY) .
+	docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_RUBY_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_RUBY) .
 
 ## push-docker-ruby: Build and push the RUBY docker image
 .PHONY: push-docker-ruby
