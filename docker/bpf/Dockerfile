@@ -1,15 +1,15 @@
-FROM golang:1.21.6-alpine AS agentbuild
+FROM golang:1.22.4-alpine AS agentbuild
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof
 ADD . /go/src/github.com/josepdcs/kubectl-prof
 RUN go get -d -v ./...
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof/cmd/agent
 RUN go build -o /go/bin/agent
 
-FROM alpine:3.18.4 AS builder
+FROM alpine:3.20.1 AS builder
 RUN apk add --no-cache git
 RUN git clone https://github.com/brendangregg/FlameGraph
 
-FROM alpine:3.18.4
+FROM alpine:3.20.1
 RUN apk add --no-cache bash bcc-tools perl procps strace
 RUN mkdir -p /app/FlameGraph
 COPY --from=builder /FlameGraph /app/FlameGraph

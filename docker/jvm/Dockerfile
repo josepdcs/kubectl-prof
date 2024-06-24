@@ -1,5 +1,5 @@
 ARG JAVA_VERSION_TAG=21
-FROM --platform=$BUILDPLATFORM golang:1.21.6-bullseye AS agentbuild
+FROM --platform=$BUILDPLATFORM golang:1.22.4-bullseye AS agentbuild
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof
 ADD . /go/src/github.com/josepdcs/kubectl-prof
 RUN go get -d -v ./...
@@ -28,8 +28,8 @@ RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then ARCHITECTURE=x64; elif [ "$TA
 && wget -O async-profiler-${ASYNCP_VERSION}-linux-${ARCHITECTURE}.tar.gz https://github.com/jvm-profiling-tools/async-profiler/releases/download/v${ASYNCP_VERSION}/async-profiler-${ASYNCP_VERSION}-linux-${ARCHITECTURE}.tar.gz \
 && tar -xf async-profiler-${ASYNCP_VERSION}-linux-${ARCHITECTURE}.tar.gz && mv async-profiler-${ASYNCP_VERSION}-linux-${ARCHITECTURE} async-profiler
 
-FROM --platform=$TARGETPLATFORM bitnami/minideb:bullseye
-RUN apt-get update && apt-get install -y procps strace sudo gzip
+FROM --platform=$TARGETPLATFORM bitnami/minideb:bookworm
+RUN apt-get update && apt-get install -y procps strace gzip
 RUN mkdir -p /app/async-profiler/build
 COPY --from=agentbuild /go/bin/agent /app
 COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/jvm/profiler.sh /app/async-profiler

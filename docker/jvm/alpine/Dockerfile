@@ -1,6 +1,6 @@
 ARG JAVA_VERSION_TAG=21
 ARG ASYNCP_VERSION=2.9
-FROM --platform=$BUILDPLATFORM golang:1.21.6-alpine AS agentbuild
+FROM --platform=$BUILDPLATFORM golang:1.22.4-alpine AS agentbuild
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof
 ADD . /go/src/github.com/josepdcs/kubectl-prof
 RUN go get -d -v ./...
@@ -33,7 +33,7 @@ RUN $JAVA_HOME/bin/jlink \
          --compress=2 \
          --output /jcmd
 
-FROM --platform=$TARGETPLATFORM alpine:3.18.4
+FROM --platform=$TARGETPLATFORM alpine:3.20.1
 RUN mkdir -p /app/async-profiler/build
 RUN apk add --no-cache procps coreutils
 COPY --from=agentbuild /go/bin/agent /app
