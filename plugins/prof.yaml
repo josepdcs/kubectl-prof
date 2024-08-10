@@ -13,7 +13,7 @@ spec:
     Currently supported languages: Go, Java (any JVM based language), Python, Ruby, NodeJS, Clang and Clang++.
   platforms:
     - uri: https://github.com/josepdcs/kubectl-prof/releases/download/1.2.3/kubectl-prof_1.2.3_darwin_amd64.tar.gz
-      sha256: 3ae6dc6df50d5e986d9288d2ff86d86699b21202741d0e33c8cb7c9ee7ad817d
+      sha256: 2c5708fd438cbe5b6e30cb6f86fcd57bc108e725d684f2ca4fa90286ddc883f0
       bin: kubectl-prof
       files:
         - from: kubectl-prof
@@ -25,7 +25,7 @@ spec:
           os: darwin
           arch: amd64
     - uri: https://github.com/josepdcs/kubectl-prof/releases/download/1.2.3/kubectl-prof_1.2.3_darwin_arm64.tar.gz
-      sha256: 01e5f998233ac244cd503d5e9d6f472cbd57bfec4a57d62b3d2fe57df0cc687f
+      sha256: 4354fb716da5555d24a05be7e9594b4b78b688c177d94d2955e228c544dbc4f4
       bin: kubectl-prof
       files:
         - from: kubectl-prof
@@ -37,7 +37,7 @@ spec:
           os: darwin
           arch: arm64
     - uri: https://github.com/josepdcs/kubectl-prof/releases/download/1.2.3/kubectl-prof_1.2.3_linux_amd64.tar.gz
-      sha256: 4dea43a92f831b101355c580e6bc0f2797e521bd6f5881520353292d75a9aef2
+      sha256: fee46bf143929f0fa0cc24e576024413ff1fb4149e411e4b0595b7c0d0ed1cea
       bin: kubectl-prof
       files:
         - from: kubectl-prof
@@ -49,7 +49,7 @@ spec:
           os: linux
           arch: amd64
     - uri: https://github.com/josepdcs/kubectl-prof/releases/download/1.2.3/kubectl-prof_1.2.3_linux_arm64.tar.gz
-      sha256: 645c035793985bda7bb806cc7211c820bd27bf0acbe175ba621a7c6b04d1316f
+      sha256: a30188969eb9f667062430451429da29c451051ed4046d086dea2e16460f6a04
       bin: kubectl-prof
       files:
         - from: kubectl-prof
@@ -61,7 +61,7 @@ spec:
           os: linux
           arch: arm64
     - uri: https://github.com/josepdcs/kubectl-prof/releases/download/1.2.3/kubectl-prof_1.2.3_windows_amd64.zip
-      sha256: e1f2995f579dbc35079c6fe9405799b7ce7efb2c9a9423dafcee9d108d60ce88
+      sha256: 05143407220316dab6f6fcff5f9ecc2eb6e8ca12cf1a17353f943f0f440c8df8
       bin: kubectl-prof.exe
       files:
         - from: kubectl-prof.exe
@@ -73,7 +73,7 @@ spec:
           os: windows
           arch: amd64
     - uri: https://github.com/josepdcs/kubectl-prof/releases/download/1.2.3/kubectl-prof_1.2.3_windows_arm64.zip
-      sha256: 535269338d36bfbb368d6c7f061f6cc46ffd07a023693daf4e6de99b9d1d122a
+      sha256: 7f4639da16375f5ad1238160a798da6eb2665b5e46878d376c78a30a0f772f84
       bin: kubectl-prof.exe
       files:
         - from: kubectl-prof.exe
