@@ -9,7 +9,7 @@ RUN go build -o /go/bin/agent
 
 FROM --platform=$BUILDPLATFORM eclipse-temurin:$JAVA_VERSION_TAG AS tools
 ARG TARGETPLATFORM
-ARG ASYNCP_VERSION=2.9
+ARG ASYNCP_VERSION=3.0
 RUN apt-get update && apt-get install -y curl tar wget
 # Echo variables to debug and ensure they hold the expected values
 RUN echo "ASYNCP_VERSION=${ASYNCP_VERSION}, TARGETPLATFORM=${TARGETPLATFORM}"
@@ -30,10 +30,11 @@ RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then ARCHITECTURE=x64; elif [ "$TA
 
 FROM --platform=$TARGETPLATFORM bitnami/minideb:bookworm
 RUN apt-get update && apt-get install -y procps strace gzip
-RUN mkdir -p /app/async-profiler/build
+RUN mkdir -p /app/async-profiler
 COPY --from=agentbuild /go/bin/agent /app
 COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/jvm/profiler.sh /app/async-profiler
-COPY --from=tools /async-profiler/build /app/async-profiler/build
+COPY --from=tools /async-profiler/bin /app/async-profiler/bin
+COPY --from=tools /async-profiler/lib /app/async-profiler/lib
 COPY --from=tools /jcmd /opt/jdk
 RUN chmod +x /app/async-profiler/profiler.sh
 RUN mkdir -p /app/jfr/settings

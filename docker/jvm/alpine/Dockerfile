@@ -9,7 +9,7 @@ RUN go build -o /go/bin/agent
 
 FROM --platform=$BUILDPLATFORM amazoncorretto:11-alpine-jdk AS async-profiler-builder
 ARG TARGETPLATFORM
-ARG ASYNCP_VERSION=2.9
+ARG ASYNCP_VERSION=3.0
 RUN apk add --no-cache curl tar wget g++ linux-headers musl-dev git make
 WORKDIR /src
 RUN git clone --branch v${ASYNCP_VERSION} --depth 1 https://github.com/async-profiler/async-profiler

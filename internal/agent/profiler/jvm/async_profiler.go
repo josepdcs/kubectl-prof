@@ -27,6 +27,8 @@ import (
 const (
 	asyncProfilerDir              = "/tmp/async-profiler"
 	profilerSh                    = asyncProfilerDir + "/profiler.sh"
+	asProfBin                     = asyncProfilerDir + "/bin/asprof"
+	asProfLib                     = asyncProfilerDir + "/lib"
 	asyncProfilerDelayBetweenJobs = 2 * time.Second
 )
 
@@ -39,11 +41,11 @@ var asyncProfilerCommand = func(commander executil.Commander, job *job.Profiling
 		output = string(api.Collapsed)
 	}
 	args := []string{"-o", output, "-d", interval, "-f", fileName, "-e", event, "--fdtransfer", pid}
-	return commander.Command(profilerSh, args...)
+	return commander.Command(asProfBin, args...)
 }
 
 var asyncProfilerStopCommand = func(commander executil.Commander, job *job.ProfilingJob, pid string) *exec.Cmd {
-	return commander.Command(profilerSh, "stop", pid)
+	return commander.Command(asProfBin, "stop", pid)
 }
 
 type AsyncProfiler struct {
@@ -107,7 +109,20 @@ func (j *AsyncProfiler) SetUp(job *job.ProfilingJob) error {
 		j.targetPIDs = pids
 	}
 
-	return j.copyProfilerToTmpDir()
+	err = j.copyProfilerToTmpDir()
+	if err != nil {
+		return err
+	}
+	files := file.List(asyncProfilerDir + "/bin/*")
+	for _, f := range files {
+		log.DebugLogLn(fmt.Sprintf("File: %s", f))
+	}
+	files = file.List(asyncProfilerDir + "/lib/*")
+	for _, f := range files {
+		log.DebugLogLn(fmt.Sprintf("File: %s", f))
+	}
+
+	return err
 }
 
 func (j *asyncProfilerManager) removeTmpDir() error {
@@ -119,6 +134,15 @@ func (j *asyncProfilerManager) linkTmpDirToTargetTmpDir(targetTmpDir string) err
 }
 
 func (j *asyncProfilerManager) copyProfilerToTmpDir() error {
+	/*cmd := j.commander.Command("cp", "-r", "/app/async-profiler-2.9", common.TmpDir())
+	err := cmd.Run()
+	if err != nil {
+		return errors.Wrap(err, "could not copy async-profiler 2.9 to tmp dir")
+	}*/
+	/*cmd = j.commander.Command("cp", "-r", "/app/async-profiler-3.0", common.TmpDir())
+	err = cmd.Run()
+	return errors.Wrap(err, "could not copy async-profiler 3.0 to tmp dir")*/
+
 	cmd := j.commander.Command("cp", "-r", "/app/async-profiler", common.TmpDir())
 	return cmd.Run()
 }
