@@ -1,6 +1,9 @@
 package kubernetes
 
 import (
+	"testing"
+	"time"
+
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
@@ -8,8 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
-	"time"
 )
 
 func TestToContainerId(t *testing.T) {

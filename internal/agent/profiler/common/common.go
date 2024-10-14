@@ -2,10 +2,11 @@ package common
 
 import (
 	"fmt"
-	"github.com/josepdcs/kubectl-prof/api"
-	"github.com/josepdcs/kubectl-prof/internal/agent/config"
 	"os"
 	"path/filepath"
+
+	"github.com/josepdcs/kubectl-prof/api"
+	"github.com/josepdcs/kubectl-prof/internal/agent/config"
 )
 
 const (

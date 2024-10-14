@@ -3,11 +3,12 @@ package profiler
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/josepdcs/kubectl-prof/internal/cli"
 	"github.com/josepdcs/kubectl-prof/internal/cli/adapter"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/handler"
-	"time"
 )
 
 // EphemeralProfiler is a profiler representation by using an ephemeral container

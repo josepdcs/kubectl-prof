@@ -3,11 +3,12 @@ package fake
 import (
 	"context"
 	"errors"
+	"time"
+
 	"github.com/josepdcs/kubectl-prof/internal/cli/adapter"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/result"
 	v1 "k8s.io/api/core/v1"
-	"time"
 )
 
 // ProfilingContainerAdapter fakes adapter.ProfilingContainerAdapter for unit tests purposes

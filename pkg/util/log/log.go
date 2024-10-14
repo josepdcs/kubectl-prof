@@ -2,11 +2,12 @@ package log
 
 import (
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/agrison/go-commons-lang/stringUtils"
 	"github.com/josepdcs/kubectl-prof/api"
 	jsoniter "github.com/json-iterator/go"
-	"sync"
-	"time"
 )
 
 // Logger the structure with the needed fields

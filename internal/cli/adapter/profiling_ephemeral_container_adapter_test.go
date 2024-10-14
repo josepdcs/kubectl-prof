@@ -3,6 +3,9 @@ package adapter
 import (
 	"context"
 	"errors"
+	"testing"
+	"time"
+
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
@@ -16,8 +19,6 @@ import (
 	"k8s.io/client-go/kubernetes/typed/core/v1/fake"
 	"k8s.io/client-go/rest"
 	kubetesting "k8s.io/client-go/testing"
-	"testing"
-	"time"
 )
 
 func Test_profilingEphemeralContainerAdapter_AddEphemeralContainer(t *testing.T) {

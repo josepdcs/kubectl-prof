@@ -2,6 +2,7 @@ package fake
 
 import (
 	"fmt"
+
 	"github.com/pkg/errors"
 )
 

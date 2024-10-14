@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+
 	"github.com/josepdcs/kubectl-prof/api"
 )
 

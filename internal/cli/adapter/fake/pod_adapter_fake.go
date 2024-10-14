@@ -3,6 +3,7 @@ package fake
 import (
 	"context"
 	"errors"
+
 	"github.com/josepdcs/kubectl-prof/internal/cli/adapter"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

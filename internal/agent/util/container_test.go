@@ -1,6 +1,11 @@
 package util
 
 import (
+	"os"
+	"os/exec"
+	"strconv"
+	"testing"
+
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
@@ -9,10 +14,6 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/runtime/crio"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/runtime/fake"
 	"github.com/stretchr/testify/assert"
-	"os"
-	"os/exec"
-	"strconv"
-	"testing"
 )
 
 func TestNormalizeContainerID(t *testing.T) {

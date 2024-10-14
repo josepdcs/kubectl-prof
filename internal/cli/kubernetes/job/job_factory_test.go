@@ -1,9 +1,10 @@
 package job
 
 import (
+	"testing"
+
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestGet(t *testing.T) {

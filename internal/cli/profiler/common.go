@@ -3,6 +3,7 @@ package profiler
 import (
 	"errors"
 	"fmt"
+
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
 	v1 "k8s.io/api/core/v1"

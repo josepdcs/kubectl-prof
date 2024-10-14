@@ -1,12 +1,13 @@
 package flamegraph
 
 import (
+	"path/filepath"
+	"testing"
+
 	"github.com/josepdcs/kubectl-prof/internal/agent/testdata"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"path/filepath"
-	"testing"
 )
 
 func TestNewGrapherScript(t *testing.T) {

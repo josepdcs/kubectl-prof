@@ -1,12 +1,13 @@
 package common
 
 import (
+	"path/filepath"
+	"testing"
+
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/config"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/stretchr/testify/assert"
-	"path/filepath"
-	"testing"
 )
 
 func TestGetResultFileWithPID(t *testing.T) {

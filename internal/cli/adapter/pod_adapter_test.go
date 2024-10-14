@@ -3,6 +3,8 @@ package adapter
 import (
 	"context"
 	"errors"
+	"testing"
+
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes/job"
 	"github.com/stretchr/testify/assert"
@@ -14,7 +16,6 @@ import (
 	"k8s.io/client-go/kubernetes/typed/core/v1/fake"
 	"k8s.io/client-go/rest"
 	kubetesting "k8s.io/client-go/testing"
-	"testing"
 )
 
 func Test_podAdapter_GetPod(t *testing.T) {

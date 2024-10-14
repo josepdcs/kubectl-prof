@@ -4,6 +4,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os/exec"
+	"strconv"
+	"time"
+
 	"github.com/agrison/go-commons-lang/stringUtils"
 	"github.com/alitto/pond"
 	"github.com/josepdcs/kubectl-prof/internal/agent/config"
@@ -15,9 +19,6 @@ import (
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
 	"github.com/pkg/errors"
-	"os/exec"
-	"strconv"
-	"time"
 )
 
 const (

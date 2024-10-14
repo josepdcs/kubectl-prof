@@ -2,6 +2,9 @@ package adapter
 
 import (
 	"context"
+	"os"
+	"time"
+
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes/ephemeral"
@@ -15,8 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"os"
-	"time"
 )
 
 // ProfilingEphemeralContainerAdapter defines all methods related to ephemeral container for profiling

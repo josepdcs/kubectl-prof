@@ -1,9 +1,10 @@
 package handler
 
 import (
+	"testing"
+
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
-	"testing"
 )
 
 func TestEventHandler_reportProgress(t *testing.T) {

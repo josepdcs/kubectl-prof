@@ -1,9 +1,10 @@
 package config
 
 import (
+	"time"
+
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
 	apiv1 "k8s.io/api/core/v1"
-	"time"
 
 	"github.com/josepdcs/kubectl-prof/api"
 )

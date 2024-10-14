@@ -1,6 +1,11 @@
 package publish
 
 import (
+	"os"
+	"os/exec"
+	"path/filepath"
+	"testing"
+
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
 	"github.com/josepdcs/kubectl-prof/internal/agent/testdata"
@@ -8,10 +13,6 @@ import (
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"testing"
 )
 
 func TestDo(t *testing.T) {

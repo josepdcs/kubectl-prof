@@ -2,6 +2,9 @@ package adapter
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
@@ -13,8 +16,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
-	"testing"
-	"time"
 )
 
 func Test_profilingJobAdapter_CreateProfilingJob(t *testing.T) {

@@ -1,12 +1,13 @@
 package ephemeral
 
 import (
+	"testing"
+
 	"github.com/agrison/go-commons-lang/stringUtils"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
 )
 
 func Test_pythonCreator_Create(t *testing.T) {
