@@ -1,6 +1,6 @@
 ARG JAVA_VERSION_TAG=21
 ARG ASYNCP_VERSION=2.9
-FROM --platform=$BUILDPLATFORM golang:1.21.6-alpine AS agentbuild
+FROM --platform=$BUILDPLATFORM golang:1.22.5-alpine AS agentbuild
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof
 ADD . /go/src/github.com/josepdcs/kubectl-prof
 RUN go get -d -v ./...

@@ -1,5 +1,5 @@
 ARG JAVA_VERSION_TAG=21
-FROM --platform=$BUILDPLATFORM golang:1.21.6-bullseye AS agentbuild
+FROM --platform=$BUILDPLATFORM golang:1.22.5-bullseye AS agentbuild
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof
 ADD . /go/src/github.com/josepdcs/kubectl-prof
 RUN go get -d -v ./...
@@ -25,7 +25,7 @@ RUN $JAVA_HOME/bin/jlink \
 
 # Determine the architecture based on the platform
 RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then ARCHITECTURE=x64; elif [ "$TARGETPLATFORM" = "linux/arm64" ]; then ARCHITECTURE=arm64; else ARCHITECTURE=x64; fi \
-&& wget -O async-profiler-${ASYNCP_VERSION}-linux-${ARCHITECTURE}.tar.gz https://github.com/jvm-profiling-tools/async-profiler/releases/download/v${ASYNCP_VERSION}/async-profiler-${ASYNCP_VERSION}-linux-${ARCHITECTURE}.tar.gz \
+&& wget -O async-profiler-${ASYNCP_VERSION}-linux-${ARCHITECTURE}.tar.gz https://github.com/async-profiler/async-profiler/releases/download/v${ASYNCP_VERSION}/async-profiler-${ASYNCP_VERSION}-linux-${ARCHITECTURE}.tar.gz \
 && tar -xf async-profiler-${ASYNCP_VERSION}-linux-${ARCHITECTURE}.tar.gz && mv async-profiler-${ASYNCP_VERSION}-linux-${ARCHITECTURE} async-profiler
 
 FROM --platform=$TARGETPLATFORM bitnami/minideb:bullseye
