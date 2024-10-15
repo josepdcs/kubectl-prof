@@ -2,9 +2,10 @@ package exec
 
 import (
 	"errors"
-	"github.com/josepdcs/kubectl-prof/pkg/util/log"
 	"os/exec"
 	"strings"
+
+	"github.com/josepdcs/kubectl-prof/pkg/util/log"
 )
 
 type Commander interface {

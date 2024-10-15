@@ -3,12 +3,13 @@ package fake
 import (
 	"context"
 	"errors"
+	"time"
+
 	"github.com/josepdcs/kubectl-prof/internal/cli/adapter"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"time"
 )
 
 // ProfilingJobAdapter fakes adapter.ProfilingJobAdapter for unit tests purposes

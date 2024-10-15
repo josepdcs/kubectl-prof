@@ -1,10 +1,11 @@
 package containerd
 
 import (
-	"github.com/josepdcs/kubectl-prof/internal/agent/testdata"
-	"github.com/stretchr/testify/assert"
 	"path/filepath"
 	"testing"
+
+	"github.com/josepdcs/kubectl-prof/internal/agent/testdata"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRootFileSystemLocation(t *testing.T) {
@@ -47,6 +48,7 @@ func TestRootFileSystemLocation(t *testing.T) {
 
 func TestPidFileFromContainerID(t *testing.T) {
 	assert.Equal(t, "/run/containerd/io.containerd.runtime.v2.task/k8s.io/1234/init.pid", pidFile("1234", "/run/containerd"))
+	assert.Equal(t, "/run/containerd/io.containerd.runtime.v2.task/k8s.io/1234/1234.pid", pidContainerIDFile("1234", "/run/containerd"))
 }
 
 func TestPID(t *testing.T) {
@@ -81,12 +83,23 @@ func TestPID(t *testing.T) {
 			containedErrMsg: "no such file or directory",
 		},
 		{
-			name:                 "expect root filesystem",
+			name:                 "expect pid file",
 			containerID:          "1234",
 			containerRuntimePath: "/run/containerd",
 			mockFunc: func() {
 				pidFile = func(string, string) string {
 					return filepath.FromSlash(testdata.ContainerdTestDataDir() + "/init.pid")
+				}
+			},
+			expected: "123456",
+		},
+		{
+			name:                 "expect pid file with container ID",
+			containerID:          "1234",
+			containerRuntimePath: "/run/containerd",
+			mockFunc: func() {
+				pidFile = func(string, string) string {
+					return filepath.FromSlash(testdata.ContainerdTestDataDir() + "/1234.pid")
 				}
 			},
 			expected: "123456",

@@ -2,8 +2,9 @@ package profiler
 
 import (
 	"bufio"
-	"github.com/agrison/go-commons-lang/stringUtils"
 	"strings"
+
+	"github.com/agrison/go-commons-lang/stringUtils"
 )
 
 // addProcessPIDLegend adds the process PID to each line of the input string and returns the result.

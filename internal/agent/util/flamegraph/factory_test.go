@@ -1,10 +1,11 @@
 package flamegraph
 
 import (
+	"testing"
+
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestGet(t *testing.T) {

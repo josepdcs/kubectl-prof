@@ -1,9 +1,10 @@
 package profiler
 
 import (
+	"time"
+
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/flamegraph"
-	"time"
 )
 
 // FakeBpfManager is an interface that wraps the BpfManager interface

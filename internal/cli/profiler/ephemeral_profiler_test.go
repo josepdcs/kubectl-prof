@@ -1,11 +1,12 @@
 package profiler
 
 import (
+	"testing"
+
 	"github.com/josepdcs/kubectl-prof/internal/cli/adapter/fake"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestEphemeralProfiler_Profile(t *testing.T) {

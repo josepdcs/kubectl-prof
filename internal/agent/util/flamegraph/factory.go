@@ -2,9 +2,10 @@ package flamegraph
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
-	"strings"
 )
 
 // FrameGrapher is an interface for converting stacks samples to flame graphs

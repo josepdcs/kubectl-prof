@@ -2,9 +2,10 @@ package compressor
 
 import (
 	"bytes"
-	gzip "github.com/klauspost/pgzip"
 	"io"
 	"runtime"
+
+	gzip "github.com/klauspost/pgzip"
 )
 
 type GzipCompressor struct {

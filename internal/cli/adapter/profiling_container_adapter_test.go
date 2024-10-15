@@ -3,14 +3,15 @@ package adapter
 import (
 	"bytes"
 	"context"
-	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
-	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
-	podexec "github.com/josepdcs/kubectl-prof/pkg/util/pod"
-	"github.com/pkg/errors"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
+	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
+	podexec "github.com/josepdcs/kubectl-prof/pkg/util/pod"
+	"github.com/pkg/errors"
 
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"

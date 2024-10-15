@@ -2,10 +2,11 @@ package jvm
 
 import (
 	"bytes"
+	"time"
+
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
-	"time"
 )
 
 // FakeJcmdManager is an interface that wraps the JcmdManager interface

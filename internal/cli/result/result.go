@@ -1,8 +1,9 @@
 package result
 
 import (
-	"github.com/josepdcs/kubectl-prof/api"
 	"time"
+
+	"github.com/josepdcs/kubectl-prof/api"
 )
 
 type File struct {

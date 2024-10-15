@@ -2,13 +2,14 @@ package file
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
+	"testing"
+
 	"github.com/josepdcs/kubectl-prof/internal/agent/config"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
 	"github.com/stretchr/testify/assert"
-	"os"
-	"path/filepath"
-	"testing"
 )
 
 func TestExists(t *testing.T) {

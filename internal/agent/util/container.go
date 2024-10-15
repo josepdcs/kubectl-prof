@@ -3,6 +3,10 @@ package util
 import (
 	"bytes"
 	"fmt"
+	"regexp"
+	"strings"
+	"time"
+
 	"github.com/agrison/go-commons-lang/stringUtils"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
@@ -12,9 +16,6 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/runtime/fake"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
 	"github.com/pkg/errors"
-	"regexp"
-	"strings"
-	"time"
 )
 
 const (

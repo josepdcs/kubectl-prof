@@ -3,6 +3,10 @@ package publish
 import (
 	"bufio"
 	"bytes"
+	"io"
+	"os"
+	"time"
+
 	"github.com/agrison/go-commons-lang/stringUtils"
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
@@ -10,9 +14,6 @@ import (
 	fileutils "github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
 	"github.com/pkg/errors"
-	"io"
-	"os"
-	"time"
 )
 
 // Publisher is the interface that wraps the basic Do method in order to publish the profiling result

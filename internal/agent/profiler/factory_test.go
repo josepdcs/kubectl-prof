@@ -1,12 +1,13 @@
 package profiler
 
 import (
+	"testing"
+
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/jvm"
 	executil "github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/publish"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestGet(t *testing.T) {

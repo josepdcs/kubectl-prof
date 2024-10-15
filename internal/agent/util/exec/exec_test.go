@@ -1,10 +1,11 @@
 package exec
 
 import (
+	"testing"
+
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestCommand(t *testing.T) {

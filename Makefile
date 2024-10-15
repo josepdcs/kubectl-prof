@@ -41,6 +41,12 @@ install-deps: ## Get the dependencies
 	$(info $(M) getting dependencies...)
 	@go get -v -d ./...
 
+## upgrade-deps: upgrade dependencies if needed
+.upgrade: upgrade-deps
+upgrade-deps: ## Upgrade the dependencies
+	$(info $(M) upgrading dependencies...)
+	@go get -t -u ./...
+
 ## build-cli: Build the kubectl-prof plugin
 .PHONY: build-cli
 build-cli: install-deps ## Build the binary file

@@ -4,9 +4,10 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"github.com/josepdcs/kubectl-prof/pkg/util/log"
 	"os"
 	"path/filepath"
+
+	"github.com/josepdcs/kubectl-prof/pkg/util/log"
 )
 
 func Exists(file string) bool {

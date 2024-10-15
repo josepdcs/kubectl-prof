@@ -2,12 +2,13 @@ package crio
 
 import (
 	"fmt"
+	"os"
+	"strconv"
+
 	"github.com/agrison/go-commons-lang/stringUtils"
 	jsoniter "github.com/json-iterator/go"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
-	"os"
-	"strconv"
 )
 
 type Crio struct {

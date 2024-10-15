@@ -2,9 +2,10 @@ package profiler
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/pkg/errors"
-	"time"
 )
 
 type MockProfiler interface {

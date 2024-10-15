@@ -1,11 +1,12 @@
 package crio
 
 import (
-	"github.com/josepdcs/kubectl-prof/internal/agent/testdata"
-	"github.com/stretchr/testify/assert"
 	"path/filepath"
 	"strconv"
 	"testing"
+
+	"github.com/josepdcs/kubectl-prof/internal/agent/testdata"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCrioConfigFile(t *testing.T) {

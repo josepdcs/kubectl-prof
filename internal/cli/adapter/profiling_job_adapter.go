@@ -3,6 +3,9 @@ package adapter
 import (
 	"context"
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes/job"
@@ -12,8 +15,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"os"
-	"time"
 )
 
 // ProfilingJobAdapter defines all methods related to profiling job and the target pod to be profiled

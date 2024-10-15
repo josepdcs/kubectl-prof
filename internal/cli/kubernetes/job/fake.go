@@ -2,10 +2,11 @@ package job
 
 import (
 	"errors"
+	"strings"
+
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
-	"strings"
 )
 
 type fakeCreator struct {

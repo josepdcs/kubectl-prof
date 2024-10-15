@@ -1,9 +1,10 @@
 package profiler
 
 import (
+	"time"
+
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/flamegraph"
-	"time"
 )
 
 // FakePerfManager is an interface that wraps the PerfManager interface

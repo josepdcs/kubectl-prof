@@ -4,11 +4,12 @@ package flamegraph
 import (
 	"bytes"
 	"fmt"
+	"os"
+	"reflect"
+
 	"github.com/agrison/go-commons-lang/stringUtils"
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/exec"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
-	"os"
-	"reflect"
 )
 
 // FlameGrapherScript encapsulates the flamegraph.pl script (with its complete path) and the options that can be passed to it.

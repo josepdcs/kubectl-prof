@@ -1,11 +1,12 @@
 package profile
 
 import (
+	"testing"
+
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestNewAction(t *testing.T) {

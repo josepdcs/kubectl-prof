@@ -1,8 +1,9 @@
 package jvm
 
 import (
-	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"time"
+
+	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 )
 
 // FakeAsyncProfilerManager is an interface that wraps the AsyncProfilerManager interface

@@ -2,6 +2,7 @@ package compressor
 
 import (
 	"bytes"
+
 	"github.com/rasky/go-lzo"
 )
 
