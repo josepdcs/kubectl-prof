@@ -14,15 +14,16 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/josepdcs/kubectl-prof/internal/agent/action/profile"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
 	"github.com/urfave/cli/v2"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 )
 
 // gracePeriod is the default grace period so that the cli will be able to retrieve the result file,
@@ -96,7 +97,7 @@ func runApp() error {
 			&cli.StringFlag{
 				Name:     profile.Duration,
 				Usage:    "profiling session duration",
-				Required: true,
+				Required: false,
 			},
 			&cli.StringFlag{
 				Name:     profile.Interval,
