@@ -29,7 +29,7 @@ func NewJobProfiler(podAdapter adapter.PodAdapter, profilingJobAdapter adapter.P
 	}
 }
 
-// Profile runs all the steps of the profiling from the job creation up to obtain the profiling result
+// Profile runs all the steps of the profiling from the job creation up to get the profiling result
 func (p JobProfiler) Profile(cfg *config.ProfilerConfig) error {
 	ctx := context.Background()
 
