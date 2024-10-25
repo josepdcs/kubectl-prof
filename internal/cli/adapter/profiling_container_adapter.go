@@ -127,7 +127,7 @@ func (p profilingContainerAdapter) GetRemoteFile(pod *v1.Pod, containerName stri
 		return "", errors.Wrap(err, "could not decode remote file")
 	}
 
-	fileName := filepath.Join(target.LocalPath, renameResultFileName(remoteFile.FileName, remoteFile.Timestamp))
+	fileName := filepath.Join(target.LocalPath, renameResultFileName(target.PodName, remoteFile.FileName, remoteFile.Timestamp))
 
 	err = os.WriteFile(fileName, decoded, 0644)
 	if err != nil {
@@ -275,9 +275,9 @@ func readChunks(downloadChunks []string, fileBuffSize int64) ([]byte, error) {
 }
 
 // renameResultFileName renames the result file
-func renameResultFileName(fileName string, t time.Time) string {
+func renameResultFileName(podName, fileName string, t time.Time) string {
 	f := stringUtils.SubstringBeforeLast(stringUtils.SubstringAfterLast(fileName, "/"), ".")
-	return stringUtils.SubstringBefore(f, ".") + "-" + strings.ReplaceAll(t.Format(time.RFC3339), ":", "_") + "." + stringUtils.SubstringAfter(f, ".")
+	return podName + "-" + stringUtils.SubstringBefore(f, ".") + "-" + strings.ReplaceAll(t.Format(time.RFC3339), ":", "_") + "." + stringUtils.SubstringAfter(f, ".")
 }
 
 // renameChunkFileName renames the chunk file
