@@ -4,19 +4,20 @@ import (
 	"fmt"
 
 	"github.com/josepdcs/kubectl-prof/api"
+	"github.com/josepdcs/kubectl-prof/internal/cli"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/result"
 )
 
 type EventHandler struct {
-	Target   *config.TargetConfig
-	LogLevel api.LogLevel
+	target  *config.TargetConfig
+	printer cli.Printer
 }
 
-func NewEventHandler(cfg *config.TargetConfig, level api.LogLevel) *EventHandler {
+func NewEventHandler(cfg *config.TargetConfig, printer cli.Printer) *EventHandler {
 	return &EventHandler{
-		Target:   cfg,
-		LogLevel: level,
+		target:  cfg,
+		printer: printer,
 	}
 }
 
@@ -25,8 +26,8 @@ func (h *EventHandler) Handle(events chan string, done chan bool, resultFile cha
 		event, _ := api.ParseEvent(eventString)
 		switch eventType := event.(type) {
 		case *api.ErrorData:
-			fmt.Printf("Error: %s ", eventType.Reason)
-			fmt.Printf("❌\n")
+			h.printer.Print(fmt.Sprintf("Error: %s ", eventType.Reason))
+			h.printer.Print("❌\n")
 			done <- true
 		case *api.ResultData:
 			resultFile <- result.File{
@@ -39,16 +40,16 @@ func (h *EventHandler) Handle(events chan string, done chan bool, resultFile cha
 		case *api.ProgressData:
 			h.reportProgress(eventType, done)
 		case *api.NoticeData:
-			fmt.Printf("⚠️%s\n", eventType.Msg)
-			fmt.Printf("Profiling ... ✔\n")
+			h.printer.Print(fmt.Sprintf("⚠️ %s\n", eventType.Msg))
+			h.printer.Print("Profiling ... 🔬\n")
 		default:
 		}
 	}
 }
 
-func (*EventHandler) reportProgress(data *api.ProgressData, done chan bool) {
+func (h *EventHandler) reportProgress(data *api.ProgressData, done chan bool) {
 	if data.Stage == api.Started {
-		fmt.Printf("Profiling ... ✔\n")
+		h.printer.Print("Profiling ... 🔬\n")
 	} else if data.Stage == api.Ended {
 		done <- true
 	}

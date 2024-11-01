@@ -1,4 +1,4 @@
-package adapter
+package api
 
 import (
 	"context"
@@ -20,7 +20,7 @@ import (
 
 func Test_profilingJobAdapter_CreateProfilingJob(t *testing.T) {
 	type fields struct {
-		ProfilingJobAdapter
+		ProfilingJobApi
 	}
 	type args struct {
 		targetPod *v1.Pod
@@ -42,7 +42,7 @@ func Test_profilingJobAdapter_CreateProfilingJob(t *testing.T) {
 			name: "should create profiling job",
 			given: func() (fields, args) {
 				return fields{
-						NewProfilingJobAdapter(
+						NewProfilingJobApi(
 							kubernetes.ConnectionInfo{
 								ClientSet:  testclient.NewSimpleClientset(),
 								RestConfig: &rest.Config{},
@@ -90,7 +90,7 @@ func Test_profilingJobAdapter_CreateProfilingJob(t *testing.T) {
 			name: "should fail when unable getting job type",
 			given: func() (fields, args) {
 				return fields{
-						NewProfilingJobAdapter(
+						NewProfilingJobApi(
 							kubernetes.ConnectionInfo{
 								ClientSet:  testclient.NewSimpleClientset(),
 								RestConfig: &rest.Config{},
@@ -132,7 +132,7 @@ func Test_profilingJobAdapter_CreateProfilingJob(t *testing.T) {
 			name: "should fail when build create job fail",
 			given: func() (fields, args) {
 				return fields{
-						NewProfilingJobAdapter(
+						NewProfilingJobApi(
 							kubernetes.ConnectionInfo{
 								ClientSet:  testclient.NewSimpleClientset(),
 								RestConfig: &rest.Config{},
@@ -179,7 +179,7 @@ func Test_profilingJobAdapter_CreateProfilingJob(t *testing.T) {
 			name: "should print profiling job",
 			given: func() (fields, args) {
 				return fields{
-						NewProfilingJobAdapter(
+						NewProfilingJobApi(
 							kubernetes.ConnectionInfo{
 								ClientSet:  testclient.NewSimpleClientset(),
 								RestConfig: &rest.Config{},
@@ -236,7 +236,7 @@ func Test_profilingJobAdapter_CreateProfilingJob(t *testing.T) {
 
 func Test_profilingJobAdapter_GetProfilingPod(t *testing.T) {
 	type fields struct {
-		ProfilingJobAdapter
+		ProfilingJobApi
 	}
 	type args struct {
 		cfg     *config.ProfilerConfig
@@ -276,7 +276,7 @@ func Test_profilingJobAdapter_GetProfilingPod(t *testing.T) {
 					},
 				}
 				return fields{
-						NewProfilingJobAdapter(
+						NewProfilingJobApi(
 							kubernetes.ConnectionInfo{
 								ClientSet:  testclient.NewSimpleClientset(podList),
 								RestConfig: &rest.Config{},
@@ -335,7 +335,7 @@ func Test_profilingJobAdapter_GetProfilingPod(t *testing.T) {
 					},
 				}
 				return fields{
-						NewProfilingJobAdapter(
+						NewProfilingJobApi(
 							kubernetes.ConnectionInfo{
 								ClientSet:  testclient.NewSimpleClientset(podList),
 								RestConfig: &rest.Config{},
@@ -376,7 +376,7 @@ func Test_profilingJobAdapter_GetProfilingPod(t *testing.T) {
 			name: "should fail for timeout",
 			given: func() (fields, args) {
 				return fields{
-						NewProfilingJobAdapter(
+						NewProfilingJobApi(
 							kubernetes.ConnectionInfo{
 								ClientSet:  testclient.NewSimpleClientset(),
 								RestConfig: &rest.Config{},
@@ -409,7 +409,7 @@ func Test_profilingJobAdapter_GetProfilingPod(t *testing.T) {
 			then: func(t *testing.T, r result, f fields) {
 				require.Error(t, r.err)
 				assert.Empty(t, r.profilingPod)
-				assert.EqualError(t, r.err, "timed out waiting for the condition")
+				assert.EqualError(t, r.err, "context deadline exceeded")
 			},
 		},
 	}
@@ -429,7 +429,7 @@ func Test_profilingJobAdapter_GetProfilingPod(t *testing.T) {
 
 func Test_profilingJobAdapter_GetProfilingContainerName(t *testing.T) {
 	// Given & When
-	result := NewProfilingJobAdapter(
+	result := NewProfilingJobApi(
 		kubernetes.ConnectionInfo{
 			ClientSet:  testclient.NewSimpleClientset(),
 			RestConfig: &rest.Config{},
@@ -450,7 +450,7 @@ func Test_profilingJobAdapter_DeleteProfilingJob(t *testing.T) {
 			Namespace: "Namespace",
 		},
 	}
-	result := NewProfilingJobAdapter(
+	result := NewProfilingJobApi(
 		kubernetes.ConnectionInfo{
 			ClientSet:  testclient.NewSimpleClientset(j),
 			RestConfig: &rest.Config{},

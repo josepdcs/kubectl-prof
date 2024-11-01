@@ -1,4 +1,4 @@
-package adapter
+package api
 
 import (
 	"bufio"
@@ -31,30 +31,30 @@ type EventHandler interface {
 	Handle(events chan string, done chan bool, resultFile chan result.File)
 }
 
-// ProfilingContainerAdapter defines all methods related to the profiling container
+// ProfilingContainerApi defines all methods related to the profiling container
 // A profiling container will be used for both a profiling job (and pod) and for ephemeral container
-type ProfilingContainerAdapter interface {
+type ProfilingContainerApi interface {
 	// HandleProfilingContainerLogs handles the logs of the profiling container up to obtain the result file if no error found
 	HandleProfilingContainerLogs(pod *v1.Pod, containerName string, handler EventHandler, ctx context.Context) (chan bool, chan result.File, error)
 	// GetRemoteFile returns the remote file from the pod's container
-	GetRemoteFile(pod *v1.Pod, containerName string, remoteFile result.File, target *config.TargetConfig) (string, error)
+	GetRemoteFile(pod *v1.Pod, containerName string, remoteFile result.File, targetPodName string, target *config.TargetConfig) (string, error)
 }
 
-// profilingContainerAdapter implements ProfilingContainerAdapter and wraps kubernetes.ConnectionInfo
-type profilingContainerAdapter struct {
+// profilingContainerApi implements ProfilingContainerApi and wraps kubernetes.ConnectionInfo
+type profilingContainerApi struct {
 	connectionInfo kubernetes.ConnectionInfo
 	executor       podexec.Executor
 }
 
-// NewProfilingContainerAdapter returns new instance of ProfilingContainerAdapter
-func NewProfilingContainerAdapter(connectionInfo kubernetes.ConnectionInfo) ProfilingContainerAdapter {
-	return profilingContainerAdapter{
+// NewProfilingContainerApi returns new instance of ProfilingContainerApi
+func NewProfilingContainerApi(connectionInfo kubernetes.ConnectionInfo) ProfilingContainerApi {
+	return &profilingContainerApi{
 		connectionInfo: connectionInfo,
 		executor:       podexec.NewExec(connectionInfo.RestConfig, connectionInfo.ClientSet),
 	}
 }
 
-func (p profilingContainerAdapter) HandleProfilingContainerLogs(pod *v1.Pod, containerName string, handler EventHandler, ctx context.Context) (chan bool, chan result.File, error) {
+func (p *profilingContainerApi) HandleProfilingContainerLogs(pod *v1.Pod, containerName string, handler EventHandler, ctx context.Context) (chan bool, chan result.File, error) {
 	if stringUtils.IsBlank(containerName) {
 		return nil, nil, errors.New("container name is mandatory for handling its logs")
 	}
@@ -96,7 +96,7 @@ func (p profilingContainerAdapter) HandleProfilingContainerLogs(pod *v1.Pod, con
 	return done, resultFile, nil
 }
 
-func (p profilingContainerAdapter) GetRemoteFile(pod *v1.Pod, containerName string, remoteFile result.File, target *config.TargetConfig) (string, error) {
+func (p *profilingContainerApi) GetRemoteFile(pod *v1.Pod, containerName string, remoteFile result.File, targetPodName string, target *config.TargetConfig) (string, error) {
 	var fileBuff []byte
 
 	if remoteFile.Chunks != nil && len(remoteFile.Chunks) > 0 {
@@ -127,7 +127,7 @@ func (p profilingContainerAdapter) GetRemoteFile(pod *v1.Pod, containerName stri
 		return "", errors.Wrap(err, "could not decode remote file")
 	}
 
-	fileName := filepath.Join(target.LocalPath, renameResultFileName(target.PodName, remoteFile.FileName, remoteFile.Timestamp))
+	fileName := filepath.Join(target.LocalPath, renameResultFileName(targetPodName, remoteFile.FileName, remoteFile.Timestamp))
 
 	err = os.WriteFile(fileName, decoded, 0644)
 	if err != nil {
