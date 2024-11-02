@@ -5,10 +5,10 @@ RUN go get -d -v ./...
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof/cmd/agent
 RUN go build -o /go/bin/agent
 
-FROM rust:1.74-bullseye AS rbspybuild
+FROM rust:1.82-bullseye AS rbspybuild
 WORKDIR /
 RUN git clone https://github.com/brendangregg/FlameGraph
-RUN git clone --depth 1 --branch v0.18.1 https://github.com/rbspy/rbspy
+RUN git clone --depth 1 --branch v0.26.0 https://github.com/rbspy/rbspy
 WORKDIR /rbspy
 RUN cargo build --release
 
