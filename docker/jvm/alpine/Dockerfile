@@ -1,13 +1,13 @@
 ARG JAVA_VERSION_TAG=21
 ARG ASYNCP_VERSION=2.9
-FROM --platform=$BUILDPLATFORM golang:1.22.5-alpine AS agentbuild
+FROM golang:1.22.5-alpine AS agentbuild
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof
 ADD . /go/src/github.com/josepdcs/kubectl-prof
 RUN go get -d -v ./...
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof/cmd/agent
-RUN go build -o /go/bin/agent
+RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /go/bin/agent
 
-FROM --platform=$BUILDPLATFORM amazoncorretto:11-alpine-jdk AS async-profiler-builder
+FROM amazoncorretto:11-alpine-jdk AS async-profiler-builder
 ARG TARGETPLATFORM
 ARG ASYNCP_VERSION=2.9
 RUN apk add --no-cache curl tar wget g++ linux-headers musl-dev git make
@@ -17,7 +17,7 @@ WORKDIR /src/async-profiler
 RUN make CXXFLAGS='-O3 -fno-omit-frame-pointer -fvisibility=hidden -D_LARGEFILE64_SOURCE' all native; \
     tree -d /src;
 
-FROM --platform=$BUILDPLATFORM eclipse-temurin:$JAVA_VERSION_TAG-alpine AS tools
+FROM eclipse-temurin:$JAVA_VERSION_TAG-alpine AS tools
 ARG TARGETPLATFORM
 ARG ASYNCP_VERSION=2.9
 RUN apk add --no-cache curl tar wget g++ linux-headers git make
@@ -33,7 +33,7 @@ RUN $JAVA_HOME/bin/jlink \
          --compress=2 \
          --output /jcmd
 
-FROM --platform=$TARGETPLATFORM alpine:3.18.4
+FROM alpine:3.18.4
 RUN mkdir -p /app/async-profiler/build
 RUN apk add --no-cache procps coreutils
 COPY --from=agentbuild /go/bin/agent /app
