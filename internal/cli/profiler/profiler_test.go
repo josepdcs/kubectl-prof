@@ -3,15 +3,16 @@ package profiler
 import (
 	"testing"
 
-	"github.com/josepdcs/kubectl-prof/internal/cli/adapter/fake"
+	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
+	"github.com/josepdcs/kubectl-prof/internal/cli/profiler/api/fake"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestJobProfiler_Profile(t *testing.T) {
 	type fields struct {
-		JobProfiler
+		*Profiler
 	}
 	type args struct {
 		cfg *config.ProfilerConfig
@@ -23,13 +24,42 @@ func TestJobProfiler_Profile(t *testing.T) {
 		then  func(t *testing.T, err error)
 	}{
 		{
-			name: "should profile",
+			name: "should fail when when no target is provided",
 			given: func() (fields, args) {
 				return fields{
-						JobProfiler: NewJobProfiler(
-							fake.NewPodAdapter(),
-							fake.NewProfilingJobAdapter(),
-							fake.NewProfilingContainerAdapter(),
+						Profiler: NewJobProfiler(
+							fake.NewPodApi().WithReturnsEmpty(),
+							fake.NewProfilingJobApi(),
+							fake.NewProfilingContainerApi(),
+						),
+					},
+					args{
+						cfg: &config.ProfilerConfig{
+							Target: &config.TargetConfig{
+								Namespace:     "Namespace",
+								ContainerName: "ContainerName",
+								ContainerID:   "ContainerID",
+								DryRun:        false,
+							},
+						},
+					}
+			},
+			when: func(f fields, args args) error {
+				return f.Profile(args.cfg)
+			},
+			then: func(t *testing.T, err error) {
+				require.Error(t, err)
+				assert.EqualError(t, err, "no target specified")
+			},
+		},
+		{
+			name: "should profile one pod",
+			given: func() (fields, args) {
+				return fields{
+						Profiler: NewJobProfiler(
+							fake.NewPodApi(),
+							fake.NewProfilingJobApi(),
+							fake.NewProfilingContainerApi(),
 						),
 					},
 					args{
@@ -52,13 +82,43 @@ func TestJobProfiler_Profile(t *testing.T) {
 			},
 		},
 		{
+			name: "should profile a bunch of pods",
+			given: func() (fields, args) {
+				return fields{
+						Profiler: NewJobProfiler(
+							fake.NewPodApi(),
+							fake.NewProfilingJobApi(),
+							fake.NewProfilingContainerApi(),
+						),
+					},
+					args{
+						cfg: &config.ProfilerConfig{
+							Target: &config.TargetConfig{
+								Namespace:     "Namespace",
+								ContainerID:   "ContainerID",
+								DryRun:        false,
+								LabelSelector: "app=app",
+							},
+							Job:      &config.JobConfig{},
+							LogLevel: api.InfoLevel,
+						},
+					}
+			},
+			when: func(f fields, args args) error {
+				return f.Profile(args.cfg)
+			},
+			then: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+		},
+		{
 			name: "should skip when dry run",
 			given: func() (fields, args) {
 				return fields{
-						JobProfiler: NewJobProfiler(
-							fake.NewPodAdapter(),
-							fake.NewProfilingJobAdapter(),
-							fake.NewProfilingContainerAdapter(),
+						Profiler: NewJobProfiler(
+							fake.NewPodApi(),
+							fake.NewProfilingJobApi(),
+							fake.NewProfilingContainerApi(),
 						),
 					},
 					args{
@@ -84,10 +144,10 @@ func TestJobProfiler_Profile(t *testing.T) {
 			name: "should fail when get pod fail",
 			given: func() (fields, args) {
 				return fields{
-						JobProfiler: NewJobProfiler(
-							fake.NewPodAdapter().WithGetPodReturnsError(),
-							fake.NewProfilingJobAdapter(),
-							fake.NewProfilingContainerAdapter(),
+						Profiler: NewJobProfiler(
+							fake.NewPodApi().WithReturnsError(),
+							fake.NewProfilingJobApi(),
+							fake.NewProfilingContainerApi(),
 						),
 					},
 					args{
@@ -114,10 +174,10 @@ func TestJobProfiler_Profile(t *testing.T) {
 			name: "should fail when get an invalid pod",
 			given: func() (fields, args) {
 				return fields{
-						JobProfiler: NewJobProfiler(
-							fake.NewPodAdapter().WithGetPodReturnsAnInvalidPod(),
-							fake.NewProfilingJobAdapter(),
-							fake.NewProfilingContainerAdapter(),
+						Profiler: NewJobProfiler(
+							fake.NewPodApi().WithReturnsEmpty(),
+							fake.NewProfilingJobApi(),
+							fake.NewProfilingContainerApi(),
 						),
 					},
 					args{
@@ -141,13 +201,73 @@ func TestJobProfiler_Profile(t *testing.T) {
 			},
 		},
 		{
+			name: "should fail when get bunch of pods fail",
+			given: func() (fields, args) {
+				return fields{
+						Profiler: NewJobProfiler(
+							fake.NewPodApi().WithReturnsError(),
+							fake.NewProfilingJobApi(),
+							fake.NewProfilingContainerApi(),
+						),
+					},
+					args{
+						cfg: &config.ProfilerConfig{
+							Target: &config.TargetConfig{
+								Namespace:     "Namespace",
+								ContainerName: "ContainerName",
+								ContainerID:   "ContainerID",
+								DryRun:        false,
+								LabelSelector: "app=app",
+							},
+						},
+					}
+			},
+			when: func(f fields, args args) error {
+				return f.Profile(args.cfg)
+			},
+			then: func(t *testing.T, err error) {
+				require.Error(t, err)
+				assert.EqualError(t, err, "error getting pods")
+			},
+		},
+		{
+			name: "should fail when get bunch of pods returns empty",
+			given: func() (fields, args) {
+				return fields{
+						Profiler: NewJobProfiler(
+							fake.NewPodApi().WithReturnsEmpty(),
+							fake.NewProfilingJobApi(),
+							fake.NewProfilingContainerApi(),
+						),
+					},
+					args{
+						cfg: &config.ProfilerConfig{
+							Target: &config.TargetConfig{
+								Namespace:     "Namespace",
+								ContainerName: "ContainerName",
+								ContainerID:   "ContainerID",
+								DryRun:        false,
+								LabelSelector: "app=app",
+							},
+						},
+					}
+			},
+			when: func(f fields, args args) error {
+				return f.Profile(args.cfg)
+			},
+			then: func(t *testing.T, err error) {
+				require.Error(t, err)
+				assert.EqualError(t, err, "No pods found in namespace Namespace with label selector app=app")
+			},
+		},
+		{
 			name: "should fail when create profiling job fail",
 			given: func() (fields, args) {
 				return fields{
-						JobProfiler: NewJobProfiler(
-							fake.NewPodAdapter(),
-							fake.NewProfilingJobAdapter().WithCreateProfilingJobReturnsError(),
-							fake.NewProfilingContainerAdapter(),
+						Profiler: NewJobProfiler(
+							fake.NewPodApi(),
+							fake.NewProfilingJobApi().WithCreateProfilingJobReturnsError(),
+							fake.NewProfilingContainerApi(),
 						),
 					},
 					args{
@@ -174,10 +294,10 @@ func TestJobProfiler_Profile(t *testing.T) {
 			name: "should fail when get profiling pod fail",
 			given: func() (fields, args) {
 				return fields{
-						JobProfiler: NewJobProfiler(
-							fake.NewPodAdapter(),
-							fake.NewProfilingJobAdapter().WithGetProfilingPodReturnsError(),
-							fake.NewProfilingContainerAdapter(),
+						Profiler: NewJobProfiler(
+							fake.NewPodApi(),
+							fake.NewProfilingJobApi().WithGetProfilingPodReturnsError(),
+							fake.NewProfilingContainerApi(),
 						),
 					},
 					args{
@@ -204,10 +324,10 @@ func TestJobProfiler_Profile(t *testing.T) {
 			name: "should fail when handle profiling container logs fail",
 			given: func() (fields, args) {
 				return fields{
-						JobProfiler: NewJobProfiler(
-							fake.NewPodAdapter(),
-							fake.NewProfilingJobAdapter(),
-							fake.NewProfilingContainerAdapter().WithHandleProfilingContainerLogsReturnsError(),
+						Profiler: NewJobProfiler(
+							fake.NewPodApi(),
+							fake.NewProfilingJobApi(),
+							fake.NewProfilingContainerApi().WithHandleProfilingContainerLogsReturnsError(),
 						),
 					},
 					args{
@@ -234,10 +354,10 @@ func TestJobProfiler_Profile(t *testing.T) {
 			name: "should terminate when get remote file fail",
 			given: func() (fields, args) {
 				return fields{
-						JobProfiler: NewJobProfiler(
-							fake.NewPodAdapter(),
-							fake.NewProfilingJobAdapter(),
-							fake.NewProfilingContainerAdapter().WithGetRemoteFileReturnsError(),
+						Profiler: NewJobProfiler(
+							fake.NewPodApi(),
+							fake.NewProfilingJobApi(),
+							fake.NewProfilingContainerApi().WithGetRemoteFileReturnsError(),
 						),
 					},
 					args{

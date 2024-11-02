@@ -1,4 +1,4 @@
-package adapter
+package api
 
 import (
 	"bytes"
@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/josepdcs/kubectl-prof/api"
+	"github.com/josepdcs/kubectl-prof/internal/cli"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/handler"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
@@ -29,7 +30,7 @@ import (
 
 func Test_profilingContainerAdapter_HandleProfilingContainerLogs(t *testing.T) {
 	type fields struct {
-		ProfilingContainerAdapter
+		ProfilingContainerApi
 	}
 	type args struct {
 		pod           *v1.Pod
@@ -73,7 +74,7 @@ func Test_profilingContainerAdapter_HandleProfilingContainerLogs(t *testing.T) {
 					},
 				}
 				return fields{
-						NewProfilingContainerAdapter(
+						NewProfilingContainerApi(
 							kubernetes.ConnectionInfo{
 								ClientSet:  testclient.NewSimpleClientset(),
 								RestConfig: &rest.Config{},
@@ -84,7 +85,7 @@ func Test_profilingContainerAdapter_HandleProfilingContainerLogs(t *testing.T) {
 					args{
 						pod:           pod,
 						containerName: "ContainerName",
-						handler:       handler.NewEventHandler(&config.TargetConfig{}, api.InfoLevel),
+						handler:       handler.NewEventHandler(&config.TargetConfig{}, cli.NewPrinter(false)),
 						ctx:           context.TODO(),
 					}
 			},
@@ -126,7 +127,7 @@ func Test_profilingContainerAdapter_HandleProfilingContainerLogs(t *testing.T) {
 					},
 				}
 				return fields{
-						NewProfilingContainerAdapter(
+						NewProfilingContainerApi(
 							kubernetes.ConnectionInfo{
 								ClientSet:  testclient.NewSimpleClientset(),
 								RestConfig: &rest.Config{},
@@ -137,7 +138,7 @@ func Test_profilingContainerAdapter_HandleProfilingContainerLogs(t *testing.T) {
 					args{
 						pod:           pod,
 						containerName: "",
-						handler:       handler.NewEventHandler(&config.TargetConfig{}, api.InfoLevel),
+						handler:       handler.NewEventHandler(&config.TargetConfig{}, cli.NewPrinter(false)),
 						ctx:           context.TODO(),
 					}
 			},
@@ -184,7 +185,7 @@ func Test_renameResultFileName(t *testing.T) {
 
 func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 	type fields struct {
-		ProfilingContainerAdapter
+		ProfilingContainerApi
 	}
 	type args struct {
 		pod           *v1.Pod
@@ -233,7 +234,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 				outFake := bytes.NewBufferString(remoteFileContent)
 				timestamp, _ := time.Parse(time.RFC3339, "2023-02-28T11:44:12.678378359Z")
 				return fields{
-						profilingContainerAdapter{
+						&profilingContainerApi{
 							connectionInfo: kubernetes.ConnectionInfo{
 								ClientSet: testclient.NewSimpleClientset(),
 							},
@@ -257,7 +258,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 					}
 			},
 			when: func(fields fields, args args) result {
-				file, err := fields.GetRemoteFile(args.pod, args.containerName, args.remoteFile, args.target)
+				file, err := fields.GetRemoteFile(args.pod, args.containerName, args.remoteFile, args.target.PodName, args.target)
 				return result{
 					remoteFile: file,
 					err:        err,
@@ -299,7 +300,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 				errOutFake := bytes.NewBufferString("error message")
 				timestamp, _ := time.Parse(time.RFC3339, "2023-02-28T11:44:12.678378359Z")
 				return fields{
-						profilingContainerAdapter{
+						&profilingContainerApi{
 							connectionInfo: kubernetes.ConnectionInfo{
 								ClientSet: testclient.NewSimpleClientset(),
 							},
@@ -322,7 +323,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 					}
 			},
 			when: func(fields fields, args args) result {
-				file, err := fields.GetRemoteFile(args.pod, args.containerName, args.remoteFile, args.target)
+				file, err := fields.GetRemoteFile(args.pod, args.containerName, args.remoteFile, args.target.PodName, args.target)
 				return result{
 					remoteFile: file,
 					err:        err,
@@ -361,7 +362,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 				outFake := bytes.NewBufferString(remoteFileContent)
 				timestamp, _ := time.Parse(time.RFC3339, "2023-02-28T11:44:12.678378359Z")
 				return fields{
-						profilingContainerAdapter{
+						&profilingContainerApi{
 							connectionInfo: kubernetes.ConnectionInfo{
 								ClientSet: testclient.NewSimpleClientset(),
 							},
@@ -387,7 +388,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 					}
 			},
 			when: func(fields fields, args args) result {
-				file, err := fields.GetRemoteFile(args.pod, args.containerName, args.remoteFile, args.target)
+				file, err := fields.GetRemoteFile(args.pod, args.containerName, args.remoteFile, args.target.PodName, args.target)
 				return result{
 					remoteFile: file,
 					err:        err,
@@ -426,7 +427,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 				outFake := bytes.NewBufferString(remoteFileContent)
 				timestamp, _ := time.Parse(time.RFC3339, "2023-02-28T11:44:12.678378359Z")
 				return fields{
-						profilingContainerAdapter{
+						&profilingContainerApi{
 							connectionInfo: kubernetes.ConnectionInfo{
 								ClientSet: testclient.NewSimpleClientset(),
 							},
@@ -449,7 +450,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 					}
 			},
 			when: func(fields fields, args args) result {
-				file, err := fields.GetRemoteFile(args.pod, args.containerName, args.remoteFile, args.target)
+				file, err := fields.GetRemoteFile(args.pod, args.containerName, args.remoteFile, args.target.PodName, args.target)
 				return result{
 					remoteFile: file,
 					err:        err,
@@ -488,7 +489,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 				outFake := bytes.NewBufferString(remoteFileContent)
 				timestamp, _ := time.Parse(time.RFC3339, "2023-02-28T11:44:12.678378359Z")
 				return fields{
-						profilingContainerAdapter{
+						&profilingContainerApi{
 							connectionInfo: kubernetes.ConnectionInfo{
 								ClientSet: testclient.NewSimpleClientset(),
 							},
@@ -511,7 +512,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 					}
 			},
 			when: func(fields fields, args args) result {
-				file, err := fields.GetRemoteFile(args.pod, args.containerName, args.remoteFile, args.target)
+				file, err := fields.GetRemoteFile(args.pod, args.containerName, args.remoteFile, args.target.PodName, args.target)
 				return result{
 					remoteFile: file,
 					err:        err,
@@ -550,7 +551,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 				outFake := bytes.NewBufferString(remoteFileContent)
 				timestamp, _ := time.Parse(time.RFC3339, "2023-02-28T11:44:12.678378359Z")
 				return fields{
-						profilingContainerAdapter{
+						&profilingContainerApi{
 							connectionInfo: kubernetes.ConnectionInfo{
 								ClientSet: testclient.NewSimpleClientset(),
 							},
@@ -574,7 +575,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 					}
 			},
 			when: func(fields fields, args args) result {
-				file, err := fields.GetRemoteFile(args.pod, args.containerName, args.remoteFile, args.target)
+				file, err := fields.GetRemoteFile(args.pod, args.containerName, args.remoteFile, args.target.PodName, args.target)
 				return result{
 					remoteFile: file,
 					err:        err,
@@ -613,7 +614,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 				outFake := bytes.NewBufferString(remoteFileContent)
 				timestamp, _ := time.Parse(time.RFC3339, "2023-02-28T11:44:12.678378359Z")
 				return fields{
-						profilingContainerAdapter{
+						&profilingContainerApi{
 							connectionInfo: kubernetes.ConnectionInfo{
 								ClientSet: testclient.NewSimpleClientset(),
 							},
@@ -644,7 +645,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 					}
 			},
 			when: func(fields fields, args args) result {
-				file, err := fields.GetRemoteFile(args.pod, args.containerName, args.remoteFile, args.target)
+				file, err := fields.GetRemoteFile(args.pod, args.containerName, args.remoteFile, args.target.PodName, args.target)
 				return result{
 					remoteFile: file,
 					err:        err,
@@ -686,7 +687,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 				errOutFake := bytes.NewBufferString("error message")
 				timestamp, _ := time.Parse(time.RFC3339, "2023-02-28T11:44:12.678378359Z")
 				return fields{
-						profilingContainerAdapter{
+						&profilingContainerApi{
 							connectionInfo: kubernetes.ConnectionInfo{
 								ClientSet: testclient.NewSimpleClientset(),
 							},
@@ -716,7 +717,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 					}
 			},
 			when: func(fields fields, args args) result {
-				file, err := fields.GetRemoteFile(args.pod, args.containerName, args.remoteFile, args.target)
+				file, err := fields.GetRemoteFile(args.pod, args.containerName, args.remoteFile, args.target.PodName, args.target)
 				return result{
 					remoteFile: file,
 					err:        err,
@@ -755,7 +756,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 				outFake := bytes.NewBufferString(remoteFileContent)
 				timestamp, _ := time.Parse(time.RFC3339, "2023-02-28T11:44:12.678378359Z")
 				return fields{
-						profilingContainerAdapter{
+						&profilingContainerApi{
 							connectionInfo: kubernetes.ConnectionInfo{
 								ClientSet: testclient.NewSimpleClientset(),
 							},
@@ -788,7 +789,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 					}
 			},
 			when: func(fields fields, args args) result {
-				file, err := fields.GetRemoteFile(args.pod, args.containerName, args.remoteFile, args.target)
+				file, err := fields.GetRemoteFile(args.pod, args.containerName, args.remoteFile, args.target.PodName, args.target)
 				return result{
 					remoteFile: file,
 					err:        err,
@@ -827,7 +828,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 				outFake := bytes.NewBufferString(remoteFileContent)
 				timestamp, _ := time.Parse(time.RFC3339, "2023-02-28T11:44:12.678378359Z")
 				return fields{
-						profilingContainerAdapter{
+						&profilingContainerApi{
 							connectionInfo: kubernetes.ConnectionInfo{
 								ClientSet: testclient.NewSimpleClientset(),
 							},
@@ -857,7 +858,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 					}
 			},
 			when: func(fields fields, args args) result {
-				file, err := fields.GetRemoteFile(args.pod, args.containerName, args.remoteFile, args.target)
+				file, err := fields.GetRemoteFile(args.pod, args.containerName, args.remoteFile, args.target.PodName, args.target)
 				return result{
 					remoteFile: file,
 					err:        err,

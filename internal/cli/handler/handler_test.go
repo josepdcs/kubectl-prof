@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/josepdcs/kubectl-prof/api"
+	"github.com/josepdcs/kubectl-prof/internal/cli"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 )
 
@@ -44,8 +45,8 @@ func TestEventHandler_reportProgress(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			h := &EventHandler{
-				Target:   tt.fields.Target,
-				LogLevel: tt.fields.LogLevel,
+				target:  tt.fields.Target,
+				printer: cli.NewPrinter(false),
 			}
 			h.reportProgress(tt.args.data, tt.args.done)
 			if tt.args.done != nil {
