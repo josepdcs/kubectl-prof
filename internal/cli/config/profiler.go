@@ -7,12 +7,10 @@ import (
 )
 
 // ProfilerConfig encapsulates the profiler configuration.
-// A profiler can be launched as Job or as EphemeralContainer (last one is experimental).
 type ProfilerConfig struct {
-	Target             *TargetConfig
-	Job                *JobConfig
-	EphemeralContainer *EphemeralContainerConfig
-	LogLevel           api.LogLevel
+	Target   *TargetConfig
+	Job      *JobConfig
+	LogLevel api.LogLevel
 }
 
 // Option represents an option of the ProfilerConfig.
@@ -31,12 +29,8 @@ func NewProfilerConfig(Target *TargetConfig, options ...Option) (*ProfilerConfig
 		option(p)
 	}
 
-	if p.Job == nil && p.EphemeralContainer == nil {
-		return nil, errors.New("JobConfig and EphemeralContainerConfig are missing. One of both is mandatory")
-	}
-
-	if p.Job != nil && p.EphemeralContainer != nil {
-		return nil, errors.New("JobConfig and EphemeralContainerConfig cannot be defined at the same time")
+	if p.Job == nil {
+		return nil, errors.New("JobConfig is missing")
 	}
 
 	return p, nil
@@ -50,16 +44,18 @@ func WithJob(jobConfig *JobConfig) Option {
 	}
 }
 
-// WithEphemeralContainer sets the EphemeralContainer
-func WithEphemeralContainer(ephemeralContainerConfig *EphemeralContainerConfig) Option {
-	return func(p *ProfilerConfig) {
-		p.EphemeralContainer = ephemeralContainerConfig
-	}
-}
-
-// WithLogLevel sets the LogLevel
+// WithLogLevel sets the level
 func WithLogLevel(logLevel api.LogLevel) Option {
 	return func(p *ProfilerConfig) {
 		p.LogLevel = logLevel
+	}
+}
+
+// DeepCopy returns a deep copy of the ProfilerConfig
+func (p *ProfilerConfig) DeepCopy() *ProfilerConfig {
+	return &ProfilerConfig{
+		Target:   p.Target.DeepCopy(),
+		Job:      p.Job.DeepCopy(),
+		LogLevel: p.LogLevel,
 	}
 }

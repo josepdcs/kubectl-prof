@@ -10,3 +10,11 @@ type JobConfig struct {
 	// Namespace specifies the namespace for job execution.
 	Namespace string
 }
+
+// DeepCopy returns a deep copy of the JobConfig.
+func (j *JobConfig) DeepCopy() *JobConfig {
+	return &JobConfig{
+		ContainerConfig: j.ContainerConfig,
+		Namespace:       j.Namespace,
+	}
+}

@@ -1,4 +1,4 @@
-package adapter
+package api
 
 import (
 	"context"
@@ -17,8 +17,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-// ProfilingJobAdapter defines all methods related to profiling job and the target pod to be profiled
-type ProfilingJobAdapter interface {
+// ProfilingJobApi defines all methods related to profiling job and the target pod to be profiled
+type ProfilingJobApi interface {
 	// CreateProfilingJob creates the profiling job
 	CreateProfilingJob(*v1.Pod, *config.ProfilerConfig, context.Context) (string, *batchv1.Job, error)
 	// GetProfilingPod returns the created profiling pod from the profiling job
@@ -29,19 +29,19 @@ type ProfilingJobAdapter interface {
 	DeleteProfilingJob(*batchv1.Job, context.Context) error
 }
 
-// profilingJobAdapter implements ProfilingJobAdapter and wraps kubernetes.ConnectionInfo
-type profilingJobAdapter struct {
+// profilingJobApi implements ProfilingJobApi and wraps kubernetes.ConnectionInfo
+type profilingJobApi struct {
 	connectionInfo kubernetes.ConnectionInfo
 }
 
-// NewProfilingJobAdapter returns new instance of ProfilingJobAdapter
-func NewProfilingJobAdapter(connectionInfo kubernetes.ConnectionInfo) ProfilingJobAdapter {
-	return profilingJobAdapter{
+// NewProfilingJobApi returns new instance of ProfilingJobApi
+func NewProfilingJobApi(connectionInfo kubernetes.ConnectionInfo) ProfilingJobApi {
+	return &profilingJobApi{
 		connectionInfo: connectionInfo,
 	}
 }
 
-func (p profilingJobAdapter) CreateProfilingJob(targetPod *v1.Pod, cfg *config.ProfilerConfig, ctx context.Context) (string, *batchv1.Job, error) {
+func (p *profilingJobApi) CreateProfilingJob(targetPod *v1.Pod, cfg *config.ProfilerConfig, ctx context.Context) (string, *batchv1.Job, error) {
 	j, err := job.Get(cfg.Target.Language, cfg.Target.ProfilingTool)
 	if err != nil {
 		return "", nil, errors.Wrap(err, "unable to get the job type")
@@ -74,10 +74,13 @@ func printJob(job *batchv1.Job) error {
 	return encoder.Encode(job, os.Stdout)
 }
 
-func (p profilingJobAdapter) GetProfilingPod(cfg *config.ProfilerConfig, ctx context.Context, timeout time.Duration) (*v1.Pod, error) {
+func (p *profilingJobApi) GetProfilingPod(cfg *config.ProfilerConfig, ctx context.Context, timeout time.Duration) (*v1.Pod, error) {
 	var pod *v1.Pod
-	err := wait.Poll(1*time.Second, timeout,
-		func() (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	err := wait.PollUntilContextTimeout(ctx, 1*time.Second, timeout, true,
+		func(ctx context.Context) (bool, error) {
 			podList, err := p.connectionInfo.ClientSet.
 				CoreV1().
 				Pods(cfg.Job.Namespace).
@@ -113,11 +116,11 @@ func (p profilingJobAdapter) GetProfilingPod(cfg *config.ProfilerConfig, ctx con
 	return pod, nil
 }
 
-func (p profilingJobAdapter) GetProfilingContainerName() string {
+func (p *profilingJobApi) GetProfilingContainerName() string {
 	return job.ContainerName
 }
 
-func (p profilingJobAdapter) DeleteProfilingJob(job *batchv1.Job, ctx context.Context) error {
+func (p *profilingJobApi) DeleteProfilingJob(job *batchv1.Job, ctx context.Context) error {
 	deleteStrategy := metav1.DeletePropagationForeground
 	return p.connectionInfo.ClientSet.
 		BatchV1().

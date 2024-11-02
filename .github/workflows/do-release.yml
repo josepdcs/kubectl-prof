@@ -11,7 +11,8 @@ on:
         default: ''
 
 env:
-  SCM_USERNAME: josepdcs
+  SCM_USERNAME: "Josep Damia Carbonell Segui"
+  SCM_USEREMAIL: josepdcs@ext.inditex.com
 
 jobs:
   goreleaser:
@@ -32,6 +33,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: |
           git config user.name "$SCM_USERNAME"
+          git config user.email "$SCM_USEREMAIL"
           git tag ${{ env.tag }} -m "Release ${{ env.tag }}"
           git push origin ${{ env.tag }}
 

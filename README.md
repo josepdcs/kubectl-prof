@@ -36,7 +36,7 @@ fixes.
 
 ### Profiling Java Pod
 
-In order to profile a Java application in pod `mypod` for 1 minute and save the flamegraph into `/tmp` run:
+To profile a Java application in pod `mypod` for 1 minute and save the flamegraph into `/tmp` run:
 
 ```shell
 kubectl prof my-pod -t 5m -l java -o flamegraph --local-path=/tmp
@@ -44,11 +44,11 @@ kubectl prof my-pod -t 5m -l java -o flamegraph --local-path=/tmp
 
 *NOTICE*:
 
-* if `--local-path` is omitted, flamegraph result will be saved into current directory
+* if `--local-path` is omitted, a flamegraph result will be saved into current directory
 
 ### Profiling Alpine based container
 
-Profiling Java application in alpine based containers require using `--alpine` flag:
+Profiling Java application in alpine-based containers require using `--alpine` flag:
 
 ```shell
 kubectl prof mypod -t 1m --lang java -o flamegraph --alpine 
@@ -108,7 +108,7 @@ kubectl prof mypod -t 1m --lang java --runtime crio
 
 ### Profiling Python Pod
 
-In order to profile a Python application in pod `mypod` for 1 minute and save the flamegraph into `/tmp` run:
+To profile a Python application in pod `mypod` for 1 minute and save the flamegraph into `/tmp` run:
 
 ```shell
 kubectl prof mypod -t 1m --lang python -o flamegraph --local-path=/tmp
@@ -132,7 +132,7 @@ kubectl prof mypod -t 1m --lang python --local-path=/tmp -o speedscope
 
 ### Profiling Golang Pod
 
-In order to profile a Golang application in pod `mypod` for 1 minute run:
+To profile a Golang application in pod `mypod` for 1 minute run:
 
 ```shell
 kubectl prof mypod -t 1m --lang go -o flamegraph
@@ -140,7 +140,7 @@ kubectl prof mypod -t 1m --lang go -o flamegraph
 
 ### Profiling Node Pod
 
-In order to profile a Python application in pod `mypod` for 1 minute run:
+To profile a Python application in pod `mypod` for 1 minute run:
 
 ```shell
 kubectl prof mypod -t 1m --lang node -o flamegraph
@@ -148,7 +148,7 @@ kubectl prof mypod -t 1m --lang node -o flamegraph
 
 ### Profiling Ruby Pod
 
-In order to profile a Ruby application in pod `mypod` for 1 minute run:
+To profile a Ruby application in pod `mypod` for 1 minute run:
 
 ```shell
 kubectl prof mypod -t 1m --lang ruby -o flamegraph
@@ -156,7 +156,7 @@ kubectl prof mypod -t 1m --lang ruby -o flamegraph
 
 ### Profiling Clang Pod
 
-In order to profile a Clang application in pod `mypod` for 1 minute run:
+To profile a Clang application in pod `mypod` for 1 minute run:
 
 ```shell
 kubectl prof mypod -t 1m --lang clang -o flamegraph
@@ -164,7 +164,7 @@ kubectl prof mypod -t 1m --lang clang -o flamegraph
 
 ### Profiling Clang++ Pod
 
-In order to profile a Clang++ application in pod `mypod` for 1 minute run:
+To profile a Clang++ application in pod `mypod` for 1 minute run:
 
 ```shell
 kubectl prof mypod -t 1m --lang clang++ -o flamegraph
@@ -178,17 +178,35 @@ kubectl prof mypod -t 1m --lang clang++ -o flamegraph
 kubectl prof mypod -l java -o flamegraph -t 5m --interval 60s --cpu-limits=1 -r containerd --image=localhost/my-agent-image-jvm:latest --image-pull-policy=IfNotPresent
 ```
 
-### Profiling in contprof namespace a pod running in contprof-apps namespace by using the profiler service account for go language
+#### Profiling in profiling namespace a pod running in my-apps namespace by using the profiler service account for go language
 
 ```shell
-kubectl prof mypod -n contprof --service-account=profiler --target-namespace=contprof-stupid-apps -l go
+kubectl prof mypod -n profiling --service-account=profiler --target-namespace=my-apps -l go
 ```
 
-### Profiling by setting custom resource requests and limits for the agent pod (default: neither requests nor limits are set) for python language
+#### Profiling by setting custom resource requests and limits for the agent pod (default: neither requests nor limits are set) for python language
 
 ```shell
 kubectl prof mypod --cpu-requests 100m --cpu-limits 200m --mem-requests 100Mi --mem-limits 200Mi -l python
 ```
+
+### Profiling a bunch of pods by using a label selector
+
+Profile the pods with the label selector "app=my-app"
+for 5 minutes with JFR format for java language by using `--selector` option:
+
+```shell:
+kubectl prof --selectpr app=myapp -t 5m -l java -o jfr
+```
+ ⚠️ ***ATTENTION:*** use this option with caution, it will profile all the pods that match the label selector.
+
+In addition, you can define the number of pods to be profiled simultaneously by using `--pool-size-profiling-jobs`. 
+For example, the following command will profile five pods simultaneously:
+
+```shell:
+kubectl prof --selectpr app=myapp -t 5m -l java -o jfr --pool-size-profiling-jobs 5
+```
+
 
 ### For more detailed options run:
 
@@ -212,14 +230,14 @@ kubectl prof --help
 
 ### Pre-built binaries
 
-See the [release](https://github.com/josepdcs/kubectl-prof/releases/tag/1.2.6) page for the full list of pre-built
+See the [release](https://github.com/josepdcs/kubectl-prof/releases/tag/1.3.0) page for the full list of pre-built
 assets. And download the binary according yours architecture.
 
 ### Installing for Linux x86_64
 
 ```shell
-wget https://github.com/josepdcs/kubectl-prof/releases/download/1.2.6/kubectl-prof_1.2.6_linux_amd64.tar.gz
-tar xvfz kubectl-prof_1.2.6_linux_amd64.tar.gz && sudo install kubectl-prof /usr/local/bin/
+wget https://github.com/josepdcs/kubectl-prof/releases/download/1.3.0/kubectl-prof_1.3.0_linux_amd64.tar.gz
+tar xvfz kubectl-prof_1.3.0_linux_amd64.tar.gz && sudo install kubectl-prof /usr/local/bin/
 ```
 
 ## Building
