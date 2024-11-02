@@ -5,8 +5,8 @@ RUN go get -d -v ./...
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof/cmd/agent
 RUN go build -o /go/bin/agent
 
-FROM python:3.11.2-slim-bullseye AS pyspybuild
-RUN pip3 install py-spy==0.3.14
+FROM python:3.13.0-slim-bullseye AS pyspybuild
+RUN pip3 install py-spy==0.4.0
 RUN apt-get update && apt-get install -y git
 RUN git clone https://github.com/brendangregg/FlameGraph
 
