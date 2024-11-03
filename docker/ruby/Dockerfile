@@ -3,7 +3,7 @@ WORKDIR /go/src/github.com/josepdcs/kubectl-prof
 ADD . /go/src/github.com/josepdcs/kubectl-prof
 RUN go get -d -v ./...
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof/cmd/agent
-RUN go build -o /go/bin/agent
+RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /go/bin/agent
 
 FROM rust:1.82-bullseye AS rbspybuild
 WORKDIR /

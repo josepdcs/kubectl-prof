@@ -3,7 +3,7 @@ WORKDIR /go/src/github.com/josepdcs/kubectl-prof
 ADD . /go/src/github.com/josepdcs/kubectl-prof
 RUN go get -d -v ./...
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof/cmd/agent
-RUN go build -o /go/bin/agent
+RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /go/bin/agent
 
 FROM python:3.13.0-slim-bullseye AS pyspybuild
 RUN pip3 install py-spy==0.4.0
