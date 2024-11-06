@@ -196,7 +196,7 @@ Profile the pods with the label selector "app=my-app"
 for 5 minutes with JFR format for java language by using `--selector` option:
 
 ```shell:
-kubectl prof --selectpr app=myapp -t 5m -l java -o jfr
+kubectl prof --selector app=myapp -t 5m -l java -o jfr
 ```
  ⚠️ ***ATTENTION:*** use this option with caution, it will profile all the pods that match the label selector.
 
@@ -204,7 +204,7 @@ In addition, you can define the number of pods to be profiled simultaneously by 
 For example, the following command will profile five pods simultaneously:
 
 ```shell:
-kubectl prof --selectpr app=myapp -t 5m -l java -o jfr --pool-size-profiling-jobs 5
+kubectl prof --selector app=myapp -t 5m -l java -o jfr --pool-size-profiling-jobs 5
 ```
 
 
