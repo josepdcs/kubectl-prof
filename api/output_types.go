@@ -23,6 +23,7 @@ const (
 	Pprof         OutputType = "pprof"
 	Summary       OutputType = "summary"
 	SummaryByLine OutputType = "summary-by-line"
+	HeapSnapshot  OutputType = "heapsnapshot"
 )
 
 // GetOutputTypesByProfilingTool Gets the list of OutputType related to the ProfilingTool that they will be considered as output types.
@@ -34,6 +35,7 @@ var GetOutputTypesByProfilingTool = map[ProfilingTool][]OutputType{
 	Bpf:           {FlameGraph, Raw},
 	Perf:          {FlameGraph, Raw},
 	Rbspy:         {FlameGraph, SpeedScope, Callgrind, Summary, SummaryByLine},
+	NodeDummy:     {HeapSnapshot, HeapDump},
 	FakeTool:      {FlameGraph},
 }
 
@@ -58,6 +60,7 @@ var (
 		Raw,
 		Summary,
 		SummaryByLine,
+		HeapSnapshot,
 	}
 )
 

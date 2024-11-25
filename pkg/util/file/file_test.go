@@ -4,13 +4,26 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/josepdcs/kubectl-prof/internal/agent/config"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestFilter(t *testing.T) {
+	files := []string{
+		"/tmp/exists.txt",
+		"/tmp/exists2-PID.txt",
+		"/tmp/exists3.txt",
+	}
+	fileName, ok := lo.Find(files, func(f string) bool { return strings.Contains(f, "PID") })
+	assert.True(t, ok)
+	assert.Equal(t, "/tmp/exists2-PID.txt", fileName)
+}
 
 func TestExists(t *testing.T) {
 	type args struct {

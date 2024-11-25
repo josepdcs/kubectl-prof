@@ -89,7 +89,7 @@ func (j *AsyncProfiler) SetUp(job *job.ProfilingJob) error {
 	}
 
 	targetTmpDir := filepath.Join(targetFs, "tmp")
-	// remove previous files from a before profiling
+	// remove previous files from a previous profiling
 	file.RemoveAll(targetTmpDir, config.ProfilingPrefix+string(job.OutputType))
 
 	err = j.linkTmpDirToTargetTmpDir(targetTmpDir)

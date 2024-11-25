@@ -1,4 +1,4 @@
-VERSION ?= v1.4.0-dev
+VERSION ?= v1.5.0-dev
 CLI_NAME ?= kubectl-prof
 CLI_DIR ?= ./cmd/cli/
 AGENT_NAME ?= agent
@@ -18,6 +18,8 @@ DOCKER_PYTHON_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-python
 DOCKERFILE_PYTHON ?= ./docker/python/Dockerfile
 DOCKER_RUBY_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-ruby
 DOCKERFILE_RUBY ?= ./docker/ruby/Dockerfile
+DOCKER_DUMMY_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-dummy
+DOCKERFILE_DUMMY ?= ./docker/dummy/Dockerfile
 DOCKER_TARGET_PLATFORM ?= linux/amd64,linux/arm64
 DOCKER_BUILD_ADDITIONAL_ARGS ?= 
 
@@ -131,9 +133,21 @@ push-docker-ruby: build-docker-ruby
 	$(info $(M) pushing RUBY docker image to DockerHub...)
 	@docker push $(REGISTRY)/$(DOCKER_RUBY_IMAGE)
 
+## build-docker-dummy: Build the DUMMY docker image
+.PHONY: build-docker-dummy
+build-docker-dummy:
+	$(info $(M) building DUMMY docker image...)
+	docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_DUMMY_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_DUMMY) .
+
+## push-docker-dummy: Build and push the DUMMY docker image
+.PHONY: push-docker-dummy
+push-docker-dummy: build-docker-dummy
+	$(info $(M) pushing DUMMY docker image to DockerHub...)
+	@docker push $(REGISTRY)/$(DOCKER_DUMMY_IMAGE)
+
 ## push-docker-all: Build and push all docker images
 .PHONY: push-docker-all
-push-docker-all: push-docker-jvm push-docker-jvm-alpine push-docker-bpf push-docker-perf push-docker-python push-docker-ruby
+push-docker-all: push-docker-jvm push-docker-jvm-alpine push-docker-bpf push-docker-perf push-docker-python push-docker-ruby push-docker-dummy
 
 ## test: Run unit tests
 .PHONY: test
@@ -308,7 +322,14 @@ build-and-push-rust-stupid-app:
 
 ## build-and-push-stupid-apps: Build images of stupid-apps and push them to DockerHub
 .PHONY: build-and-push-stupid-apps
-build-and-push-stupid-apps: build-and-push-clang-stupid-app build-and-push-golang-stupid-app build-and-push-jvm-stupid-app build-and-push-multiprocess-stupid-app build-and-push-node-stupid-app build-and-push-python-stupid-app build-and-push-ruby-stupid-app build-and-push-rust-stupid-app
+build-and-push-stupid-apps: build-and-push-clang-stupid-app \
+build-and-push-golang-stupid-app \
+build-and-push-jvm-stupid-app \
+build-and-push-multiprocess-stupid-app \
+build-and-push-node-stupid-app \
+build-and-push-python-stupid-app \
+build-and-push-ruby-stupid-app \
+build-and-push-rust-stupid-app
 
 ## minikube-configure-profiling: Configure all needed for profiling (service account, namespace, etc.)
 .PHONY: minikube-configure-profiling

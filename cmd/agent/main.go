@@ -159,6 +159,11 @@ func runApp() error {
 				Usage:    "the name of the process to be profiled",
 				Required: false,
 			},
+			&cli.IntFlag{
+				Name:     profile.NodeHeapSnapshotSignal,
+				Usage:    "the signal to be sent to the target process to trigger a heap snapshot",
+				Required: false,
+			},
 		},
 		Action: func(c *cli.Context) error {
 			period, errParse := time.ParseDuration(c.String(profile.GracePeriodForEnding))
@@ -200,6 +205,7 @@ func toArgs(c *cli.Context) map[string]interface{} {
 		profile.HeapDumpSplitInChunkSize:   c.String(profile.HeapDumpSplitInChunkSize),
 		profile.Pid:                        c.String(profile.Pid),
 		profile.Pgrep:                      c.String(profile.Pgrep),
+		profile.NodeHeapSnapshotSignal:     c.Int(profile.NodeHeapSnapshotSignal),
 	}
 }
 

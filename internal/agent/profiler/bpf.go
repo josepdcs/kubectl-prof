@@ -137,7 +137,7 @@ func (b *bpfManager) handleFlamegraph(job *job.ProfilingJob, flameGrapher flameg
 		if file.GetSize(rawFileName) < common.MinimumRawSize {
 			return fmt.Errorf("unable to generate flamegraph: no stacks found (maybe due low cpu load)")
 		}
-		// convert raw format to flamegraph
+		// convert a raw format to flamegraph
 		err := flameGrapher.StackSamplesToFlameGraph(rawFileName, flameFileName)
 		if err != nil {
 			return errors.Wrap(err, "could not convert raw format to flamegraph")

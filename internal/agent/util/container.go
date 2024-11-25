@@ -69,6 +69,22 @@ func ContainerFileSystem(r api.ContainerRuntime, containerID string, containerRu
 	return c.RootFileSystemLocation(containerID, containerRuntimePath)
 }
 
+// GetRootPID returns the PID of the root process of the container
+func GetRootPID(job *job.ProfilingJob) (string, error) {
+	if job.ContainerRuntime == "" || job.ContainerID == "" {
+		return "", errors.New(ContainerRuntimeAndContainerIdMandatoryText)
+	}
+	c, err := runtime(job.ContainerRuntime)
+	if err != nil {
+		return "", err
+	}
+	pid, err := c.PID(job.ContainerID, job.ContainerRuntimePath)
+	if err != nil {
+		return "", err
+	}
+	return pid, nil
+}
+
 type ChildPIDGetter interface {
 	get(pid string) string
 }
