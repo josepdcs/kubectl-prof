@@ -520,7 +520,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 			},
 			then: func(t *testing.T, r result, f fields) {
 				require.Error(t, r.err)
-				assert.EqualError(t, r.err, "could not decode remote file: unexpected EOF")
+				assert.EqualError(t, r.err, "could not decompress remote file: unexpected EOF")
 			},
 		},
 		{
@@ -583,7 +583,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 			},
 			then: func(t *testing.T, r result, f fields) {
 				require.Error(t, r.err)
-				assert.EqualError(t, r.err, "could not write result file: open /other/pod-name-flamegraph-2023-02-28T11_44_12Z.svg: no such file or directory")
+				assert.EqualError(t, r.err, "could not create result file: open /other/pod-name-flamegraph-2023-02-28T11_44_12Z.svg: no such file or directory")
 			},
 		},
 		{

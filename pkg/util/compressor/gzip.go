@@ -1,51 +1,44 @@
 package compressor
 
 import (
-	"bytes"
+	"compress/gzip"
 	"io"
-	"runtime"
-
-	gzip "github.com/klauspost/pgzip"
 )
 
 type GzipCompressor struct {
 }
 
+// NewGzipCompressor returns a new GzipCompressor
 func NewGzipCompressor() *GzipCompressor {
 	return &GzipCompressor{}
 }
 
-func (c *GzipCompressor) Encode(src []byte) ([]byte, error) {
-	var b bytes.Buffer
-	w := gzip.NewWriter(&b)
-	_ = w.SetConcurrency(1<<24, runtime.GOMAXPROCS(0))
-	_, err := w.Write(src)
+// Encode compresses the src data and writes it to dst
+func (c *GzipCompressor) Encode(dst io.Writer, src io.Reader) error {
+	w := gzip.NewWriter(dst)
+	defer func(w *gzip.Writer) {
+		_ = w.Close()
+	}(w)
+
+	_, err := io.Copy(w, src)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	err = w.Close()
-	if err != nil {
-		return nil, err
-	}
-	return b.Bytes(), nil
+
+	return w.Flush()
 }
 
-func (c *GzipCompressor) Decode(src []byte) ([]byte, error) {
-	var b bytes.Buffer
-	gr, err := gzip.NewReader(bytes.NewBuffer(src))
+// Decode decompresses the src data and writes it to dst
+func (c *GzipCompressor) Decode(dst io.Writer, src io.Reader) error {
+	r, err := gzip.NewReader(src)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	defer func(gr *gzip.Reader) {
-		err := gr.Close()
-		if err != nil {
-			return
-		}
-	}(gr)
-	data, err := io.ReadAll(gr)
-	if err != nil {
-		return nil, err
-	}
-	b.Write(data)
-	return b.Bytes(), nil
+	defer func(r *gzip.Reader) {
+		_ = r.Close()
+	}(r)
+
+	_, err = io.Copy(dst, r)
+
+	return err
 }

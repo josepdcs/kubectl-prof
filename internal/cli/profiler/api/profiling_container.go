@@ -2,6 +2,7 @@ package api
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"crypto/md5"
 	"encoding/hex"
@@ -117,21 +118,20 @@ func (p *profilingContainerApi) GetRemoteFile(pod *v1.Pod, containerName string,
 		}
 	}
 
+	fileName := filepath.Join(target.LocalPath, renameResultFileName(targetPodName, remoteFile.FileName, remoteFile.Timestamp))
+	decompressedFile, err := os.Create(fileName)
+	if err != nil {
+		return "", errors.Wrap(err, "could not create result file")
+	}
+
 	comp, err := compressor.Get(target.Compressor)
 	if err != nil {
 		return "", errors.Wrap(err, "could not get compressor")
 	}
 
-	decoded, err := comp.Decode(fileBuff)
+	err = comp.Decode(decompressedFile, bytes.NewReader(fileBuff))
 	if err != nil {
-		return "", errors.Wrap(err, "could not decode remote file")
-	}
-
-	fileName := filepath.Join(target.LocalPath, renameResultFileName(targetPodName, remoteFile.FileName, remoteFile.Timestamp))
-
-	err = os.WriteFile(fileName, decoded, 0644)
-	if err != nil {
-		return "", errors.Wrap(err, "could not write result file")
+		return "", errors.Wrap(err, "could not decompress remote file")
 	}
 
 	return fileName, nil

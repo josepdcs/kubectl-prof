@@ -1,9 +1,7 @@
 package publish
 
 import (
-	"bufio"
 	"bytes"
-	"io"
 	"os"
 	"time"
 
@@ -35,31 +33,26 @@ func NewPublisher() Publisher {
 var newPublisher = NewPublisher()
 
 // Do compress the file and publishes the result
-func (p publisher) Do(compressorType compressor.Type, file string, eventType api.OutputType) error {
-	f, err := os.Open(file)
+func (p publisher) Do(compressorType compressor.Type, filePath string, eventType api.OutputType) error {
+	file, err := os.Open(filePath)
 	if err != nil {
 		return err
 	}
 
-	reader := bufio.NewReader(f)
-	content, err := io.ReadAll(reader)
+	resultFile := filePath + compressor.GetExtensionFileByCompressor[compressorType]
+	compressedFile, err := os.Create(resultFile)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "could not create result file %s", resultFile)
 	}
 
 	comp, err := compressor.Get(compressorType)
 	if err != nil {
 		return err
 	}
-	compressed, err := comp.Encode(content)
-	if err != nil {
-		return err
-	}
 
-	resultFile := file + compressor.GetExtensionFileByCompressor[compressorType]
-	err = os.WriteFile(resultFile, compressed, 0644)
+	err = comp.Encode(compressedFile, file)
 	if err != nil {
-		return errors.Wrapf(err, "could not save compressed file %s", resultFile)
+		return errors.Wrapf(err, "could not compress file %s", resultFile)
 	}
 
 	// get the size of the result file from stat command
@@ -142,10 +135,12 @@ func (p publisher) DoWithNativeGzipAndSplit(file, chunkSize string, eventType ap
 	)
 }
 
+// Do compress the file and publishes the result
 func Do(compressorType compressor.Type, file string, eventType api.OutputType) error {
 	return newPublisher.Do(compressorType, file, eventType)
 }
 
+// DoWithNativeGzipAndSplit compress the file with gzip and split the result file in chunks
 func DoWithNativeGzipAndSplit(file, chunkSize string, eventType api.OutputType) error {
 	return newPublisher.DoWithNativeGzipAndSplit(file, chunkSize, eventType)
 }
