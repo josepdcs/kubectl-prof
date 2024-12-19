@@ -4,10 +4,12 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
+	"github.com/pkg/errors"
 )
 
 func Exists(file string) bool {
@@ -17,7 +19,7 @@ func Exists(file string) bool {
 	return false
 }
 
-// List lists all files that accomplish the given pattern
+// List lists all files that achieve the given pattern
 func List(pattern string) []string {
 	var files []string
 	matches, _ := filepath.Glob(pattern)
@@ -25,6 +27,15 @@ func List(pattern string) []string {
 		files = append(files, matches...)
 	}
 	return matches
+}
+
+// First returns the first file that achieves the given pattern
+func First(pattern string) string {
+	matches := List(pattern)
+	if matches != nil {
+		return matches[0]
+	}
+	return ""
 }
 
 // Remove removes a file
@@ -47,8 +58,8 @@ func RemoveAll(dir string, pattern string) {
 	}
 }
 
-// GetSize returns the file size
-func GetSize(file string) int64 {
+// Size returns the file size
+func Size(file string) int64 {
 	fileInfo, err := os.Stat(file)
 	if err != nil {
 		log.WarningLogLn(fmt.Sprintf("file could no be obtained: %s", err))
@@ -59,7 +70,7 @@ func GetSize(file string) int64 {
 
 // IsEmpty returns if file is empty
 func IsEmpty(file string) bool {
-	return GetSize(file) == 0
+	return Size(file) == 0
 }
 
 // Write writes a file with the given content
@@ -97,9 +108,9 @@ func Append(file string, content string) {
 	}
 }
 
-// GetChecksum returns the checksum of a file applying md5
+// Checksum returns the checksum of a file applying md5
 // if file could not be read, returns empty string
-func GetChecksum(file string) string {
+func Checksum(file string) string {
 	content, err := os.ReadFile(file)
 	if err != nil {
 		log.WarningLogLn(fmt.Sprintf("file [%s] could no be read: %s", file, err))
@@ -114,4 +125,46 @@ func MergeFiles(outputPath string, inputPaths []string) {
 	for _, f := range inputPaths {
 		Append(outputPath, Read(f))
 	}
+}
+
+// Copy copies a file from source to destination
+func Copy(src, dst string) (int64, error) {
+	sourceFileStat, err := os.Stat(src)
+	if err != nil {
+		return 0, err
+	}
+
+	if !sourceFileStat.Mode().IsRegular() {
+		return 0, errors.Errorf("%s is not a regular file", src)
+	}
+
+	source, err := os.Open(src)
+	if err != nil {
+		return 0, err
+	}
+	defer func(source *os.File) {
+		err = source.Close()
+		if err != nil {
+			log.WarningLogLn(fmt.Sprintf("file [%s] could no be closed after copy: %s", src, err.Error()))
+		}
+	}(source)
+
+	destination, err := os.Create(dst)
+	if err != nil {
+		return 0, err
+	}
+	defer func(destination *os.File) {
+		err = destination.Close()
+		if err != nil {
+			log.WarningLogLn(fmt.Sprintf("file [%s] could no be closed after copy: %s", dst, err.Error()))
+		}
+	}(destination)
+
+	nBytes, err := io.Copy(destination, source)
+	return nBytes, err
+}
+
+// Move moves a file from source to destination
+func Move(src, dst string) error {
+	return os.Rename(src, dst)
 }

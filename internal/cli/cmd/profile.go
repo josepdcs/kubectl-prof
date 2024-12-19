@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"syscall"
 	"time"
 
 	"github.com/agrison/go-commons-lang/stringUtils"
@@ -211,11 +212,12 @@ func NewProfileCommand(streams genericiooptions.IOStreams) *cobra.Command {
 	cmd.Flags().DurationVar(&target.GracePeriodEnding, "grace-period-ending", defaultGracePeriodEnding, "The grace period to spend before to end the agent")
 	cmd.Flags().StringVar(&flags.imagePullPolicy, "image-pull-policy", defaultImagePullPolicy, fmt.Sprintf("Image pull policy, choose one of %v", imagePullPolicies))
 	cmd.Flags().StringVar(&target.ContainerName, "target-container-name", "", "The target container name to be profiled")
-	cmd.Flags().StringVar(&target.HeapDumpSplitInChunkSize, "heap-dump-split-size", defaultHeapDumpSplitSize, "The heap dump will be split into chunks of given size following the split command valid format")
-	cmd.Flags().IntVar(&target.PoolSizeRetrieveChunks, "pool-size-retrieve-chunks", defaultPoolSizeRetrieveChunks, "The pool size of goroutines for retrieving chunks of the obtained heap dump from the agent")
+	cmd.Flags().StringVar(&target.HeapDumpSplitInChunkSize, "heap-dump-split-size", defaultHeapDumpSplitSize, "The heap dump (or snapshot, for Node.js) will be split into chunks of a specified size, following the valid format for the split command (e.g. 50M, 1G, etc.)")
+	cmd.Flags().IntVar(&target.PoolSizeRetrieveChunks, "pool-size-retrieve-chunks", defaultPoolSizeRetrieveChunks, "The pool size of goroutines used to retrieve chunks of the obtained heap dump (or snapshot, for Node.js) from the agent")
 	cmd.Flags().IntVar(&target.RetrieveFileRetries, "retrieve-file-retries", defaultRetrieveFileRetries, "The number of retries to retrieve a file from the remote container")
 	cmd.Flags().StringVar(&target.PID, "pid", "", "The PID of target process if it is known")
 	cmd.Flags().StringVarP(&target.Pgrep, "pgrep", "p", "", "Name of the target process")
+	cmd.Flags().IntVar((*int)(&target.NodeHeapSnapshotSignal), "node-heap-snapshot-signal", int(syscall.SIGUSR2), "The signal to be sent to the target process to generate a heap snapshot for Node.js applications")
 
 	options.configFlags.AddFlags(cmd.Flags())
 
@@ -223,7 +225,6 @@ func NewProfileCommand(streams genericiooptions.IOStreams) *cobra.Command {
 }
 
 func getProfilerConfig(target config.TargetConfig, job config.JobConfig, logLevel string, privileged bool) (*config.ProfilerConfig, error) {
-
 	job.Privileged = privileged
 	return config.NewProfilerConfig(&target, config.WithJob(&job), config.WithLogLevel(api.LogLevel(logLevel)))
 }

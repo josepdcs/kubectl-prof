@@ -509,6 +509,51 @@ func TestGetFileExtension(t *testing.T) {
 				assert.Equal(t, ".svg", result)
 			},
 		},
+		{
+			name: "with HeapSnapshot when node dummy",
+			given: func() args {
+				return args{
+					tool:       api.NodeDummy,
+					OutputType: api.HeapSnapshot,
+				}
+			},
+			when: func(args args) string {
+				return GetFileExtension(args.tool, args.OutputType)
+			},
+			then: func(t *testing.T, result string) {
+				assert.Equal(t, ".heapsnapshot", result)
+			},
+		},
+		{
+			name: "with default when node dummy",
+			given: func() args {
+				return args{
+					tool:       api.NodeDummy,
+					OutputType: "unknown",
+				}
+			},
+			when: func(args args) string {
+				return GetFileExtension(args.tool, args.OutputType)
+			},
+			then: func(t *testing.T, result string) {
+				assert.Equal(t, ".svg", result)
+			},
+		},
+		{
+			name: "default",
+			given: func() args {
+				return args{
+					tool:       "unknown",
+					OutputType: "unknown",
+				}
+			},
+			when: func(args args) string {
+				return GetFileExtension(args.tool, args.OutputType)
+			},
+			then: func(t *testing.T, result string) {
+				assert.Equal(t, ".svg", result)
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

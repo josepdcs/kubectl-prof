@@ -62,6 +62,14 @@ func TestGet(t *testing.T) {
 			want: &perfCreator{},
 		},
 		{
+			name: "node with node dummy creator is instanced",
+			args: args{
+				lang: api.Node,
+				tool: api.NodeDummy,
+			},
+			want: &dummyCreator{},
+		},
+		{
 			name: "rust creator is instanced",
 			args: args{
 				lang: api.Rust,
@@ -72,6 +80,36 @@ func TestGet(t *testing.T) {
 			name: "rust with perf creator is instanced",
 			args: args{
 				lang: api.Rust,
+				tool: api.Perf,
+			},
+			want: &perfCreator{},
+		},
+		{
+			name: "clang creator is instanced",
+			args: args{
+				lang: api.Clang,
+			},
+			want: &bpfCreator{},
+		},
+		{
+			name: "clang with perf creator is instanced",
+			args: args{
+				lang: api.Clang,
+				tool: api.Perf,
+			},
+			want: &perfCreator{},
+		},
+		{
+			name: "clang++ creator is instanced",
+			args: args{
+				lang: api.ClangPlusPlus,
+			},
+			want: &bpfCreator{},
+		},
+		{
+			name: "clang++ with perf creator is instanced",
+			args: args{
+				lang: api.ClangPlusPlus,
 				tool: api.Perf,
 			},
 			want: &perfCreator{},

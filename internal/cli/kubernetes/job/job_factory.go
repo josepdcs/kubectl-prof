@@ -31,6 +31,9 @@ func Get(lang api.ProgrammingLanguage, tool api.ProfilingTool) (Creator, error) 
 		if tool == api.Perf {
 			return &perfCreator{}, nil
 		}
+		if tool == api.NodeDummy {
+			return &dummyCreator{}, nil
+		}
 		return &bpfCreator{}, nil
 	case api.Python:
 		return &pythonCreator{}, nil

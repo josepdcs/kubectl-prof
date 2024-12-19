@@ -64,6 +64,7 @@ func TestProfilingJob_ToMap(t *testing.T) {
 		OutputType:               "OutputType",
 		FileName:                 "FileName",
 		HeapDumpSplitInChunkSize: "100M",
+		NodeHeapSnapshotSignal:   10,
 		PID:                      "PID",
 		Pgrep:                    "PGREP",
 		AdditionalArguments: map[string]string{
@@ -76,7 +77,7 @@ func TestProfilingJob_ToMap(t *testing.T) {
 	out := p.ToMap()
 
 	assert.NotEmpty(t, out)
-	assert.Len(t, out, 18)
+	assert.Len(t, out, 19)
 	assert.Equal(t, float64(10), out["Duration"])
 	assert.Equal(t, float64(5), out["Interval"])
 	assert.Equal(t, "ID", out["UID"])
@@ -98,6 +99,7 @@ func TestProfilingJob_ToMap(t *testing.T) {
 		"settings": "custom",
 	}, out["AdditionalArguments"])
 	assert.Equal(t, float64(0), out["Iteration"])
+	assert.Equal(t, float64(10), out["NodeHeapSnapshotSignal"])
 }
 
 func TestProfilingJob_GetWidthAdditionalArgument(t *testing.T) {

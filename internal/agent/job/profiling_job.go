@@ -30,6 +30,7 @@ type ProfilingJob struct {
 	HeapDumpSplitInChunkSize string
 	PID                      string
 	Pgrep                    string
+	NodeHeapSnapshotSignal   int
 	AdditionalArguments      map[string]string
 	Iteration                int
 }

@@ -476,7 +476,6 @@ func Test_bpfManager_handleFlamegraph(t *testing.T) {
 				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
 
 				commander := executil.NewFakeCommander()
-				// mock commander.Command return exec.Command("ls", common.TmpDir())
 				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
 
