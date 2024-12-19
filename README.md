@@ -196,7 +196,7 @@ Profile the pods with the label selector "app=my-app"
 for 5 minutes with JFR format for java language by using `--selector` option:
 
 ```shell:
-kubectl prof --selectpr app=myapp -t 5m -l java -o jfr
+kubectl prof --selector app=myapp -t 5m -l java -o jfr
 ```
  ⚠️ ***ATTENTION:*** use this option with caution, it will profile all the pods that match the label selector.
 
@@ -204,7 +204,7 @@ In addition, you can define the number of pods to be profiled simultaneously by 
 For example, the following command will profile five pods simultaneously:
 
 ```shell:
-kubectl prof --selectpr app=myapp -t 5m -l java -o jfr --pool-size-profiling-jobs 5
+kubectl prof --selector app=myapp -t 5m -l java -o jfr --pool-size-profiling-jobs 5
 ```
 
 
@@ -230,14 +230,14 @@ kubectl prof --help
 
 ### Pre-built binaries
 
-See the [release](https://github.com/josepdcs/kubectl-prof/releases/tag/1.3.0) page for the full list of pre-built
+See the [release](https://github.com/josepdcs/kubectl-prof/releases/tag/1.4.1) page for the full list of pre-built
 assets. And download the binary according yours architecture.
 
 ### Installing for Linux x86_64
 
 ```shell
-wget https://github.com/josepdcs/kubectl-prof/releases/download/1.3.0/kubectl-prof_1.3.0_linux_amd64.tar.gz
-tar xvfz kubectl-prof_1.3.0_linux_amd64.tar.gz && sudo install kubectl-prof /usr/local/bin/
+wget https://github.com/josepdcs/kubectl-prof/releases/download/1.4.1/kubectl-prof_1.4.1_linux_amd64.tar.gz
+tar xvfz kubectl-prof_1.4.1_linux_amd64.tar.gz && sudo install kubectl-prof /usr/local/bin/
 ```
 
 ## Building
