@@ -26,6 +26,7 @@ var crioStateFile = func(containerID string, containerRuntimePath string) string
 	return fmt.Sprintf("%s/overlay-containers/%s/userdata/state.json", containerRuntimePath, containerID)
 }
 
+// RootFileSystemLocation returns the root filesystem location of the container
 func (c *Crio) RootFileSystemLocation(containerID string, containerRuntimePath string) (string, error) {
 	if stringUtils.IsBlank(containerID) {
 		return "", errors.New("container ID is mandatory")
@@ -42,6 +43,7 @@ func (c *Crio) RootFileSystemLocation(containerID string, containerRuntimePath s
 
 }
 
+// PID returns the PID of the container
 func runtimeSpec(configFile string) (rspec.Spec, error) {
 	file, err := os.ReadFile(configFile)
 	if err != nil {
@@ -57,6 +59,7 @@ func runtimeSpec(configFile string) (rspec.Spec, error) {
 	return result, nil
 }
 
+// PID returns the PID of the container
 func (c *Crio) PID(containerID string, containerRuntimePath string) (string, error) {
 	if stringUtils.IsBlank(containerID) {
 		return "", errors.New("container ID is mandatory")
@@ -73,6 +76,7 @@ func (c *Crio) PID(containerID string, containerRuntimePath string) (string, err
 
 }
 
+// runtimeState reads the runtime state from the container runtime
 func runtimeState(stateFile string) (rspec.State, error) {
 	file, err := os.ReadFile(stateFile)
 	if err != nil {
@@ -86,4 +90,21 @@ func runtimeState(stateFile string) (rspec.State, error) {
 	}
 
 	return result, nil
+}
+
+// CWD returns the current working directory of the container
+func (c *Crio) CWD(containerID string, containerRuntimePath string) (string, error) {
+	if stringUtils.IsBlank(containerID) {
+		return "", errors.New("container ID is mandatory")
+	}
+	if stringUtils.IsBlank(containerRuntimePath) {
+		return "", errors.New("container runtime path is mandatory")
+	}
+
+	spec, err := runtimeSpec(crioConfigFile(containerID, containerRuntimePath))
+	if err != nil {
+		return "", err
+	}
+	return spec.Process.Cwd, nil
+
 }

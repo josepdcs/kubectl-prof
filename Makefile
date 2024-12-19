@@ -41,7 +41,7 @@ build-docker-agents: build-docker-bpf build-docker-jvm build-docker-jvm-alpine b
 .PHONY: install-deps
 install-deps: ## Get the dependencies
 	$(info $(M) getting dependencies...)
-	@go get -v -d ./...
+	@go get -v ./...
 
 ## upgrade-deps: upgrade dependencies if needed
 .upgrade: upgrade-deps

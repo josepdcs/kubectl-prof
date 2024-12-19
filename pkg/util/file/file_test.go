@@ -207,7 +207,7 @@ func TestGetSize(t *testing.T) {
 				return args{file: file}
 			},
 			when: func(args args) int64 {
-				return GetSize(args.file)
+				return Size(args.file)
 			},
 			then: func(t *testing.T, result int64) {
 				assert.Equal(t, int64(4), result)
@@ -223,7 +223,7 @@ func TestGetSize(t *testing.T) {
 				return args{file: "unknown"}
 			},
 			when: func(args args) int64 {
-				return GetSize(args.file)
+				return Size(args.file)
 			},
 			then: func(t *testing.T, result int64) {
 				assert.Equal(t, int64(0), result)
@@ -332,7 +332,7 @@ func TestWrite(t *testing.T) {
 			},
 			then: func(t *testing.T, file string) {
 				assert.True(t, Exists(file))
-				assert.Equal(t, int64(len("content")), GetSize(file))
+				assert.Equal(t, int64(len("content")), Size(file))
 			},
 			after: func(file string) {
 				_ = Remove(file)
@@ -452,7 +452,7 @@ func TestGetChecksum(t *testing.T) {
 				return args{file: file}
 			},
 			when: func(args args) string {
-				return GetChecksum(args.file)
+				return Checksum(args.file)
 			},
 			then: func(t *testing.T, content string) {
 				assert.Equal(t, "9a0364b9e99bb480dd25e1f0284c8555", content)
@@ -468,7 +468,7 @@ func TestGetChecksum(t *testing.T) {
 			},
 			when: func(args args) string {
 				log.SetPrintLogs(true)
-				return GetChecksum(args.file)
+				return Checksum(args.file)
 			},
 			then: func(t *testing.T, content string) {
 				assert.Empty(t, content)
@@ -599,6 +599,121 @@ func TestMergeFiles(t *testing.T) {
 
 			// Then
 			tt.then(t)
+
+			if tt.after != nil {
+				tt.after(args)
+			}
+		})
+	}
+}
+
+func TestCopy(t *testing.T) {
+	type args struct {
+		src string
+		dst string
+	}
+	tests := []struct {
+		name  string
+		given func() args
+		when  func(args args) (int64, error)
+		then  func(t *testing.T, nBytes int64, err error)
+		after func(args args)
+	}{
+		{
+			name: "copy file src to dst",
+			given: func() args {
+				src := filepath.Join(common.TmpDir(), "src.txt")
+				Write(src, "content")
+				dst := filepath.Join(common.TmpDir(), "dst.txt")
+				return args{
+					src: src,
+					dst: dst,
+				}
+			},
+			when: func(args args) (int64, error) {
+				return Copy(args.src, args.dst)
+			},
+			then: func(t *testing.T, nBytes int64, err error) {
+				assert.Nil(t, err)
+				assert.Equal(t, int64(7), nBytes)
+				content := Read(filepath.Join(common.TmpDir(), "dst.txt"))
+				assert.Equal(t, "content", content)
+
+			},
+			after: func(args args) {
+				_ = Remove(args.src)
+				_ = Remove(args.dst)
+			},
+		},
+	}
+	for _, tt := range tests {
+		log.SetPrintLogs(true)
+		t.Run(tt.name, func(t *testing.T) {
+			// Given
+			args := tt.given()
+
+			// When
+			nBytes, err := tt.when(args)
+
+			// Then
+			tt.then(t, nBytes, err)
+
+			if tt.after != nil {
+				tt.after(args)
+			}
+		})
+	}
+}
+
+func TestMove(t *testing.T) {
+	type args struct {
+		src string
+		dst string
+	}
+	tests := []struct {
+		name  string
+		given func() args
+		when  func(args args) error
+		then  func(t *testing.T, err error)
+		after func(args args)
+	}{
+		{
+			name: "move file src to dst",
+			given: func() args {
+				src := filepath.Join(common.TmpDir(), "src.txt")
+				Write(src, "content")
+				dst := filepath.Join(common.TmpDir(), "dst.txt")
+				return args{
+					src: src,
+					dst: dst,
+				}
+			},
+			when: func(args args) error {
+				return Move(args.src, args.dst)
+			},
+			then: func(t *testing.T, err error) {
+				assert.Nil(t, err)
+				content := Read(filepath.Join(common.TmpDir(), "dst.txt"))
+				assert.Equal(t, "content", content)
+				assert.False(t, Exists(filepath.Join(common.TmpDir(), "src.txt")))
+
+			},
+			after: func(args args) {
+				_ = Remove(args.dst)
+			},
+		},
+	}
+	for _, tt := range tests {
+		log.SetPrintLogs(true)
+		t.Run(tt.name, func(t *testing.T) {
+			// Given
+			args := tt.given()
+
+			// When
+			err := tt.when(args)
+
+			// Then
+			tt.then(t, err)
 
 			if tt.after != nil {
 				tt.after(args)

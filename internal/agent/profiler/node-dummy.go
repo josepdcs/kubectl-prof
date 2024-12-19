@@ -2,10 +2,8 @@ package profiler
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"syscall"
 	"time"
 
@@ -16,23 +14,20 @@ import (
 	"github.com/josepdcs/kubectl-prof/internal/agent/util/publish"
 	"github.com/josepdcs/kubectl-prof/pkg/util/file"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
-	"github.com/samber/lo"
+	"github.com/pkg/errors"
 )
 
 const (
-	nodeDummyDelayBetweenJobs = 5 * time.Second
-	nodeDummySnapshotRetries  = 120 // Two minutes
+	nodeDummySnapshotRetries = 120 // Two minutes
 )
 
 type NodeDummyProfiler struct {
-	delay time.Duration
+	cwd string
 	NodeDummyManager
 }
 
 type NodeDummyManager interface {
-	removeTmpDir() error
-	linkTmpDirToTargetTmpDir(string) error
-	invoke(*job.ProfilingJob, string) (error, time.Duration)
+	invoke(*job.ProfilingJob, string, string) (error, time.Duration)
 }
 
 type nodeDummyManager struct {
@@ -41,7 +36,6 @@ type nodeDummyManager struct {
 
 func NewNodeDummyProfiler(publisher publish.Publisher) *NodeDummyProfiler {
 	return &NodeDummyProfiler{
-		delay: nodeDummyDelayBetweenJobs,
 		NodeDummyManager: &nodeDummyManager{
 			publisher: publisher,
 		},
@@ -55,24 +49,16 @@ func (n *NodeDummyProfiler) SetUp(job *job.ProfilingJob) error {
 	}
 	log.DebugLogLn(fmt.Sprintf("The target filesystem is: %s", targetFs))
 
-	err = n.removeTmpDir()
+	cwd, err := util.GetCWD(job)
 	if err != nil {
 		return err
 	}
+	n.cwd = filepath.Join(targetFs, cwd)
 
-	targetTmpDir := filepath.Join(targetFs, "tmp")
 	// remove previous files from a previous profiling
-	file.RemoveAll(targetTmpDir, config.ProfilingPrefix+string(job.OutputType))
+	file.RemoveAll(cwd, "*.heapsnapshot*")
 
-	return n.linkTmpDirToTargetTmpDir(targetTmpDir)
-}
-
-func (n *nodeDummyManager) removeTmpDir() error {
-	return os.RemoveAll(common.TmpDir())
-}
-
-func (n *nodeDummyManager) linkTmpDirToTargetTmpDir(targetTmpDir string) error {
-	return os.Symlink(targetTmpDir, common.TmpDir())
+	return nil
 }
 
 func (n *NodeDummyProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
@@ -83,47 +69,54 @@ func (n *NodeDummyProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration)
 		return err, time.Since(start)
 	}
 
-	return n.invoke(job, rootPID)
+	return n.invoke(job, util.GetFirstCandidatePID(rootPID), n.cwd)
 }
 
-func (n *nodeDummyManager) invoke(job *job.ProfilingJob, pid string) (error, time.Duration) {
+func (n *nodeDummyManager) invoke(job *job.ProfilingJob, pid string, cwd string) (error, time.Duration) {
 	start := time.Now()
 
 	p, _ := strconv.Atoi(pid)
 	err := syscall.Kill(p, syscall.Signal(job.NodeHeapSnapshotSignal))
 	if err != nil {
-		log.ErrorLogLn(fmt.Sprintf("unable to send signal: %d to target process (PID: %s): %s", job.NodeHeapSnapshotSignal, pid, err.Error()))
-		return nil, time.Since(start)
+		return errors.Wrapf(err, "unable to send signal: %d to target process (PID: %s)", job.NodeHeapSnapshotSignal, pid), time.Since(start)
 	}
 
 	var retry int
-	var files []string
+	var fileName string
+	fileSize := int64(1)
+	var currentFileSize int64
 	for range time.Tick(1 * time.Second) {
-		files = file.List(filepath.Join(common.TmpDir(), "*.heapsnapshot*"))
-		if len(files) == 0 && retry == nodeDummySnapshotRetries {
-			log.ErrorLogLn(fmt.Sprintf("no heapsnapshot files found (PID: %s)", pid))
-			return nil, time.Since(start)
+		fileName = file.First(filepath.Join(cwd, "*.heapsnapshot*"))
+		if fileName != "" {
+			currentFileSize = file.Size(fileName)
+			if currentFileSize == fileSize {
+				break
+			}
 		}
+		if retry == nodeDummySnapshotRetries {
+			return errors.Errorf("no heapsnapshot files found (PID: %s)", pid), time.Since(start)
+		}
+		fileSize = currentFileSize
 		retry++
+		log.DebugLogLn(fmt.Sprintf("No heapsnapshot available yet (PID: %s). Retrying...", pid))
 	}
-
-	fileName, ok := lo.Find(files, func(f string) bool { return strings.Contains(f, pid) })
-	if !ok {
-		log.ErrorLogLn(fmt.Sprintf("no heapsnapshot files found (PID: %s)", pid))
-		return nil, time.Since(start)
-	}
-	log.DebugLogLn(fmt.Sprintf("The heapsnapshot file is: %s", fileName))
 
 	// out file names is composed by the job info and the pid
 	resultFileName := common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType, pid, job.Iteration)
 
-	err = os.Rename(fileName, resultFileName)
+	// copy the file to the tmp dir
+	_, err = file.Copy(fileName, resultFileName)
 	if err != nil {
-		log.ErrorLogLn(fmt.Sprintf("could not rename file (PID: %s): %s", pid, err.Error()))
-		return nil, time.Since(start)
+		return errors.Wrapf(err, "could not move file: %s", fileName), time.Since(start)
 	}
 
-	return n.publisher.Do(job.Compressor, resultFileName, job.OutputType), time.Since(start)
+	// remove the file from the cwd
+	err = file.Remove(fileName)
+	if err != nil {
+		log.WarningLogLn(fmt.Sprintf("The file could not be removed: %s", fileName))
+	}
+
+	return n.publisher.DoWithNativeGzipAndSplit(resultFileName, job.HeapDumpSplitInChunkSize, job.OutputType), time.Since(start)
 }
 
 func (n *NodeDummyProfiler) CleanUp(*job.ProfilingJob) error {

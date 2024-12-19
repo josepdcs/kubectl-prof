@@ -259,10 +259,12 @@ func TestGetArgs(t *testing.T) {
 						ServiceAccountName:   "",
 						ProfilingTool:        api.Bpf,
 						OutputType:           api.HeapSnapshot,
+
 						ExtraTargetOptions: config.ExtraTargetOptions{
-							PrintLogs:              true,
-							GracePeriodEnding:      5 * time.Minute,
-							NodeHeapSnapshotSignal: syscall.SIGUSR2,
+							PrintLogs:                true,
+							GracePeriodEnding:        5 * time.Minute,
+							NodeHeapSnapshotSignal:   syscall.SIGUSR2,
+							HeapDumpSplitInChunkSize: "10M",
 						},
 					},
 					Job:      nil,
@@ -285,6 +287,7 @@ func TestGetArgs(t *testing.T) {
 				"--duration", "1m0s",
 				"--interval", "10s",
 				"--print-logs",
+				"--heap-dump-split-in-chunk-size", "10M",
 				"--node-heap-snapshot-signal", "12",
 			},
 		},

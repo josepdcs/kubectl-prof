@@ -134,7 +134,7 @@ func (b *bpfManager) invoke(job *job.ProfilingJob, pid string) (error, time.Dura
 func (b *bpfManager) handleFlamegraph(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher, rawFileName string,
 	flameFileName string) error {
 	if job.OutputType == api.FlameGraph {
-		if file.GetSize(rawFileName) < common.MinimumRawSize {
+		if file.Size(rawFileName) < common.MinimumRawSize {
 			return fmt.Errorf("unable to generate flamegraph: no stacks found (maybe due low cpu load)")
 		}
 		// convert a raw format to flamegraph

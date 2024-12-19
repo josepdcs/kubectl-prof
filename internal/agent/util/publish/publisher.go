@@ -55,20 +55,14 @@ func (p publisher) Do(compressorType compressor.Type, filePath string, eventType
 		return errors.Wrapf(err, "could not compress file %s", resultFile)
 	}
 
-	// get the size of the result file from stat command
-	var outStat bytes.Buffer
-	cmd := exec.Command("stat", "-c%s", resultFile)
-	cmd.Stdout = &outStat
-	_ = cmd.Run()
-
 	return log.EventLn(
 		api.Result,
 		api.ResultData{
 			Time:            time.Now(),
 			ResultType:      eventType,
 			File:            resultFile,
-			FileSizeInBytes: fileutils.GetSize(resultFile),
-			Checksum:        fileutils.GetChecksum(resultFile),
+			FileSizeInBytes: fileutils.Size(resultFile),
+			Checksum:        fileutils.Checksum(resultFile),
 			CompressorType:  string(compressorType),
 		},
 	)
@@ -104,7 +98,7 @@ func (p publisher) DoWithNativeGzipAndSplit(file, chunkSize string, eventType ap
 	}
 
 	// get the size of the result file
-	fileSizeInBytes := fileutils.GetSize(file + ".gz")
+	fileSizeInBytes := fileutils.Size(file + ".gz")
 
 	// try to remove the result file from gzip command since is not needed anymore
 	_ = fileutils.Remove(file + ".gz")
@@ -117,8 +111,8 @@ func (p publisher) DoWithNativeGzipAndSplit(file, chunkSize string, eventType ap
 			chunkFilesData,
 			api.ChunkData{
 				File:            chunkFile,
-				FileSizeInBytes: fileutils.GetSize(chunkFile),
-				Checksum:        fileutils.GetChecksum(chunkFile),
+				FileSizeInBytes: fileutils.Size(chunkFile),
+				Checksum:        fileutils.Checksum(chunkFile),
 			})
 	}
 

@@ -180,7 +180,7 @@ func getProfilingJob(args map[string]interface{}) (*job.ProfilingJob, error) {
 }
 
 func setHeapDumpSplitChunkSize(args map[string]interface{}, j *job.ProfilingJob) {
-	if j.OutputType == api.HeapDump {
+	if j.OutputType == api.HeapDump || j.OutputType == api.HeapSnapshot {
 		j.HeapDumpSplitInChunkSize = defaultHeapDumpSplitInChunkSize
 		if args[HeapDumpSplitInChunkSize] != nil && stringUtils.IsNotBlank(args[HeapDumpSplitInChunkSize].(string)) {
 			j.HeapDumpSplitInChunkSize = args[HeapDumpSplitInChunkSize].(string)

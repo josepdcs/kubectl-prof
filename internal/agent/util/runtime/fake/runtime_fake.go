@@ -38,3 +38,10 @@ func (r *RuntimeFake) PID(containerID string, containerRuntimePath string) (stri
 	}
 	return fmt.Sprintf("PID_%s", containerID), nil
 }
+
+func (r *RuntimeFake) CWD(containerID string, containerRuntimePath string) (string, error) {
+	if r.PIDResultError {
+		return "", errors.New("fake PID with error")
+	}
+	return fmt.Sprintf("PID_%s", containerID), nil
+}
