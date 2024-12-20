@@ -119,7 +119,7 @@ kubectl prof mypod -t 1m --lang python -o flamegraph --local-path=/tmp
 In this case, profiling Python Pod and generate the thread dump output require using `-o/--output threaddump` option:
 
 ```shell
-kubectl prof mypod -t 1m --lang python --local-path=/tmp -o threaddump 
+kubectl prof mypod --lang python --local-path=/tmp -o threaddump 
 ```
 
 ### Profiling Python Pod and generate speed scope output format file
@@ -138,13 +138,31 @@ To profile a Golang application in pod `mypod` for 1 minute run:
 kubectl prof mypod -t 1m --lang go -o flamegraph
 ```
 
-### Profiling Node Pod
+### Profiling NodeJs Pod
 
-To profile a Python application in pod `mypod` for 1 minute run:
+To profile a NodeJS application in pod `mypod` for 1 minute run:
 
 ```shell
 kubectl prof mypod -t 1m --lang node -o flamegraph
 ```
+
+### Profiling NodeJs Pod and generate heap snapshot output
+
+For profiling NodeJS Pod and generate the heap snapshot output require using `-o/--output heapsnapshot` option:
+
+```shell
+kubectl prof mypod --lang node -o heapsnapshot
+```
+*NOTICE*: the NodeJS apps have to be run with `--heapsnapshot-signal=SIGUSR2` (default) or `--heapsnapshot-signal=SIGUSR1` options.
+
+If the NodeJS app was run with `--heapsnapshot-signal=SIGUSR1` option, you should use the following command:
+
+```shell
+kubectl prof mypod --lang node -o heapsnapshot --node-heap-snapshot-signal=10
+```
+Take into account that the signal has to be a number, not a string.
+
+More info about that [here](https://nodejs.org/api/cli.html#--heapsnapshot-signalsignal) and [here](https://nodejs.org/en/learn/diagnostics/memory/using-heap-snapshot#using-heap-snapshot).
 
 ### Profiling Ruby Pod
 
@@ -303,10 +321,11 @@ following tools according the programming language:
 * For Node.js: [ebpf profiling](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter) and [perf](https://perf.wiki.kernel.org/index.php/Main_Page) but last one is not recommended.
   * For generating flame graphs use the option: `-o flamegraph`.
   * For generating raw use the option: `-o raw`.
+  * For generating heap snapshot use the option: `-o heapsnapshot`.
   * Note: Default output is flame graphs if no option `-o/--output` is given.
-  * In order for Javascript Symbols to be resolved, node process needs to be run with `--prof-basic-prof` flag.
-* For Clang and Clang++: [perf](https://perf.wiki.kernel.org/index.php/Main_Page) is the default profiler
-  but [ebpf profiling](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter) is also supported.
+  * In order for Javascript Symbols to be resolved, the node process needs to be run with `--prof-basic-prof` flag.
+  * For generating the heap snapshot output, the node process needs to be run with `--heapsnapshot-signal` flag. Information about that [here](https://nodejs.org/api/cli.html#--heapsnapshot-signalsignal) and [here](https://nodejs.org/en/learn/diagnostics/memory/using-heap-snapshot#using-heap-snapshot).
+* For Clang and Clang++: [perf](https://perf.wiki.kernel.org/index.php/Main_Page) is the default profiler, but [ebpf profiling](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter) is also supported.
 
 The raw output is a text file with the raw data from the profiler. It could be used to generate flame graphs, or you can use https://www.speedscope.app/ to visualize the data.
 

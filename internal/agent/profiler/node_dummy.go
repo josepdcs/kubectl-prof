@@ -31,13 +31,15 @@ type NodeDummyManager interface {
 }
 
 type nodeDummyManager struct {
-	publisher publish.Publisher
+	publisher       publish.Publisher
+	snapshotRetries int
 }
 
 func NewNodeDummyProfiler(publisher publish.Publisher) *NodeDummyProfiler {
 	return &NodeDummyProfiler{
 		NodeDummyManager: &nodeDummyManager{
-			publisher: publisher,
+			publisher:       publisher,
+			snapshotRetries: nodeDummySnapshotRetries,
 		},
 	}
 }
@@ -72,11 +74,15 @@ func (n *NodeDummyProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration)
 	return n.invoke(job, util.GetFirstCandidatePID(rootPID), n.cwd)
 }
 
-func (n *nodeDummyManager) invoke(job *job.ProfilingJob, pid string, cwd string) (error, time.Duration) {
+var kill = func(pid, sig int) error {
+	return syscall.Kill(pid, syscall.Signal(sig))
+}
+
+func (n *nodeDummyManager) invoke(job *job.ProfilingJob, pid, cwd string) (error, time.Duration) {
 	start := time.Now()
 
 	p, _ := strconv.Atoi(pid)
-	err := syscall.Kill(p, syscall.Signal(job.NodeHeapSnapshotSignal))
+	err := kill(p, job.NodeHeapSnapshotSignal)
 	if err != nil {
 		return errors.Wrapf(err, "unable to send signal: %d to target process (PID: %s)", job.NodeHeapSnapshotSignal, pid), time.Since(start)
 	}
@@ -93,7 +99,7 @@ func (n *nodeDummyManager) invoke(job *job.ProfilingJob, pid string, cwd string)
 				break
 			}
 		}
-		if retry == nodeDummySnapshotRetries {
+		if retry == n.snapshotRetries {
 			return errors.Errorf("no heapsnapshot files found (PID: %s)", pid), time.Since(start)
 		}
 		fileSize = currentFileSize

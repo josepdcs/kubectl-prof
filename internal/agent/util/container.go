@@ -51,6 +51,8 @@ var runtime = func(r api.ContainerRuntime) (Container, error) {
 		return fake.NewRuntimeFake().WithRootFileSystemLocationResultError(), nil
 	case api.FakeContainerWithPIDResultError:
 		return fake.NewRuntimeFake().WithPIDResultError(), nil
+	case api.FakeContainerWithCWDResultError:
+		return fake.NewRuntimeFake().WithCWDResultError(), nil
 	default:
 		return nil, errors.Errorf("unsupported container runtime: %s", r)
 	}
