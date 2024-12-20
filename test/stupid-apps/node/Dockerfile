@@ -4,7 +4,7 @@ WORKDIR /usr/src/app
 
 COPY ./test/stupid-apps/node/package*.json ./
 
-RUN npm install  \
+RUN npm install --ignore-scripts  \
     && apt-get update \
     && apt-get install -y procps \
     && apt-get clean
