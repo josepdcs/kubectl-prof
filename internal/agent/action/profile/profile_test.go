@@ -6,6 +6,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler"
+	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/jvm"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,7 +15,7 @@ func TestNewAction(t *testing.T) {
 		name    string
 		args    map[string]interface{}
 		wantErr bool
-		assert  func(t *testing.T, p profiler.Profiler)
+		assert  func(t *testing.T, p profiler.Profiler, job *job.ProfilingJob)
 	}{
 		{
 			name: "New action",
@@ -34,8 +35,60 @@ func TestNewAction(t *testing.T) {
 				TargetContainerRuntime:     "crio",
 				TargetContainerRuntimePath: "/my/path",
 			},
-			assert: func(t *testing.T, p profiler.Profiler) {
+			assert: func(t *testing.T, p profiler.Profiler, job *job.ProfilingJob) {
 				assert.IsType(t, profiler.NewMockProfiler(), p)
+			},
+		},
+		{
+			name: "New action jvm heap dump",
+			args: map[string]interface{}{
+				PrintLogs:                  true,
+				Duration:                   "60s",
+				Interval:                   "5s",
+				JobId:                      "JobId",
+				TargetPodUID:               "TargetPodUID",
+				TargetContainerID:          "cri-o://TargetContainerID",
+				Filename:                   "Filename",
+				Lang:                       string(api.Java),
+				ProfilingTool:              string(api.Jcmd),
+				OutputType:                 string(api.HeapDump),
+				EventType:                  "",
+				CompressorType:             "",
+				TargetContainerRuntime:     "crio",
+				TargetContainerRuntimePath: "/my/path",
+				HeapDumpSplitInChunkSize:   "50M",
+			},
+			assert: func(t *testing.T, p profiler.Profiler, job *job.ProfilingJob) {
+				assert.IsType(t, &jvm.JcmdProfiler{}, p)
+				assert.Equal(t, api.HeapDump, job.OutputType)
+				assert.Equal(t, "50M", job.HeapDumpSplitInChunkSize)
+			},
+		},
+		{
+			name: "New action node heap snapshot",
+			args: map[string]interface{}{
+				PrintLogs:                  true,
+				Duration:                   "60s",
+				Interval:                   "5s",
+				JobId:                      "JobId",
+				TargetPodUID:               "TargetPodUID",
+				TargetContainerID:          "cri-o://TargetContainerID",
+				Filename:                   "Filename",
+				Lang:                       string(api.Node),
+				ProfilingTool:              string(api.NodeDummy),
+				OutputType:                 string(api.HeapSnapshot),
+				EventType:                  "",
+				CompressorType:             "",
+				TargetContainerRuntime:     "crio",
+				TargetContainerRuntimePath: "/my/path",
+				HeapDumpSplitInChunkSize:   "50M",
+				NodeHeapSnapshotSignal:     12,
+			},
+			assert: func(t *testing.T, p profiler.Profiler, job *job.ProfilingJob) {
+				assert.IsType(t, &profiler.NodeDummyProfiler{}, p)
+				assert.Equal(t, api.HeapSnapshot, job.OutputType)
+				assert.Equal(t, "50M", job.HeapDumpSplitInChunkSize)
+				assert.Equal(t, 12, job.NodeHeapSnapshotSignal)
 			},
 		},
 		{
@@ -56,7 +109,7 @@ func TestNewAction(t *testing.T) {
 				TargetContainerRuntime:     "containerd",
 				TargetContainerRuntimePath: "/my/path",
 			},
-			assert: func(t *testing.T, p profiler.Profiler) {
+			assert: func(t *testing.T, p profiler.Profiler, job *job.ProfilingJob) {
 				assert.IsType(t, profiler.NewMockProfiler(), p)
 			},
 		},
@@ -79,7 +132,7 @@ func TestNewAction(t *testing.T) {
 				TargetContainerRuntimePath: "/my/path",
 			},
 			wantErr: true,
-			assert: func(t *testing.T, p profiler.Profiler) {
+			assert: func(t *testing.T, p profiler.Profiler, job *job.ProfilingJob) {
 				assert.Empty(t, p)
 			},
 		},
@@ -102,7 +155,7 @@ func TestNewAction(t *testing.T) {
 				TargetContainerRuntimePath: "/my/path",
 			},
 			wantErr: true,
-			assert: func(t *testing.T, p profiler.Profiler) {
+			assert: func(t *testing.T, p profiler.Profiler, job *job.ProfilingJob) {
 				assert.Empty(t, p)
 			},
 		},
@@ -125,7 +178,7 @@ func TestNewAction(t *testing.T) {
 				TargetContainerRuntimePath: "/my/path",
 			},
 			wantErr: true,
-			assert: func(t *testing.T, p profiler.Profiler) {
+			assert: func(t *testing.T, p profiler.Profiler, job *job.ProfilingJob) {
 				assert.Empty(t, p)
 			},
 		},
@@ -148,7 +201,7 @@ func TestNewAction(t *testing.T) {
 				TargetContainerRuntimePath: "/my/path",
 			},
 			wantErr: true,
-			assert: func(t *testing.T, p profiler.Profiler) {
+			assert: func(t *testing.T, p profiler.Profiler, job *job.ProfilingJob) {
 				assert.Empty(t, p)
 			},
 		},
@@ -171,7 +224,7 @@ func TestNewAction(t *testing.T) {
 				TargetContainerRuntimePath: "/my/path",
 			},
 			wantErr: true,
-			assert: func(t *testing.T, p profiler.Profiler) {
+			assert: func(t *testing.T, p profiler.Profiler, job *job.ProfilingJob) {
 				assert.Empty(t, p)
 			},
 		},
@@ -180,16 +233,17 @@ func TestNewAction(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Given
 			var p profiler.Profiler
+			var j *job.ProfilingJob
 			var err error
 
 			// When
-			p, _, err = NewAction(tt.args)
+			p, j, err = NewAction(tt.args)
 
 			// Then
 			if err != nil && !tt.wantErr {
 				t.Errorf("EventLn() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			tt.assert(t, p)
+			tt.assert(t, p, j)
 		})
 	}
 }

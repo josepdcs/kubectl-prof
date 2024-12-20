@@ -10,6 +10,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	containerIDMandaToryError = "container ID is mandatory"
+	containerRuntimePathError = "container runtime path is mandatory"
+)
+
 type Containerd struct {
 }
 
@@ -36,10 +41,10 @@ var configFile = func(containerID string, containerRuntimePath string) string {
 // RootFileSystemLocation returns the root filesystem location of the container
 func (c *Containerd) RootFileSystemLocation(containerID string, containerRuntimePath string) (string, error) {
 	if stringUtils.IsBlank(containerID) {
-		return "", errors.New("container ID is mandatory")
+		return "", errors.New(containerIDMandaToryError)
 	}
 	if stringUtils.IsBlank(containerRuntimePath) {
-		return "", errors.New("container runtime path is mandatory")
+		return "", errors.New(containerRuntimePathError)
 	}
 
 	return rootFS(containerID, containerRuntimePath), nil
@@ -48,10 +53,10 @@ func (c *Containerd) RootFileSystemLocation(containerID string, containerRuntime
 // PID returns the PID of the container
 func (c *Containerd) PID(containerID string, containerRuntimePath string) (string, error) {
 	if stringUtils.IsBlank(containerID) {
-		return "", errors.New("container ID is mandatory")
+		return "", errors.New(containerIDMandaToryError)
 	}
 	if stringUtils.IsBlank(containerRuntimePath) {
-		return "", errors.New("container runtime path is mandatory")
+		return "", errors.New(containerRuntimePathError)
 	}
 
 	file := pidFile(containerID, containerRuntimePath)
@@ -88,10 +93,10 @@ func runtimeSpec(configFile string) (rspec.Spec, error) {
 // CWD returns the current working directory of the container
 func (c *Containerd) CWD(containerID string, containerRuntimePath string) (string, error) {
 	if stringUtils.IsBlank(containerID) {
-		return "", errors.New("container ID is mandatory")
+		return "", errors.New(containerIDMandaToryError)
 	}
 	if stringUtils.IsBlank(containerRuntimePath) {
-		return "", errors.New("container runtime path is mandatory")
+		return "", errors.New(containerRuntimePathError)
 	}
 
 	spec, err := runtimeSpec(configFile(containerID, containerRuntimePath))

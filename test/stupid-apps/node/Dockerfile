@@ -4,9 +4,10 @@ WORKDIR /usr/src/app
 
 COPY ./test/stupid-apps/node/package*.json ./
 
-RUN npm install
-
-RUN apt-get update && apt-get install -y procps
+RUN npm install  \
+    && apt-get update \
+    && apt-get install -y procps \
+    && apt-get clean
 
 # Bundle app source
 COPY ./test/stupid-apps/node/app2.js ./app2.js
