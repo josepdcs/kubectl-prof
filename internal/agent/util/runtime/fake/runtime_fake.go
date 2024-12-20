@@ -9,6 +9,7 @@ import (
 type RuntimeFake struct {
 	RootFileSystemLocationResultError bool
 	PIDResultError                    bool
+	CWDResultError                    bool
 }
 
 func NewRuntimeFake() *RuntimeFake {
@@ -25,16 +26,28 @@ func (r *RuntimeFake) WithPIDResultError() *RuntimeFake {
 	return r
 }
 
-func (r *RuntimeFake) RootFileSystemLocation(containerID string, containerRuntimePath string) (string, error) {
+func (r *RuntimeFake) WithCWDResultError() *RuntimeFake {
+	r.CWDResultError = true
+	return r
+}
+
+func (r *RuntimeFake) RootFileSystemLocation(containerID string, _ string) (string, error) {
 	if r.RootFileSystemLocationResultError {
 		return "", errors.New("fake RootFileSystemLocation with error")
 	}
 	return fmt.Sprintf("/root/fs/%s", containerID), nil
 }
 
-func (r *RuntimeFake) PID(containerID string, containerRuntimePath string) (string, error) {
+func (r *RuntimeFake) PID(containerID string, _ string) (string, error) {
 	if r.PIDResultError {
 		return "", errors.New("fake PID with error")
 	}
 	return fmt.Sprintf("PID_%s", containerID), nil
+}
+
+func (r *RuntimeFake) CWD(_ string, _ string) (string, error) {
+	if r.CWDResultError {
+		return "", errors.New("fake CWD with error")
+	}
+	return "/cwd", nil
 }

@@ -34,6 +34,7 @@ const (
 	HeapDumpSplitInChunkSize          = "heap-dump-split-in-chunk-size"
 	Pid                               = "pid"
 	Pgrep                             = "pgrep"
+	NodeHeapSnapshotSignal            = "node-heap-snapshot-signal"
 
 	defaultDuration                 = 60 * time.Second
 	defaultContainerRuntime         = api.Containerd
@@ -170,13 +171,16 @@ func getProfilingJob(args map[string]interface{}) (*job.ProfilingJob, error) {
 	// set pgrep if exists
 	setPgrep(args, j)
 
+	// set node heap snapshot signal if exists
+	setNodeHeapSnapshotSignal(args, j)
+
 	log.DebugLogLn(j.String())
 
 	return j, nil
 }
 
 func setHeapDumpSplitChunkSize(args map[string]interface{}, j *job.ProfilingJob) {
-	if j.OutputType == api.HeapDump {
+	if j.OutputType == api.HeapDump || j.OutputType == api.HeapSnapshot {
 		j.HeapDumpSplitInChunkSize = defaultHeapDumpSplitInChunkSize
 		if args[HeapDumpSplitInChunkSize] != nil && stringUtils.IsNotBlank(args[HeapDumpSplitInChunkSize].(string)) {
 			j.HeapDumpSplitInChunkSize = args[HeapDumpSplitInChunkSize].(string)
@@ -193,6 +197,12 @@ func setPid(args map[string]interface{}, j *job.ProfilingJob) {
 func setPgrep(args map[string]interface{}, j *job.ProfilingJob) {
 	if args[Pgrep] != nil && stringUtils.IsNotBlank(args[Pgrep].(string)) {
 		j.Pgrep = args[Pgrep].(string)
+	}
+}
+
+func setNodeHeapSnapshotSignal(args map[string]interface{}, j *job.ProfilingJob) {
+	if args[NodeHeapSnapshotSignal] != nil {
+		j.NodeHeapSnapshotSignal = args[NodeHeapSnapshotSignal].(int)
 	}
 }
 

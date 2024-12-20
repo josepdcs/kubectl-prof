@@ -1,6 +1,7 @@
 package config
 
 import (
+	"syscall"
 	"time"
 
 	"github.com/josepdcs/kubectl-prof/api"
@@ -44,6 +45,7 @@ type ExtraTargetOptions struct {
 	RetrieveFileRetries         int
 	PID                         string
 	Pgrep                       string
+	NodeHeapSnapshotSignal      syscall.Signal
 }
 
 // DeepCopy returns a deep copy of the target config

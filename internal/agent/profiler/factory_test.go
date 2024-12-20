@@ -50,6 +50,11 @@ func TestGet(t *testing.T) {
 			want: NewPerfProfiler(executil.NewCommander(), publish.NewPublisher()),
 		},
 		{
+			name: "should return node dummy profiler",
+			tool: api.NodeDummy,
+			want: NewNodeDummyProfiler(publish.NewPublisher()),
+		},
+		{
 			name: "should return mock profiler",
 			tool: api.FakeTool,
 			want: NewMockProfiler(),

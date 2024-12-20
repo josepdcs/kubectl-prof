@@ -1,20 +1,46 @@
 package compressor
 
-import "github.com/klauspost/compress/zstd"
+import (
+	"io"
+
+	"github.com/klauspost/compress/zstd"
+)
 
 type SnappyCompressor struct {
 }
 
+// NewZstdCompressor returns a new ZstdCompressor
 func NewZstdCompressor() *ZstdCompressor {
 	return &ZstdCompressor{}
 }
 
-func (c *ZstdCompressor) Encode(src []byte) ([]byte, error) {
-	encoder, _ := zstd.NewWriter(nil)
-	return encoder.EncodeAll(src, make([]byte, 0, len(src))), nil
+// Encode compresses the src data and writes it to dst
+func (c *ZstdCompressor) Encode(dst io.Writer, src io.Reader) error {
+	enc, err := zstd.NewWriter(dst)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = enc.Close()
+	}()
+
+	_, err = io.Copy(enc, src)
+	if err != nil {
+		return err
+	}
+
+	return enc.Flush()
 }
 
-func (c *ZstdCompressor) Decode(src []byte) ([]byte, error) {
-	decoder, _ := zstd.NewReader(nil)
-	return decoder.DecodeAll(src, nil)
+// Decode decompresses the src data and writes it to dst
+func (c *ZstdCompressor) Decode(dst io.Writer, src io.Reader) error {
+	dec, err := zstd.NewReader(src)
+	if err != nil {
+		return err
+	}
+	defer dec.Close()
+
+	_, err = io.Copy(dst, dec)
+
+	return err
 }

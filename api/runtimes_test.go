@@ -1,9 +1,10 @@
 package api
 
 import (
+	"testing"
+
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestAvailableContainerRuntimes(t *testing.T) {
@@ -41,6 +42,11 @@ func TestIsSupportedContainerRuntime(t *testing.T) {
 		{
 			name:  "fakeWithPIDResultError",
 			given: "fakeWithPIDResultError",
+			then:  true,
+		},
+		{
+			name:  "fakeWithCWDResultError",
+			given: "fakeWithCWDResultError",
 			then:  true,
 		},
 		{

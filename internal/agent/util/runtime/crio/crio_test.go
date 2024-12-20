@@ -201,3 +201,61 @@ func TestRuntimeState(t *testing.T) {
 		})
 	}
 }
+
+func TestCWD(t *testing.T) {
+	tests := []struct {
+		name                 string
+		containerID          string
+		containerRuntimePath string
+		mockFunc             func()
+		expected             string
+		containedErrMsg      string
+	}{
+		{
+			name:            "empty container ID",
+			mockFunc:        func() {},
+			containedErrMsg: "container ID is mandatory",
+		},
+		{
+			name:            "empty container runtime path",
+			containerID:     "1234",
+			mockFunc:        func() {},
+			containedErrMsg: "container runtime path is mandatory",
+		},
+		{
+			name:                 "unable read root filesystem",
+			containerID:          "1234",
+			containerRuntimePath: "/var/lib/containers/storage",
+			mockFunc: func() {
+				crioConfigFile = func(string, string) string {
+					return filepath.FromSlash(testdata.CrioTestDataDir() + "/other.json")
+				}
+			},
+			containedErrMsg: "read file failed",
+		},
+		{
+			name:                 "expect cwd",
+			containerID:          "1234",
+			containerRuntimePath: "/var/lib/containers/storage",
+			mockFunc: func() {
+				crioConfigFile = func(string, string) string {
+					return filepath.FromSlash(testdata.CrioTestDataDir() + "/config.json")
+				}
+			},
+			expected: "/opt/app",
+		},
+	}
+
+	c := NewCrio()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.mockFunc()
+			location, err := c.CWD(tt.containerID, tt.containerRuntimePath)
+
+			if err != nil {
+				assert.Contains(t, err.Error(), tt.containedErrMsg)
+			}
+			assert.Equal(t, tt.expected, location)
+		})
+	}
+}

@@ -1,9 +1,10 @@
 package api
 
 import (
+	"testing"
+
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestAvailableProfilingTools(t *testing.T) {
@@ -36,6 +37,21 @@ func TestIsSupportedProfilingTool(t *testing.T) {
 		{
 			name:  "bpf",
 			given: "bpf",
+			then:  true,
+		},
+		{
+			name:  "perf",
+			given: "perf",
+			then:  true,
+		},
+		{
+			name:  "rbspy",
+			given: "rbspy",
+			then:  true,
+		},
+		{
+			name:  "node-dummy",
+			given: "node-dummy",
 			then:  true,
 		},
 		{
@@ -72,6 +88,54 @@ func TestIsValidProfilingTool(t *testing.T) {
 			given: args{
 				tool:     AsyncProfiler,
 				language: Java,
+			},
+			then: true,
+		},
+		{
+			name: "Jcmd + Java",
+			given: args{
+				tool:     Jcmd,
+				language: Java,
+			},
+			then: true,
+		},
+		{
+			name: "Pyspy + Python",
+			given: args{
+				tool:     Pyspy,
+				language: Python,
+			},
+			then: true,
+		},
+		{
+			name: "Bpf + Go",
+			given: args{
+				tool:     Bpf,
+				language: Go,
+			},
+			then: true,
+		},
+		{
+			name: "Perf + Node",
+			given: args{
+				tool:     Perf,
+				language: Node,
+			},
+			then: true,
+		},
+		{
+			name: "Rbspy + Ruby",
+			given: args{
+				tool:     Rbspy,
+				language: Ruby,
+			},
+			then: true,
+		},
+		{
+			name: "NodeDummy + Node",
+			given: args{
+				tool:     NodeDummy,
+				language: Node,
 			},
 			then: true,
 		},

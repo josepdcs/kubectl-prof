@@ -14,11 +14,12 @@ const (
 	Bpf           ProfilingTool = "bpf"
 	Perf          ProfilingTool = "perf"
 	Rbspy         ProfilingTool = "rbspy"
+	NodeDummy     ProfilingTool = "node-dummy"
 	FakeTool      ProfilingTool = "fake"
 )
 
 var (
-	profilingTools = []ProfilingTool{AsyncProfiler, Jcmd, Pyspy, Bpf, Perf, Rbspy}
+	profilingTools = []ProfilingTool{AsyncProfiler, Jcmd, Pyspy, Bpf, Perf, Rbspy, NodeDummy}
 )
 
 func AvailableProfilingTools() []ProfilingTool {
@@ -41,12 +42,19 @@ var GetProfilingTool = func(l ProgrammingLanguage, o OutputType) ProfilingTool {
 		}
 	case Python:
 		return Pyspy
-	case Go, Node, Rust:
+	case Go, Rust:
 		return Bpf
 	case Clang, ClangPlusPlus:
 		return Bpf
 	case Ruby:
 		return Rbspy
+	case Node:
+		switch o {
+		case FlameGraph, Raw:
+			return Bpf
+		case HeapSnapshot, HeapDump:
+			return NodeDummy
+		}
 	}
 
 	// return the default according programming language
@@ -59,7 +67,7 @@ var GetProfilingToolsByProgrammingLanguage = map[ProgrammingLanguage][]Profiling
 	Java:          {Jcmd, AsyncProfiler},
 	Python:        {Pyspy},
 	Go:            {Bpf},
-	Node:          {Bpf, Perf},
+	Node:          {Bpf, Perf, NodeDummy},
 	Clang:         {Bpf, Perf},
 	ClangPlusPlus: {Bpf, Perf},
 	Ruby:          {Rbspy},

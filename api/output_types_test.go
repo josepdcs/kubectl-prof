@@ -1,9 +1,10 @@
 package api
 
 import (
+	"testing"
+
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestAvailableOutputTypesString(t *testing.T) {
@@ -75,6 +76,26 @@ func TestIsSupportedOutputType(t *testing.T) {
 		{
 			name:  "raw",
 			given: "raw",
+			then:  true,
+		},
+		{
+			name:  "callgrind",
+			given: "callgrind",
+			then:  true,
+		},
+		{
+			name:  "summary",
+			given: "summary",
+			then:  true,
+		},
+		{
+			name:  "summary-by-line",
+			given: "summary-by-line",
+			then:  true,
+		},
+		{
+			name:  "heapsnapshot",
+			given: "heapsnapshot",
 			then:  true,
 		},
 		{
