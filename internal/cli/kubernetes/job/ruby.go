@@ -15,6 +15,8 @@ import (
 
 type rubyCreator struct{}
 
+var rubyDefaultCapabilities = []apiv1.Capability{"SYS_PTRACE"}
+
 func (r *rubyCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
 	id := string(uuid.NewUUID())
 	imageName := r.getImageName(cfg.Target)
@@ -22,6 +24,11 @@ func (r *rubyCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (
 	var imagePullSecret []apiv1.LocalObjectReference
 	if cfg.Target.ImagePullSecret != "" {
 		imagePullSecret = []apiv1.LocalObjectReference{{Name: cfg.Target.ImagePullSecret}}
+	}
+
+	capabilities := cfg.Job.Capabilities
+	if len(capabilities) == 0 {
+		capabilities = rubyDefaultCapabilities
 	}
 
 	commonMeta := r.getObjectMeta(id, cfg)
@@ -73,7 +80,7 @@ func (r *rubyCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (
 							SecurityContext: &apiv1.SecurityContext{
 								Privileged: &cfg.Job.Privileged,
 								Capabilities: &apiv1.Capabilities{
-									Add: []apiv1.Capability{"SYS_PTRACE"},
+									Add: capabilities,
 								},
 							},
 							Resources: resources,

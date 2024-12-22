@@ -91,6 +91,7 @@ type profilingFlags struct {
 	outputType      string
 	imagePullPolicy string
 	privileged      bool
+	capabilities    []string
 }
 
 func NewProfileCommand(streams genericiooptions.IOStreams) *cobra.Command {
@@ -140,7 +141,7 @@ func NewProfileCommand(streams genericiooptions.IOStreams) *cobra.Command {
 			}
 
 			// Prepare profiler
-			cfg, err := getProfilerConfig(target, job, flags.logLevel, flags.privileged)
+			cfg, err := getProfilerConfig(target, job, flags.logLevel, flags.privileged, flags.capabilities)
 			if err != nil {
 				log.Fatalf("Failed configure profiler: %v\n", err)
 			}
@@ -218,14 +219,19 @@ func NewProfileCommand(streams genericiooptions.IOStreams) *cobra.Command {
 	cmd.Flags().StringVar(&target.PID, "pid", "", "The PID of target process if it is known")
 	cmd.Flags().StringVarP(&target.Pgrep, "pgrep", "p", "", "Name of the target process")
 	cmd.Flags().IntVar((*int)(&target.NodeHeapSnapshotSignal), "node-heap-snapshot-signal", int(syscall.SIGUSR2), "The signal to be sent to the target process to generate a heap snapshot for Node.js applications")
+	cmd.Flags().StringSliceVar(&flags.capabilities, "capabilities", nil, "The capabilities to be added to the agent container. It can be used multiple times to add more than one capability (e.g. --capabilities SYS_ADMIN --capabilities SYS_PTRACE)")
 
 	options.configFlags.AddFlags(cmd.Flags())
 
 	return cmd
 }
 
-func getProfilerConfig(target config.TargetConfig, job config.JobConfig, logLevel string, privileged bool) (*config.ProfilerConfig, error) {
+func getProfilerConfig(target config.TargetConfig, job config.JobConfig, logLevel string, privileged bool, capabilities []string) (*config.ProfilerConfig, error) {
 	job.Privileged = privileged
+	job.Capabilities = make([]apiv1.Capability, len(capabilities))
+	for i, capability := range capabilities {
+		job.Capabilities[i] = apiv1.Capability(capability)
+	}
 	return config.NewProfilerConfig(&target, config.WithJob(&job), config.WithLogLevel(api.LogLevel(logLevel)))
 }
 

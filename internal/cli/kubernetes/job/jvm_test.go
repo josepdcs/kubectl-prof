@@ -116,7 +116,7 @@ func Test_jvmCreate_create(t *testing.T) {
 							SecurityContext: &apiv1.SecurityContext{
 								Privileged: &cfg.Job.Privileged,
 								Capabilities: &apiv1.Capabilities{
-									Add: []apiv1.Capability{"SYS_ADMIN"},
+									Add: jvmDefaultCapabilities,
 								},
 							},
 							Resources: resources,

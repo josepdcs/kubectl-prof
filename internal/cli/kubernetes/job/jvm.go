@@ -15,6 +15,8 @@ import (
 
 type jvmCreator struct{}
 
+var jvmDefaultCapabilities = []apiv1.Capability{"PERFMON", "SYSLOG"}
+
 func (c *jvmCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
 	id := string(uuid.NewUUID())
 	imageName := c.getImageName(cfg.Target)
@@ -22,6 +24,11 @@ func (c *jvmCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 	var imagePullSecret []apiv1.LocalObjectReference
 	if cfg.Target.ImagePullSecret != "" {
 		imagePullSecret = []apiv1.LocalObjectReference{{Name: cfg.Target.ImagePullSecret}}
+	}
+
+	capabilities := cfg.Job.Capabilities
+	if len(capabilities) == 0 {
+		capabilities = jvmDefaultCapabilities
 	}
 
 	commonMeta := c.getObjectMeta(id, cfg)
@@ -74,7 +81,7 @@ func (c *jvmCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 							SecurityContext: &apiv1.SecurityContext{
 								Privileged: &cfg.Job.Privileged,
 								Capabilities: &apiv1.Capabilities{
-									Add: []apiv1.Capability{"SYS_ADMIN"},
+									Add: capabilities,
 								},
 							},
 							Resources: resources,
