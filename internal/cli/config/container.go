@@ -16,6 +16,9 @@ type ContainerConfig struct {
 
 	// Privileged indicates if Job has to be run in privileged mode
 	Privileged bool
+
+	// Capabilities indicate the capabilities that the container will have
+	Capabilities []apiv1.Capability
 }
 
 // ResourceConfig holds resource configuration for either requests or limits.

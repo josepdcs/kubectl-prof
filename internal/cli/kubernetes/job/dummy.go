@@ -75,6 +75,9 @@ func (p *dummyCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) 
 							},
 							SecurityContext: &apiv1.SecurityContext{
 								Privileged: &cfg.Job.Privileged,
+								Capabilities: &apiv1.Capabilities{
+									Add: cfg.Job.Capabilities,
+								},
 							},
 							Resources: resources,
 						},

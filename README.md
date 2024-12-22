@@ -348,6 +348,21 @@ But if you want to profile a specific process, you have two options:
 * Provide the specific PID using the `--pid PID` flag if you know the PID (the previous warning can help you identify the PID you want to profile). 
 * Provide a process name using the `--pgrep process-matching-name` flag.
 
+## Capabilities
+For profiling Java Pods, `kubectl-prof` runs the agent pod with the `PERFMON` and `SYSLOG` capabilities by default.
+
+According to the [Kernel documentation](https://www.kernel.org/doc/html/latest/admin-guide/perf-security.html#perf-events-access-control),
+`PERFMON` and `SYSLOG` should be enough for collecting performance samples.
+
+However, if you need to run with `SYS_ADMIN`, you can specify it using the `--capabilities` option. 
+This one can be used multiple times to add more than one capability.
+
+**Example**:
+
+```shell
+kubectl prof my-pod -t 5m -l java -o flamegraph --local-path=/tmp --capabilities=SYS_ADMIN
+```
+
 ## Contribute
 
 Please refer to [the contributing.md file](Contributing.md) for information about how to get involved. We welcome
