@@ -41,7 +41,7 @@ func GetArgs(targetPod *apiv1.Pod, cfg *config.ProfilerConfig, id string) []stri
 	args = appendArgument(args, "--heap-dump-split-in-chunk-size", cfg.Target.HeapDumpSplitInChunkSize, func() bool { return cfg.Target.OutputType == api.HeapDump || cfg.Target.OutputType == api.HeapSnapshot })
 	args = appendArgument(args, "--pid", cfg.Target.PID, func() bool { return stringUtils.IsNotBlank(cfg.Target.PID) })
 	args = appendArgument(args, "--pgrep", cfg.Target.Pgrep, func() bool { return stringUtils.IsNotBlank(cfg.Target.Pgrep) })
-	args = appendArgument(args, "--node-heap-snapshot-signal", strconv.Itoa(int(cfg.Target.NodeHeapSnapshotSignal)), func() bool {
+	args = appendArgument(args, "--node-heap-snapshot-signal", strconv.Itoa(cfg.Target.NodeHeapSnapshotSignal), func() bool {
 		return cfg.Target.NodeHeapSnapshotSignal > 0 && cfg.Target.Language == api.Node
 	})
 

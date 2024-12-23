@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"syscall"
 	"time"
 
 	"github.com/agrison/go-commons-lang/stringUtils"
@@ -218,7 +217,7 @@ func NewProfileCommand(streams genericiooptions.IOStreams) *cobra.Command {
 	cmd.Flags().IntVar(&target.RetrieveFileRetries, "retrieve-file-retries", defaultRetrieveFileRetries, "The number of retries to retrieve a file from the remote container")
 	cmd.Flags().StringVar(&target.PID, "pid", "", "The PID of target process if it is known")
 	cmd.Flags().StringVarP(&target.Pgrep, "pgrep", "p", "", "Name of the target process")
-	cmd.Flags().IntVar((*int)(&target.NodeHeapSnapshotSignal), "node-heap-snapshot-signal", int(syscall.SIGUSR2), "The signal to be sent to the target process to generate a heap snapshot for Node.js applications")
+	cmd.Flags().IntVar(&target.NodeHeapSnapshotSignal, "node-heap-snapshot-signal", 12, "The signal to be sent to the target process to generate a heap snapshot for Node.js applications")
 	cmd.Flags().StringSliceVar(&flags.capabilities, "capabilities", nil, "The capabilities to be added to the agent container. It can be used multiple times to add more than one capability (e.g. --capabilities SYS_ADMIN --capabilities SYS_PTRACE)")
 
 	options.configFlags.AddFlags(cmd.Flags())
