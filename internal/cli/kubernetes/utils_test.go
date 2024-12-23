@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"syscall"
 	"testing"
 	"time"
 
@@ -263,7 +262,7 @@ func TestGetArgs(t *testing.T) {
 						ExtraTargetOptions: config.ExtraTargetOptions{
 							PrintLogs:                true,
 							GracePeriodEnding:        5 * time.Minute,
-							NodeHeapSnapshotSignal:   syscall.SIGUSR2,
+							NodeHeapSnapshotSignal:   12,
 							HeapDumpSplitInChunkSize: "10M",
 						},
 					},
