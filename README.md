@@ -323,7 +323,7 @@ following tools according the programming language:
   * For generating raw use the option: `-o raw`.
   * For generating heap snapshot use the option: `-o heapsnapshot`.
   * Note: Default output is flame graphs if no option `-o/--output` is given.
-  * In order for Javascript Symbols to be resolved, the node process needs to be run with `--prof-basic-prof` flag.
+  * In order for Javascript Symbols to be resolved, the node process needs to be run with `--perf-basic-prof` flag.
   * For generating the heap snapshot output, the node process needs to be run with `--heapsnapshot-signal` flag. Information about that [here](https://nodejs.org/api/cli.html#--heapsnapshot-signalsignal) and [here](https://nodejs.org/en/learn/diagnostics/memory/using-heap-snapshot#using-heap-snapshot).
 * For Clang and Clang++: [perf](https://perf.wiki.kernel.org/index.php/Main_Page) is the default profiler, but [ebpf profiling](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter) is also supported.
 
