@@ -1,5 +1,5 @@
 ARG JAVA_VERSION_TAG=21
-FROM golang:1.23.4-bullseye AS agentbuild
+FROM golang:1.24.1-bullseye AS agentbuild
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof
 COPY . /go/src/github.com/josepdcs/kubectl-prof
 RUN go get -d -v ./...
@@ -9,9 +9,9 @@ RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /go/bin/agent
 
 FROM eclipse-temurin:$JAVA_VERSION_TAG AS tools
 ARG TARGETPLATFORM
-ARG ASYNCP_VERSION=2.9
+ARG ASYNCP_VERSION=4.0
 RUN apt-get update  \
-    && apt-get install -y curl tar wget  \
+    && apt-get install -y tar wget  \
     && echo "ASYNCP_VERSION=${ASYNCP_VERSION}, TARGETPLATFORM=${TARGETPLATFORM}"  \
     && "$JAVA_HOME"/bin/jlink \
          --module-path jmods \

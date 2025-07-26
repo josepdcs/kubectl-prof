@@ -243,7 +243,7 @@ func handleForDone() {
 }
 
 // handleForEnding handles the end of the app.
-// A grace of period is defined so that the client profiler have time to retrieve the result of the profiling.
+// A grace of period is defined so that the client profiler has time to retrieve the result of the profiling.
 // Passed this time, the agent will be auto-deleted.
 func handleForEnding() {
 	timer := time.NewTimer(gracePeriod)

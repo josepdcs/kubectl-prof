@@ -1,6 +1,6 @@
 ARG JAVA_VERSION_TAG=21
 ARG ASYNCP_VERSION=2.9
-FROM golang:1.23.4-alpine AS agentbuild
+FROM golang:1.24.1-alpine AS agentbuild
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof
 COPY . /go/src/github.com/josepdcs/kubectl-prof
 RUN go get -d -v ./...
