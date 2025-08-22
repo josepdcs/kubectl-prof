@@ -1,6 +1,6 @@
 ARG JAVA_VERSION_TAG=21
 ARG ASYNCP_VERSION=2.9
-FROM golang:1.23.4-alpine AS agentbuild
+FROM golang:1.24.5-alpine AS agentbuild
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof
 COPY . /go/src/github.com/josepdcs/kubectl-prof
 RUN go get -d -v ./...
@@ -31,7 +31,7 @@ RUN apk add --no-cache curl g++ git linux-headers make tar wget  \
          --compress=2 \
          --output /jcmd
 
-FROM alpine:3.21.0
+FROM alpine:3.22.1
 RUN mkdir -p /app/async-profiler/build  \
     && apk add --no-cache procps coreutils
 COPY --from=agentbuild /go/bin/agent /app

@@ -1,5 +1,5 @@
 ARG JAVA_VERSION_TAG=21
-FROM golang:1.23.4-bullseye AS agentbuild
+FROM golang:1.24.5-bullseye AS agentbuild
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof
 COPY . /go/src/github.com/josepdcs/kubectl-prof
 RUN go get -d -v ./...

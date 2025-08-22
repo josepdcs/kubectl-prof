@@ -1,4 +1,4 @@
-VERSION ?= v1.5.0-dev
+VERSION ?= v1.6.0-dev
 CLI_NAME ?= kubectl-prof
 CLI_DIR ?= ./cmd/cli/
 AGENT_NAME ?= agent
@@ -21,7 +21,7 @@ DOCKERFILE_RUBY ?= ./docker/ruby/Dockerfile
 DOCKER_DUMMY_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-dummy
 DOCKERFILE_DUMMY ?= ./docker/dummy/Dockerfile
 DOCKER_TARGET_PLATFORM ?= linux/amd64,linux/arm64
-DOCKER_BUILD_ADDITIONAL_ARGS ?= 
+DOCKER_BUILD_ADDITIONAL_ARGS ?=
 
 M = $(shell printf "\033[34;1m▶\033[0m")
 
@@ -42,12 +42,14 @@ build-docker-agents: build-docker-bpf build-docker-jvm build-docker-jvm-alpine b
 install-deps: ## Get the dependencies
 	$(info $(M) getting dependencies...)
 	@go get -v ./...
+	@go mod tidy
 
 ## upgrade-deps: upgrade dependencies if needed
 .upgrade: upgrade-deps
 upgrade-deps: ## Upgrade the dependencies
 	$(info $(M) upgrading dependencies...)
 	@go get -t -u ./...
+	@go mod tidy
 
 ## build-cli: Build the kubectl-prof plugin
 .PHONY: build-cli
@@ -61,9 +63,15 @@ build-agent: install-deps ## Build the binary file
 	$(info $(M) building agent...)
 	@go build -o $(BUILD_DIR)/$(AGENT_NAME) -v $(AGENT_DIR)
 
+## quemu-multi: Ensure docker buildx with multi-platform support is available
+.PHONY: qemu-multi
+quemu-multi:
+	$(info $(M) ensuring docker buildx with multi-platform support is available...)
+	@docker run --privileged --rm tonistiigi/binfmt --install all
+
 ## build-docker-jvm: Build the JVM docker image
 .PHONY: build-docker-jvm
-build-docker-jvm:
+build-docker-jvm: quemu-multi
 	$(info $(M) building JVM docker image...)
 	@docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} --progress plain --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_JVM_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_JVM) .
 
@@ -75,7 +83,7 @@ push-docker-jvm: build-docker-jvm
 
 ## build-docker-jvm-alpine: Build the JVM docker image for Alpine
 .PHONY: build-docker-jvm-alpine
-build-docker-jvm-alpine:
+build-docker-jvm-alpine: quemu-multi
 	$(info $(M) building JVM Alpine docker image...)
 	@docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} --progress plain --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_JVM_ALPINE_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_JVM_ALPINE) .
 
@@ -87,7 +95,7 @@ push-docker-jvm-alpine: build-docker-jvm-alpine
 
 ## build-docker-bpf: Build the BPF docker image
 .PHONY: build-docker-bpf
-build-docker-bpf:
+build-docker-bpf: quemu-multi
 	$(info $(M) building BPF docker image...)
 	docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_BPF_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_BPF) .
 
@@ -99,7 +107,7 @@ push-docker-bpf: build-docker-bpf
 
 ## build-docker-perf: Build the PERF docker image
 .PHONY: build-docker-perf
-build-docker-perf:
+build-docker-perf: quemu-multi
 	$(info $(M) building PERF docker image...)
 	docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} --platform=${DOCKER_TARGET_PLATFORM} --no-cache -t ${DOCKER_PERF_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_PERF) .
 
@@ -111,7 +119,7 @@ push-docker-perf: build-docker-perf
 
 ## build-docker-python: Build the PYTHON docker image
 .PHONY: build-docker-python
-build-docker-python:
+build-docker-python: quemu-multi
 	$(info $(M) building PYTHON docker image...)
 	docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_PYTHON_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_PYTHON) .
 
@@ -123,7 +131,7 @@ push-docker-python: build-docker-python
 
 ## build-docker-ruby: Build the RUBY docker image
 .PHONY: build-docker-ruby
-build-docker-ruby:
+build-docker-ruby: quemu-multi
 	$(info $(M) building RUBY docker image...)
 	docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_RUBY_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_RUBY) .
 
@@ -135,7 +143,7 @@ push-docker-ruby: build-docker-ruby
 
 ## build-docker-dummy: Build the DUMMY docker image
 .PHONY: build-docker-dummy
-build-docker-dummy:
+build-docker-dummy: quemu-multi
 	$(info $(M) building DUMMY docker image...)
 	docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_DUMMY_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_DUMMY) .
 
