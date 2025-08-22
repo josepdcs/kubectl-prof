@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@main
+        uses: actions/checkout@v5
 
       - name: Read tag from pushed tag
         if: github.event_name == 'push'
@@ -38,7 +38,7 @@ jobs:
           git push origin ${{ env.tag }}
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
@@ -51,7 +51,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
         
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
@@ -123,12 +123,12 @@ jobs:
             ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-perf
 
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: '1.24.5'
 
       - name: GoReleaser
-        uses: goreleaser/goreleaser-action@v3
+        uses: goreleaser/goreleaser-action@v6
         with:
           version: latest
           args: release --clean
