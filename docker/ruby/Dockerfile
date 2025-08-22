@@ -1,11 +1,11 @@
-FROM golang:1.23.4-bullseye AS agentbuild
+FROM golang:1.24.5-bullseye AS agentbuild
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof
 COPY . /go/src/github.com/josepdcs/kubectl-prof
 RUN go get -d -v ./...
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof/cmd/agent
 RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /go/bin/agent
 
-FROM rust:1.83-bullseye AS rbspybuild
+FROM rust:1.89-bullseye AS rbspybuild
 WORKDIR /
 RUN git clone https://github.com/brendangregg/FlameGraph  \
     && git clone --depth 1 --branch v0.27.0 https://github.com/rbspy/rbspy

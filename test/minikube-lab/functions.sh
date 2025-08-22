@@ -7,8 +7,8 @@ minikube_profiles=(
   ["2"]="minikube-virtualbox-containerd"
   ["3"]="minikube-docker-crio"
   ["4"]="minikube-docker-containerd"
-  ["5"]="minikube-qemu2-containerd"
-  ["6"]="minikube-qemu2-crio"
+  ["5"]="minikube-qemu-containerd"
+  ["6"]="minikube-qemu-crio"
 )
 
 function read_and_set_minikube_profile() {
