@@ -5,15 +5,15 @@ metadata:
 spec:
   homepage: https://github.com/josepdcs/kubectl-prof
   shortDescription: Generate CPU profiling graphs and other several outputs as JFR and heap dumps (Java), thread dumps (Java, Python), etc. from pods (Containerd, Cri-o are supported). This is a fork of flame plugin.
-  version: "v1.5.0"
+  version: "v1.6.0"
   description: |
     Generate CPU profiling graphs and other several outputs as JFR and heap dumps (Java), thread dumps (Java, Python), etc. without restarting pods and with low overhead. Containerd and Cri-o are supported. 
     This is an open source fork of https://github.com/yahoo/kubectl-flame with several new features and bug fixes.
   caveats: |
     Currently supported languages: Go, Java (any JVM based language), Python, Ruby, NodeJS, Clang and Clang++.
   platforms:
-    - uri: https://github.com/josepdcs/kubectl-prof/releases/download/1.5.0/kubectl-prof_1.5.0_darwin_amd64.tar.gz
-      sha256: 6a8d5be595d27100d0aab8c7085fdb7270d81be97024b22f7d3d5f708de8bb03
+    - uri: https://github.com/josepdcs/kubectl-prof/releases/download/1.5.0/kubectl-prof_1.6.0_darwin_amd64.tar.gz
+      sha256: 632c6a8e2be7287eb1fb82496372e8dec32b7cf48f522ed71d11011fc3eeb25b
       bin: kubectl-prof
       files:
         - from: kubectl-prof
@@ -24,8 +24,8 @@ spec:
         matchLabels:
           os: darwin
           arch: amd64
-    - uri: https://github.com/josepdcs/kubectl-prof/releases/download/1.5.0/kubectl-prof_1.5.0_darwin_arm64.tar.gz
-      sha256: f1376f27df39ccf415f2fc8aa3965e615dc8be6e6bb770c994f465007fc1fee1
+    - uri: https://github.com/josepdcs/kubectl-prof/releases/download/1.5.0/kubectl-prof_1.6.0_darwin_arm64.tar.gz
+      sha256: 5a523a0dee2c8fecc03c1c3bc8eedf165a477e585ff3efacbf9d6110af5c7e65
       bin: kubectl-prof
       files:
         - from: kubectl-prof
@@ -36,8 +36,8 @@ spec:
         matchLabels:
           os: darwin
           arch: arm64
-    - uri: https://github.com/josepdcs/kubectl-prof/releases/download/1.5.0/kubectl-prof_1.5.0_linux_amd64.tar.gz
-      sha256: a6e5daa7e5bdbc036e53b80a4c30489c3aa5df111c4092ce6882e976c13dde4b
+    - uri: https://github.com/josepdcs/kubectl-prof/releases/download/1.5.0/kubectl-prof_1.6.0_linux_amd64.tar.gz
+      sha256: 30431000ae70e0d36489f908053b00ba57264b660d88ddfe9d8d9c2c21b7990e
       bin: kubectl-prof
       files:
         - from: kubectl-prof
@@ -48,8 +48,8 @@ spec:
         matchLabels:
           os: linux
           arch: amd64
-    - uri: https://github.com/josepdcs/kubectl-prof/releases/download/1.5.0/kubectl-prof_1.5.0_linux_arm64.tar.gz
-      sha256: 5e75cc8c8b07757274a9f13ef13853b424dffbe6785ea84c87de2f8331b467c0
+    - uri: https://github.com/josepdcs/kubectl-prof/releases/download/1.5.0/kubectl-prof_1.6.0_linux_arm64.tar.gz
+      sha256: 2aeebf9c7cab6a6b8506416298d3c2c082f73407c4a0f81fbd7595288a9e7fe8
       bin: kubectl-prof
       files:
         - from: kubectl-prof
@@ -60,8 +60,8 @@ spec:
         matchLabels:
           os: linux
           arch: arm64
-    - uri: https://github.com/josepdcs/kubectl-prof/releases/download/1.5.0/kubectl-prof_1.5.0_windows_amd64.zip
-      sha256: da1284a18f8ad2fa18655118845c8eb1e37a9939b199ea76cdf2f0c6f9cda199
+    - uri: https://github.com/josepdcs/kubectl-prof/releases/download/1.5.0/kubectl-prof_1.6.0_windows_amd64.zip
+      sha256: 0f288835d07bb55bdd304e0970f2712134e24a4123b2e5ba1214ba79be68c2d4
       bin: kubectl-prof.exe
       files:
         - from: kubectl-prof.exe
@@ -72,8 +72,8 @@ spec:
         matchLabels:
           os: windows
           arch: amd64
-    - uri: https://github.com/josepdcs/kubectl-prof/releases/download/1.5.0/kubectl-prof_1.5.0_windows_arm64.zip
-      sha256: 911d898af162b6e3d3fb407dbdb5ccec9669e24a5ec521c10911a3ae230baf3b
+    - uri: https://github.com/josepdcs/kubectl-prof/releases/download/1.5.0/kubectl-prof_1.6.0_windows_arm64.zip
+      sha256: c85354bfd65eb74c7c6f2d648a7c8bb2bce20f31f272d6b4322f42ec497f2229
       bin: kubectl-prof.exe
       files:
         - from: kubectl-prof.exe
