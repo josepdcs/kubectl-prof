@@ -296,6 +296,14 @@ func validateFlags(flags *profilingFlags, target *config.TargetConfig, job *conf
 		return errors.Wrapf(err, "unable to parse resource limits")
 	}
 
+	// Create the local path if given and it does not exist
+	if stringUtils.IsBlank(target.LocalPath) {
+		err = os.MkdirAll(target.LocalPath, 0755)
+		if err != nil {
+			return errors.Wrap(err, "could not create local path")
+		}
+	}
+
 	return validatePid(target.PID)
 }
 

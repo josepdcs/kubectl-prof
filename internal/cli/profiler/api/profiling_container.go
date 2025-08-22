@@ -100,12 +100,6 @@ func (p *profilingContainerApi) HandleProfilingContainerLogs(pod *v1.Pod, contai
 func (p *profilingContainerApi) GetRemoteFile(pod *v1.Pod, containerName string, remoteFile result.File, targetPodName string, target *config.TargetConfig) (string, error) {
 	var fileBuff []byte
 
-	// Create the local path if it does not exist
-	err := os.MkdirAll(target.LocalPath, 0755)
-	if err != nil {
-		return "", errors.Wrap(err, "could not create local path")
-	}
-
 	if remoteFile.Chunks != nil && len(remoteFile.Chunks) > 0 {
 		chunks, err := retrieveChunks(pod, containerName, remoteFile, p.executor, target)
 		if err != nil {
