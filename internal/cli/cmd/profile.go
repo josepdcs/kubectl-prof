@@ -219,6 +219,7 @@ func NewProfileCommand(streams genericiooptions.IOStreams) *cobra.Command {
 	cmd.Flags().StringVarP(&target.Pgrep, "pgrep", "p", "", "Name of the target process")
 	cmd.Flags().IntVar(&target.NodeHeapSnapshotSignal, "node-heap-snapshot-signal", 12, "The signal to be sent to the target process to generate a heap snapshot for Node.js applications")
 	cmd.Flags().StringSliceVar(&flags.capabilities, "capabilities", nil, "The capabilities to be added to the agent container. It can be used multiple times to add more than one capability (e.g. --capabilities SYS_ADMIN --capabilities SYS_PTRACE)")
+	cmd.Flags().StringSliceVar(&job.TolerationsRaw, "tolerations", nil, "Tolerations for the profiling job pod in the format key=value:effect or key:effect. It can be used multiple times to add more than one toleration (e.g. --tolerations key1=value1:NoSchedule --tolerations key2:NoExecute)")
 
 	options.configFlags.AddFlags(cmd.Flags())
 
@@ -294,6 +295,10 @@ func validateFlags(flags *profilingFlags, target *config.TargetConfig, job *conf
 
 	if _, err := job.LimitConfig.ParseResources(); err != nil {
 		return errors.Wrapf(err, "unable to parse resource limits")
+	}
+
+	if err := job.ParseTolerations(); err != nil {
+		return errors.Wrapf(err, "unable to parse tolerations")
 	}
 
 	// Create the local path if given and it does not exist

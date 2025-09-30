@@ -87,7 +87,8 @@ func Test_bpfCreate_create(t *testing.T) {
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: wantedObjectMeta,
 				Spec: apiv1.PodSpec{
-					HostPID: true,
+					HostPID:     true,
+					Tolerations: cfg.Job.Tolerations,
 					Volumes: []apiv1.Volume{
 						{
 							Name: "target-filesystem",

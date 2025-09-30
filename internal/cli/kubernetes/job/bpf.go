@@ -52,7 +52,8 @@ func (b *bpfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: commonMeta,
 				Spec: apiv1.PodSpec{
-					HostPID: true,
+					HostPID:     true,
+					Tolerations: cfg.Job.Tolerations,
 					Volumes: []apiv1.Volume{
 						{
 							Name: "target-filesystem",
