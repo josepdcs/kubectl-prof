@@ -1,6 +1,6 @@
 module github.com/josepdcs/kubectl-prof
 
-go 1.23.4
+go 1.25.2
 
 require (
 	github.com/agrison/go-commons-lang v0.0.0-20240106075236-2e001e6401ef

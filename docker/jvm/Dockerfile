@@ -1,5 +1,5 @@
-ARG JAVA_VERSION_TAG=21
-FROM golang:1.24.5-bullseye AS agentbuild
+ARG JAVA_VERSION_TAG=25
+FROM golang:1.25.2-trixie AS agentbuild
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof
 COPY . /go/src/github.com/josepdcs/kubectl-prof
 RUN go get -d -v ./...
@@ -29,7 +29,7 @@ RUN apt-get update  \
     && tar -xf async-profiler-${ASYNCP_VERSION}-linux-${ARCHITECTURE}.tar.gz  \
     && mv async-profiler-${ASYNCP_VERSION}-linux-${ARCHITECTURE} async-profiler
 
-FROM bitnami/minideb:bullseye
+FROM bitnami/minideb:trixie
 RUN apt-get update  \
     && apt-get install -y gzip procps strace sudo \
     && apt-get clean \
