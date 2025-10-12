@@ -363,6 +363,41 @@ This one can be used multiple times to add more than one capability.
 kubectl prof my-pod -t 5m -l java -o flamegraph --local-path=/tmp --capabilities=SYS_ADMIN
 ```
 
+## Tolerations
+By default, the profiling agent pod will only be scheduled on nodes without taints. If your target pod runs on a node with taints, you can specify tolerations to allow the agent pod to be scheduled on the same node.
+
+Tolerations can be specified using the `--tolerations` flag with the following formats:
+- `key=value:effect` - Tolerate a taint with a specific key, value, and effect
+- `key:effect` - Tolerate a taint with a specific key and effect (any value)
+- `key` - Tolerate a taint with a specific key (defaults to NoSchedule effect)
+
+You can use the `--tolerations` flag multiple times to add multiple tolerations.
+
+**Examples**:
+
+Tolerate a specific taint with key, value, and effect:
+```shell
+kubectl prof my-pod -t 5m -l java -o flamegraph --tolerations=node.kubernetes.io/disk-pressure=true:NoSchedule
+```
+
+Tolerate a taint with key and effect (any value):
+```shell
+kubectl prof my-pod -t 5m -l java -o flamegraph --tolerations=node.kubernetes.io/memory-pressure:NoExecute
+```
+
+Tolerate a taint with just a key (defaults to NoSchedule):
+```shell
+kubectl prof my-pod -t 5m -l java -o flamegraph --tolerations=node.kubernetes.io/unreachable
+```
+
+Add multiple tolerations:
+```shell
+kubectl prof my-pod -t 5m -l java -o flamegraph \
+  --tolerations=node.kubernetes.io/disk-pressure=true:NoSchedule \
+  --tolerations=node.kubernetes.io/memory-pressure:NoExecute \
+  --tolerations=dedicated=profiling:PreferNoSchedule
+```
+
 ## Contribute
 
 Please refer to [the contributing.md file](Contributing.md) for information about how to get involved. We welcome
