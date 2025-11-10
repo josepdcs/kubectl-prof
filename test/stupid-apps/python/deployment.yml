@@ -17,10 +17,10 @@ spec:
     spec:
       containers:
       - name: python
-        #image: localhost/stupid-apps/python:latest
-        #imagePullPolicy: Never
-        image: docker.io/josepdcs/python:latest
-        imagePullPolicy: Always
+        image: localhost/stupid-apps/python:latest
+        imagePullPolicy: Never
+        #image: docker.io/josepdcs/python:latest
+        #imagePullPolicy: Always
         resources:
           limits:
             cpu: 100m

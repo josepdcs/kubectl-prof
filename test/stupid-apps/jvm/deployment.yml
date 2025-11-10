@@ -17,10 +17,10 @@ spec:
     spec:
       containers:
       - name: jvm
-        #image: localhost/stupid-apps/jvm:latest
-        #imagePullPolicy: Never
-        image: docker.io/josepdcs/jvm:latest
-        imagePullPolicy: Always
+        image: localhost/stupid-apps/jvm:latest
+        imagePullPolicy: Never
+        #image: docker.io/josepdcs/jvm:latest
+        #imagePullPolicy: Always
         resources:
           limits:
             cpu: 100m

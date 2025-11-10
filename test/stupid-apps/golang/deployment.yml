@@ -17,10 +17,10 @@ spec:
     spec:
       containers:
       - name: golang
-        #image: localhost/stupid-apps/golang:latest
-        #imagePullPolicy: Never
-        image: docker.io/josepdcs/golang:latest
-        imagePullPolicy: Always
+        image: localhost/stupid-apps/golang:latest
+        imagePullPolicy: Never
+        #image: docker.io/josepdcs/golang:latest
+        #imagePullPolicy: Always
         resources:
           limits:
             cpu: 100m

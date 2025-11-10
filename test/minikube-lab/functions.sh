@@ -63,14 +63,7 @@ function build_docker_image_and_push_to_minikube() {
 
   #Building image: localhost/stupid-apps/clang:latest. Dockerfile: test/stupid-apps/clang/Dockerfile
   echo "Building image: ${fullImageName}. Dockerfile: ${dockerfile}"
-
-  docker build -t ${fullImageName} -f "${dockerfile}" .
-
-  echo "Loading image ${fullImageName} to $MINIKUBE_PROFILE"
-  minikube image load ${fullImageName} -p $MINIKUBE_PROFILE --overwrite=true --daemon
-
-  echo "Removing image ${fullImageName} from local registry"
-  docker rmi $(docker images --filter "dangling=true" -q --no-trunc) ${fullImageName} || true
+  minikube image build -t ${fullImageName} -f "${dockerfile}" .
 }
 
 # shellcheck disable=SC2046,SC2086
