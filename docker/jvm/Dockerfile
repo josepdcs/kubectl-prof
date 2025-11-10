@@ -9,9 +9,9 @@ RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /go/bin/agent
 
 FROM eclipse-temurin:$JAVA_VERSION_TAG AS tools
 ARG TARGETPLATFORM
-ARG ASYNCP_VERSION=2.9
+ARG ASYNCP_VERSION=4.2
 RUN apt-get update  \
-    && apt-get install -y curl tar wget  \
+    && apt-get install -y tar wget  \
     && echo "ASYNCP_VERSION=${ASYNCP_VERSION}, TARGETPLATFORM=${TARGETPLATFORM}"  \
     && "$JAVA_HOME"/bin/jlink \
          --module-path jmods \
@@ -36,7 +36,7 @@ RUN apt-get update  \
     && mkdir -p /app/async-profiler/build
 COPY --from=agentbuild /go/bin/agent /app
 COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/jvm/profiler.sh /app/async-profiler
-COPY --from=tools /async-profiler/build /app/async-profiler/build
+COPY --from=tools /async-profiler /app/async-profiler/build
 COPY --from=tools /jcmd /opt/jdk
 RUN chmod +x /app/async-profiler/profiler.sh \
     && mkdir -p /app/jfr/settings

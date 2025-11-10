@@ -1,5 +1,5 @@
 ARG JAVA_VERSION_TAG=25
-ARG ASYNCP_VERSION=2.9
+ARG ASYNCP_VERSION=4.2
 FROM golang:1.25.2-alpine AS agentbuild
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof
 COPY . /go/src/github.com/josepdcs/kubectl-prof
@@ -9,7 +9,7 @@ RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /go/bin/agent
 
 FROM amazoncorretto:11-alpine-jdk AS async-profiler-builder
 ARG TARGETPLATFORM
-ARG ASYNCP_VERSION=2.9
+ARG ASYNCP_VERSION=4.2
 RUN apk add --no-cache curl g++ git linux-headers make musl-dev tar wget
 WORKDIR /src
 RUN git clone --branch v${ASYNCP_VERSION} --depth 1 https://github.com/async-profiler/async-profiler
@@ -19,7 +19,7 @@ RUN make CXXFLAGS='-O3 -fno-omit-frame-pointer -fvisibility=hidden -D_LARGEFILE6
 
 FROM eclipse-temurin:$JAVA_VERSION_TAG-alpine AS tools
 ARG TARGETPLATFORM
-ARG ASYNCP_VERSION=2.9
+ARG ASYNCP_VERSION=4.2
 RUN apk add --no-cache curl g++ git linux-headers make tar wget  \
     && echo "ASYNCP_VERSION=${ASYNCP_VERSION}, TARGETPLATFORM=${TARGETPLATFORM}" \
     && "$JAVA_HOME"/bin/jlink \

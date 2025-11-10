@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -eu
 
 usage() {
@@ -93,20 +93,16 @@ check_if_terminated() {
     fi
 }
 
-fdtransfer() {
-    if [ "$USE_FDTRANSFER" = "true" ]; then
-        FDTRANSFER_PATH="@async-profiler-$(od -An -N3 -i /dev/random | xargs)"
-        PARAMS="$PARAMS,fdtransfer=$FDTRANSFER_PATH"
-        "$FDTRANSFER" "$FDTRANSFER_PATH" "$PID"
-    fi
-}
-
-jattach() {
+asprof() {
     set +e
-    "$JATTACH" "$PID" load "$PROFILER" true "$1,log=$LOG" > /dev/null
+    local EXTRA_ARGS=()
+    if [ "$USE_FDTRANSFER" = "true" ]; then
+      EXTRA_ARGS+=("--fdtransfer")
+    fi
+    "$ASPROF" "$PID" "${EXTRA_ARGS[@]}" load "$PROFILER" true "$1,log=$LOG" > /dev/null
     RET=$?
 
-    # Check if jattach failed
+    # Check if asprof failed
     if [ $RET -ne 0 ]; then
         if [ $RET -eq 255 ]; then
             echo "Failed to inject profiler into $PID"
@@ -126,12 +122,11 @@ jattach() {
     set -e
 }
 
-SCRIPT_DIR="/tmp/async-profiler"
-JATTACH=$SCRIPT_DIR/build/jattach
-FDTRANSFER=$SCRIPT_DIR/build/fdtransfer
+SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+ASPROF=$SCRIPT_DIR/build/bin/asprof
 USE_FDTRANSFER="false"
 FDTRANSFER_PATH=""
-PROFILER=$SCRIPT_DIR/build/libasyncProfiler.so
+PROFILER=$SCRIPT_DIR/build/lib/libasyncProfiler.so
 ACTION="collect"
 DURATION="60"
 FILE=""
@@ -340,24 +335,24 @@ fi
 
 case $ACTION in
     start|resume)
-        fdtransfer
-        jattach "$ACTION,file=$FILE,$OUTPUT$FORMAT$PARAMS"
+        USE_FDTRANSFER=true
+        asprof "$ACTION,file=$FILE,$OUTPUT$FORMAT$PARAMS"
         ;;
     check)
-        jattach "$ACTION,file=$FILE,$OUTPUT$FORMAT$PARAMS"
+        asprof "$ACTION,file=$FILE,$OUTPUT$FORMAT$PARAMS"
         ;;
     stop|dump)
-        jattach "$ACTION,file=$FILE,$OUTPUT$FORMAT"
+        asprof "$ACTION,file=$FILE,$OUTPUT$FORMAT"
         ;;
     status|meminfo|list)
-        jattach "$ACTION,file=$FILE"
+        asprof "$ACTION,file=$FILE"
         ;;
     version)
-        jattach "version=full,file=$FILE"
+        asprof "version=full,file=$FILE"
         ;;
     collect)
-        fdtransfer
-        jattach "start,file=$FILE,$OUTPUT$FORMAT$PARAMS"
+        USE_FDTRANSFER=true
+        asprof "start,file=$FILE,$OUTPUT$FORMAT$PARAMS"
         echo Profiling for "$DURATION" seconds >&2
         set +e
         trap 'DURATION=0' INT
@@ -371,6 +366,6 @@ case $ACTION in
         set -e
         trap - INT
         echo Done >&2
-        jattach "stop,file=$FILE,$OUTPUT$FORMAT"
+        asprof "stop,file=$FILE,$OUTPUT$FORMAT"
         ;;
 esac
