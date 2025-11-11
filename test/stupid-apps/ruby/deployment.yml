@@ -17,10 +17,10 @@ spec:
     spec:
       containers:
       - name: ruby
-        #image: localhost/stupid-apps/ruby:latest
-        #imagePullPolicy: Never
-        image: docker.io/josepdcs/ruby:latest
-        imagePullPolicy: Always
+        image: localhost/stupid-apps/ruby:latest
+        imagePullPolicy: Never
+        #image: docker.io/josepdcs/ruby:latest
+        #imagePullPolicy: Always
         resources:
           limits:
             cpu: 100m

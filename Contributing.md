@@ -13,6 +13,36 @@ If you encounter any bugs in the code, or want to request a new feature or enhan
 please [create an issue](https://help.github.com/articles/creating-an-issue/) to report it. Kindly add a label to
 indicate what type of issue it is.
 
+### Run Locally
+
+A minikube lab exists to run a few dummy applications in different language to easily tests the profilers.
+
+Build all components and start the cluster with:
+
+```
+make minikube-all
+```
+
+You can build the plugin with
+
+```
+make build-cli
+```
+
+You can then profile any application by adding the plugin to your path and call minikube kubectl:
+
+```
+export PATH=./bin/:$PATH 
+minikube kubectl -- prof \
+    -n stupid-apps $POD \
+    --image localhost/docker/jvm:latest --image-pull-policy Never \
+    -t 10s -e wall -l java --tool async-profiler 
+```
+
+ * Add the plugin built from source to your `PATH`. 
+ * Dummy apps runs in the `stupid-apps` namespace.
+ * To use an image built from source, use the `--image` option and `--image-pull-policy Never`.
+
 ### Contribute Code
 
 We welcome your pull requests for bug fixes. To implement something new, please create an issue first so we can discuss

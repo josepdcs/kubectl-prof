@@ -17,10 +17,10 @@ spec:
     spec:
       containers:
       - name: clang
-        #image: localhost/stupid-apps/clang:latest
-        #imagePullPolicy: Never
-        image: docker.io/josepdcs/clang:latest
-        imagePullPolicy: Always
+        image: localhost/stupid-apps/clang:latest
+        imagePullPolicy: Never
+        #image: docker.io/josepdcs/clang:latest
+        #imagePullPolicy: Always
         resources:
           limits:
             cpu: 100m

@@ -17,10 +17,10 @@ spec:
     spec:
       containers:
       - name: node
-        #image:  localhost/stupid-apps/node:latest
-        #imagePullPolicy: Never
-        image: docker.io/josepdcs/node:latest
-        imagePullPolicy: Always
+        image:  localhost/stupid-apps/node:latest
+        imagePullPolicy: Never
+        #image: docker.io/josepdcs/node:latest
+        #imagePullPolicy: Always
         resources:
           limits:
             cpu: 100m

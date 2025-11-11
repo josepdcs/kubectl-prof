@@ -17,10 +17,10 @@ spec:
     spec:
       containers:
       - name: rust
-        #image: localhost/stupid-apps/rust:latest
-        #imagePullPolicy: Never
-        image: docker.io/josepdcs/rust:latest
-        imagePullPolicy: Always
+        image: localhost/stupid-apps/rust:latest
+        imagePullPolicy: Never
+        #image: docker.io/josepdcs/rust:latest
+        #imagePullPolicy: Always
         resources:
           limits:
             cpu: 100m

@@ -69,7 +69,7 @@ func (p *perfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (
 					InitContainers:   nil,
 					Containers: []apiv1.Container{
 						{
-							ImagePullPolicy: apiv1.PullAlways,
+							ImagePullPolicy: cfg.Target.ImagePullPolicy,
 							Name:            ContainerName,
 							Image:           imageName,
 							Command:         []string{command},
