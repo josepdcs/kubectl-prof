@@ -35,11 +35,9 @@ RUN apt-get update  \
     && apt-get clean \
     && mkdir -p /app/async-profiler/build
 COPY --from=agentbuild /go/bin/agent /app
-COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/jvm/profiler.sh /app/async-profiler
 COPY --from=tools /async-profiler /app/async-profiler/build
 COPY --from=tools /jcmd /opt/jdk
-RUN chmod +x /app/async-profiler/profiler.sh \
-    && mkdir -p /app/jfr/settings
+RUN mkdir -p /app/jfr/settings
 COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/jvm/jfr-profile.jfc /app/jfr/settings
 COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/get-ps-command.sh /app/get-ps-command.sh
 RUN chmod +x /app/get-ps-command.sh
