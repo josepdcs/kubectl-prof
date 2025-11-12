@@ -38,6 +38,7 @@ type TargetConfig struct {
 type ExtraTargetOptions struct {
 	PoolSizeLaunchProfilingJobs int
 	PrintLogs                   bool
+	PrintAgentLogs              bool
 	GracePeriodEnding           time.Duration
 	HeapDumpSplitInChunkSize    string
 	PoolSizeRetrieveChunks      int
