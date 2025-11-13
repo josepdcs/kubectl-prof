@@ -1,9 +1,10 @@
 package api
 
 import (
+	"testing"
+
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestAvailableEvents(t *testing.T) {
@@ -46,6 +47,11 @@ func TestIsSupportedEvent(t *testing.T) {
 		{
 			name:  "itimer",
 			given: "itimer",
+			then:  true,
+		},
+		{
+			name:  "ctimer",
+			given: "ctimer",
 			then:  true,
 		},
 		{
