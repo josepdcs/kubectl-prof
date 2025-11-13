@@ -13,8 +13,9 @@ limitations under the License.
 package api
 
 import (
-	jsoniter "github.com/json-iterator/go"
 	"time"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 type EventType string

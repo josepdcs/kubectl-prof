@@ -11,10 +11,11 @@ const (
 	CacheMisses ProfilingEvent = "cache-misses"
 	Wall        ProfilingEvent = "wall"
 	Itimer      ProfilingEvent = "itimer"
+	Ctimer      ProfilingEvent = "ctimer"
 )
 
 var (
-	supportedEvents = []ProfilingEvent{Cpu, Alloc, Lock, CacheMisses, Wall, Itimer}
+	supportedEvents = []ProfilingEvent{Cpu, Alloc, Lock, CacheMisses, Wall, Itimer, Ctimer}
 )
 
 func AvailableEvents() []ProfilingEvent {

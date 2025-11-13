@@ -39,7 +39,7 @@ const (
 	defaultDuration                 = 60 * time.Second
 	defaultContainerRuntime         = api.Containerd
 	defaultCompressor               = compressor.Gzip
-	defaultEventType                = api.Itimer
+	defaultEventType                = api.Ctimer
 	defaultHeapDumpSplitInChunkSize = "50M"
 )
 

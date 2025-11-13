@@ -291,9 +291,10 @@ following tools according the programming language:
     * [async-profiler](https://github.com/jvm-profiling-tools/async-profiler) in order to generate flame graphs or JFR
       files and the rest of output type supported for this tool.
       * For generating flame graphs use the option: `--tool async-profiler` and `-o flamegraph`.
+        * Note: Default output is flame graphs if no option `-o/--output` is given.
       * For generating JFR files use the option: `--tool async-profiler` and `-o jfr`.
       * For generating collapsed/raw use the option: `--tool async-profiler` and `-o collapsed` or `-o raw`.
-      * Note: Default output is flame graphs if no option `-o/--output` is given.
+      * Several event types are available for profiling: `cpu`, `alloc`, `lock`, `cache-misses`, `wall`, `itimer` and `ctimer`. The default event type is `ctimer` but you can change it using the option `--e/--event`.
     * [jcmd](https://download.java.net/java/early_access/panama/docs/specs/man/jcmd.html) in order to generate: JFR
       files, thread dumps, heap dumps and heap histogram.
         * For generating JFR files use the options: `--tool jcmd` and `-o jfr`.

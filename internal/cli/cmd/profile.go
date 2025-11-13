@@ -26,7 +26,7 @@ import (
 const (
 	defaultGracePeriodEnding           = 5 * time.Minute
 	defaultContainerRuntime            = string(api.Containerd)
-	defaultEvent                       = string(api.Itimer)
+	defaultEvent                       = string(api.Ctimer)
 	defaultLogLevel                    = string(api.InfoLevel)
 	defaultCompressor                  = string(compressor.Gzip)
 	defaultOutputType                  = string(api.FlameGraph)
