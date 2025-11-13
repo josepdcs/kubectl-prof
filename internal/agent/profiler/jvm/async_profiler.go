@@ -26,12 +26,14 @@ import (
 )
 
 const (
-	asyncProfilerDir              = "/tmp/async-profiler"
-	profilerSh                    = asyncProfilerDir + "/profiler.sh"
+	sharedDir 									  = "/kubectl-prof"
+	asyncProfilerDir              = "/async-profiler"
+	asprofPath                    = asyncProfilerDir + "/build/bin/asprof"
+	libPath                       = asyncProfilerDir + "/build/lib/libasyncProfiler.so"
 	asyncProfilerDelayBetweenJobs = 2 * time.Second
 )
 
-var asyncProfilerCommand = func(commander executil.Commander, job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
+var asyncProfilerCommand = func(j *asyncProfilerManager, job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
 	interval := strconv.Itoa(int(job.Interval.Seconds()))
 	event := string(job.Event)
 	output := string(job.OutputType)
@@ -39,12 +41,25 @@ var asyncProfilerCommand = func(commander executil.Commander, job *job.Profiling
 		// overrides to collapsed type since it is the type defined be async-profiler, which it is what we want
 		output = string(api.Collapsed)
 	}
-	args := []string{"-o", output, "-d", interval, "-f", fileName, "-e", event, "--fdtransfer", pid}
-	return commander.Command(profilerSh, args...)
+	args := []string{
+		"--libpath", filepath.Join(j.getTmpDir(), libPath), 
+		"-o", output, 
+		"-d", interval, 
+		"-f", fileName, 
+		"-e", event, 
+		"--fdtransfer", 
+		pid,
+	}
+
+	return j.commander.Command(filepath.Join(j.getTmpDir(), asprofPath), args...)
 }
 
-var asyncProfilerStopCommand = func(commander executil.Commander, job *job.ProfilingJob, pid string) *exec.Cmd {
-	return commander.Command(profilerSh, "stop", pid)
+var asyncProfilerStopCommand = func(j *asyncProfilerManager, job *job.ProfilingJob, pid string) *exec.Cmd {
+	return j.commander.Command(
+		filepath.Join(j.getTmpDir(), asprofPath), 
+		"stop", 
+		"--libpath", filepath.Join(j.getTmpDir(), libPath), 
+		pid)
 }
 
 type AsyncProfiler struct {
@@ -54,6 +69,7 @@ type AsyncProfiler struct {
 }
 
 type AsyncProfilerManager interface {
+	getTmpDir() string
 	removeTmpDir() error
 	linkTmpDirToTargetTmpDir(string) error
 	copyProfilerToTmpDir() error
@@ -88,7 +104,8 @@ func (j *AsyncProfiler) SetUp(job *job.ProfilingJob) error {
 		return err
 	}
 
-	targetTmpDir := filepath.Join(targetFs, "tmp")
+	targetTmpDir := filepath.Join(targetFs, j.getTmpDir())
+
 	// remove previous files from a previous profiling
 	file.RemoveAll(targetTmpDir, config.ProfilingPrefix+string(job.OutputType))
 
@@ -111,16 +128,25 @@ func (j *AsyncProfiler) SetUp(job *job.ProfilingJob) error {
 	return j.copyProfilerToTmpDir()
 }
 
+func (j *asyncProfilerManager) getTmpDir() string {
+	return sharedDir
+}
+
 func (j *asyncProfilerManager) removeTmpDir() error {
-	return os.RemoveAll(common.TmpDir())
+	return os.RemoveAll(j.getTmpDir())
 }
 
 func (j *asyncProfilerManager) linkTmpDirToTargetTmpDir(targetTmpDir string) error {
-	return os.Symlink(targetTmpDir, common.TmpDir())
+	log.DebugLogLn(fmt.Sprintf("Linking '%s' to '%s'", targetTmpDir, j.getTmpDir()))
+	err := os.MkdirAll(targetTmpDir, 0777)
+	if err != nil {
+		return errors.Wrapf(err, "Could not create target container shared directory: %s", filepath.Dir(targetTmpDir))
+	}
+	return os.Symlink(targetTmpDir, j.getTmpDir())
 }
 
 func (j *asyncProfilerManager) copyProfilerToTmpDir() error {
-	cmd := j.commander.Command("cp", "-r", "/app/async-profiler", common.TmpDir())
+	cmd := j.commander.Command("cp", "-r", "/app/async-profiler", j.getTmpDir())
 	return cmd.Run()
 }
 
@@ -155,8 +181,8 @@ func (j *asyncProfilerManager) invoke(job *job.ProfilingJob, pid string) (error,
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 
-	resultFileName := common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType, pid, job.Iteration)
-	cmd := asyncProfilerCommand(j.commander, job, pid, resultFileName)
+	resultFileName := common.GetResultFile(j.getTmpDir(), job.Tool, job.OutputType, pid, job.Iteration)
+	cmd := asyncProfilerCommand(j, job, pid, resultFileName)
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 	err := cmd.Run()
@@ -174,11 +200,11 @@ func (j *AsyncProfiler) CleanUp(job *job.ProfilingJob) error {
 		j.cleanUp(job, pid)
 	}
 
-	err := os.RemoveAll(asyncProfilerDir)
+	err := os.RemoveAll(filepath.Join(j.getTmpDir(), asyncProfilerDir))
 	if err != nil {
 		log.WarningLogLn(fmt.Sprintf("async-profiler folder could not be removed: %s", err))
 	}
-	file.RemoveAll(common.TmpDir(), config.ProfilingPrefix+string(job.OutputType))
+	file.RemoveAll(j.getTmpDir(), config.ProfilingPrefix+string(job.OutputType))
 
 	return nil
 }
@@ -186,7 +212,7 @@ func (j *AsyncProfiler) CleanUp(job *job.ProfilingJob) error {
 func (j *asyncProfilerManager) cleanUp(job *job.ProfilingJob, pid string) {
 	var out bytes.Buffer
 	var stderr bytes.Buffer
-	cmd := asyncProfilerStopCommand(j.commander, job, pid)
+	cmd := asyncProfilerStopCommand(j, job, pid)
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 	err := cmd.Run()

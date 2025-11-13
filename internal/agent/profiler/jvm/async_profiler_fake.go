@@ -76,6 +76,10 @@ func (f *fakeAsyncProfilerManager) invoke(*job.ProfilingJob, string) (error, tim
 	return err, duration
 }
 
+func (f *fakeAsyncProfilerManager) getTmpDir() string {
+	return "/tmp"
+}
+
 func (f *fakeAsyncProfilerManager) removeTmpDir() error {
 	var err error
 	f.fakeMethods["removeTmpDir"].invokes++
