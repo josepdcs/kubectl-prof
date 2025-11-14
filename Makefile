@@ -1,4 +1,4 @@
-VERSION ?= v1.7.0-dev
+VERSION ?= v1.8.0-dev
 CLI_NAME ?= kubectl-prof
 CLI_DIR ?= ./cmd/cli/
 AGENT_NAME ?= agent
@@ -25,7 +25,7 @@ DOCKER_BUILD_ADDITIONAL_ARGS ?=
 
 M = $(shell printf "\033[34;1m▶\033[0m")
 
-## build-cli: Build the kubectl-prof plugin and push all docker images
+## all: Build the kubectl-prof plugin and push all docker images
 .PHONY: all
 all: build-cli push-docker-jvm push-docker-jvm-alpine push-docker-bpf push-docker-perf push-docker-python push-docker-ruby
 
