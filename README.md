@@ -453,7 +453,7 @@ make install-deps
 2. **Build the binary:**
 
 ```sh
-make
+make build
 ```
 
 The binary will be available in `./bin/kubectl-prof`
@@ -463,7 +463,7 @@ The binary will be available in `./bin/kubectl-prof`
 Modify the `DOCKER_BASE_IMAGE` property in [Makefile](Makefile), then run:
 
 ```sh
-make agents
+make build-docker-agents
 ```
 
 ## 🔧 How It Works

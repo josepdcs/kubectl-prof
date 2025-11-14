@@ -16,7 +16,6 @@ builds:
       - arm
       - arm64
       - ppc64le
-    goarm: [ 6, 7 ]
     ldflags: |
       -X github.com/josepdcs/kubectl-prof/internal/cli/version.semver={{ .Tag }}
 archives:
@@ -28,11 +27,11 @@ archives:
         {{- else -}}v{{- . -}}
         {{- end -}}
       {{- end -}}
-    builds:
+    ids:
       - kubectl-prof
     format_overrides:
       - goos: windows
-        format: zip
+        formats: zip
     files: [ "LICENSE", "README.md" ]
 checksum:
   name_template: 'checksums.txt'
