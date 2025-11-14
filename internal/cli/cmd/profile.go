@@ -208,7 +208,8 @@ func NewProfileCommand(streams genericiooptions.IOStreams) *cobra.Command {
 	cmd.Flags().StringVar(&flags.profilingTool, "tool", "", fmt.Sprintf("Profiling tool, choose one accorfing language %v", api.AvailableProfilingToolsString()))
 	cmd.Flags().StringVarP(&flags.outputType, "output", "o", defaultOutputType,
 		fmt.Sprintf("Output type, choose one accorting tool %v", api.AvailableOutputTypesString()))
-	cmd.Flags().BoolVar(&target.PrintLogs, "print-logs", true, "Force agent to print the log messages type to standard output")
+	cmd.Flags().BoolVar(&target.PrintAgentLogs, "print-agent-logs", false, "Print agent logs in the standard output")
+	cmd.Flags().BoolVar(&target.PrintLogs, "print-logs", true, "Force agent to print the log messages type to its standard output")
 	cmd.Flags().DurationVar(&target.GracePeriodEnding, "grace-period-ending", defaultGracePeriodEnding, "The grace period to spend before to end the agent")
 	cmd.Flags().StringVar(&flags.imagePullPolicy, "image-pull-policy", defaultImagePullPolicy, fmt.Sprintf("Image pull policy, choose one of %v", imagePullPolicies))
 	cmd.Flags().StringVar(&target.ContainerName, "target-container-name", "", "The target container name to be profiled")

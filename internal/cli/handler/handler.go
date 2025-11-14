@@ -29,6 +29,10 @@ func (h *EventHandler) Handle(events chan string, done chan bool, resultFile cha
 			h.printer.Print(fmt.Sprintf("Error: %s ", eventType.Reason))
 			h.printer.Print("❌\n")
 			done <- true
+		case *api.LogData:
+			if (h.target.PrintAgentLogs) {
+				h.printer.Print(fmt.Sprintf("Agent[%s]: %s\n", eventType.Level, eventType.Msg))
+			}
 		case *api.ResultData:
 			resultFile <- result.File{
 				FileName:        eventType.File,
