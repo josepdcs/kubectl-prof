@@ -295,8 +295,8 @@ func Test_rubyManager_invoke(t *testing.T) {
 				b.Write([]byte("test"))
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"), b.String())
 
-				commander := executil.NewFakeCommander()
-				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
+    commander := executil.NewMockCommander()
+    commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
 				publisher.On("Do").Return(nil)
 
@@ -321,8 +321,8 @@ func Test_rubyManager_invoke(t *testing.T) {
 			then: func(t *testing.T, fields fields, err error) {
 				assert.Nil(t, err)
 				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
-				assert.True(t, fields.RubyProfiler.RubyManager.(*rubyManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 1)
-				assert.True(t, fields.RubyProfiler.RubyManager.(*rubyManager).commander.(*executil.Fake).On("Command").InvokedTimes() == 1)
+    assert.True(t, fields.RubyProfiler.RubyManager.(*rubyManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 1)
+    fields.RubyProfiler.RubyManager.(*rubyManager).commander.(*executil.MockCommander).AssertNumberOfCalls(t, "Command", 1)
 			},
 			after: func() {
 				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"))
@@ -331,8 +331,8 @@ func Test_rubyManager_invoke(t *testing.T) {
 		{
 			name: "should invoke fail when command fail",
 			given: func() (fields, args) {
-				commander := executil.NewFakeCommander()
-				commander.On("Command").Return(&exec.Cmd{})
+    commander := executil.NewMockCommander()
+    commander.On("Command").Return(&exec.Cmd{})
 				publisher := publish.NewFakePublisher()
 				publisher.On("Do").Return(nil)
 
@@ -355,8 +355,8 @@ func Test_rubyManager_invoke(t *testing.T) {
 			},
 			then: func(t *testing.T, fields fields, err error) {
 				require.Error(t, err)
-				assert.True(t, fields.RubyProfiler.RubyManager.(*rubyManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 0)
-				assert.True(t, fields.RubyProfiler.RubyManager.(*rubyManager).commander.(*executil.Fake).On("Command").InvokedTimes() == 1)
+    assert.True(t, fields.RubyProfiler.RubyManager.(*rubyManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 0)
+    fields.RubyProfiler.RubyManager.(*rubyManager).commander.(*executil.MockCommander).AssertNumberOfCalls(t, "Command", 1)
 			},
 		},
 		{
@@ -367,8 +367,8 @@ func Test_rubyManager_invoke(t *testing.T) {
 				b.Write([]byte("test"))
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"), b.String())
 
-				commander := executil.NewFakeCommander()
-				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
+    commander := executil.NewMockCommander()
+    commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
 				publisher.On("Do").Return(errors.New("fake publisher with error"))
 
@@ -394,8 +394,8 @@ func Test_rubyManager_invoke(t *testing.T) {
 				require.Error(t, err)
 				assert.ErrorContains(t, err, "fake publisher with error")
 				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
-				assert.True(t, fields.RubyProfiler.RubyManager.(*rubyManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 1)
-				assert.True(t, fields.RubyProfiler.RubyManager.(*rubyManager).commander.(*executil.Fake).On("Command").InvokedTimes() == 1)
+    assert.True(t, fields.RubyProfiler.RubyManager.(*rubyManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 1)
+    fields.RubyProfiler.RubyManager.(*rubyManager).commander.(*executil.MockCommander).AssertNumberOfCalls(t, "Command", 1)
 
 			},
 			after: func() {

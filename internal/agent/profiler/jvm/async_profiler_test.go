@@ -417,11 +417,11 @@ func TestAsyncProfiler_CleanUp(t *testing.T) {
 }
 
 func Test_asyncProfilerManager_copyProfilerToTmpDir(t *testing.T) {
-	commander := executil.NewFakeCommander()
-	commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
-	publisher := publish.NewFakePublisher()
-	a := NewAsyncProfiler(commander, publisher)
-	assert.Nil(t, a.copyProfilerToTmpDir())
+    commander := executil.NewMockCommander()
+    commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
+    publisher := publish.NewFakePublisher()
+    a := NewAsyncProfiler(commander, publisher)
+    assert.Nil(t, a.copyProfilerToTmpDir())
 }
 
 func Test_asyncProfilerManager_invoke(t *testing.T) {
@@ -448,10 +448,10 @@ func Test_asyncProfilerManager_invoke(t *testing.T) {
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000.txt"), b.String())
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"), b.String())
 
-				commander := executil.NewFakeCommander()
-				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
-				publisher := publish.NewFakePublisher()
-				publisher.On("Do").Return(nil)
+    commander := executil.NewMockCommander()
+    commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
+    publisher := publish.NewFakePublisher()
+    publisher.On("Do").Return(nil)
 
 				return fields{
 						AsyncProfiler: NewAsyncProfiler(commander, publisher),
@@ -484,10 +484,10 @@ func Test_asyncProfilerManager_invoke(t *testing.T) {
 		{
 			name: "should invoke fail when command fail",
 			given: func() (fields, args) {
-				commander := executil.NewFakeCommander()
-				commander.On("Command").Return(&exec.Cmd{})
-				publisher := publish.NewFakePublisher()
-				publisher.On("Do").Return(nil)
+    commander := executil.NewMockCommander()
+    commander.On("Command").Return(&exec.Cmd{})
+    publisher := publish.NewFakePublisher()
+    publisher.On("Do").Return(nil)
 
 				return fields{
 						AsyncProfiler: NewAsyncProfiler(commander, publisher),
@@ -520,9 +520,9 @@ func Test_asyncProfilerManager_invoke(t *testing.T) {
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000.txt"), b.String())
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"), b.String())
 
-				commander := executil.NewFakeCommander()
-				// mock commander.Command return exec.Command("ls", common.TmpDir())
-				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
+    commander := executil.NewMockCommander()
+    // mock commander.Command return exec.Command("ls", common.TmpDir())
+    commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
 				// mock publisher.Do return error
 				publisher.On("Do").Return(errors.New("fake publisher with error"))
@@ -577,10 +577,10 @@ func Test_asyncProfilerManager_invoke(t *testing.T) {
 }
 
 func Test_asyncProfilerManager_cleanUp(t *testing.T) {
-	commander := executil.NewFakeCommander()
-	commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
-	publisher := publish.NewFakePublisher()
-	a := NewAsyncProfiler(commander, publisher)
+    commander := executil.NewMockCommander()
+    commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
+    publisher := publish.NewFakePublisher()
+    a := NewAsyncProfiler(commander, publisher)
 	a.cleanUp(&job.ProfilingJob{
 		Duration:         0,
 		ContainerRuntime: api.FakeContainer,
@@ -590,11 +590,11 @@ func Test_asyncProfilerManager_cleanUp(t *testing.T) {
 		Tool:             api.AsyncProfiler,
 		Compressor:       compressor.None,
 	}, "1000")
-	assert.True(t, commander.(*executil.Fake).On("Command").InvokedTimes() == 1)
+ commander.AssertNumberOfCalls(t, "Command", 1)
 
-	commander = executil.NewFakeCommander()
-	commander.On("Command").Return(&exec.Cmd{})
-	a = NewAsyncProfiler(commander, publisher)
+ commander = executil.NewMockCommander()
+ commander.On("Command").Return(&exec.Cmd{})
+ a = NewAsyncProfiler(commander, publisher)
 	a.cleanUp(&job.ProfilingJob{
 		Duration:         0,
 		ContainerRuntime: api.FakeContainer,
@@ -604,5 +604,5 @@ func Test_asyncProfilerManager_cleanUp(t *testing.T) {
 		Tool:             api.AsyncProfiler,
 		Compressor:       compressor.None,
 	}, "1000")
-	assert.True(t, commander.(*executil.Fake).On("Command").InvokedTimes() == 1)
+    commander.AssertNumberOfCalls(t, "Command", 1)
 }

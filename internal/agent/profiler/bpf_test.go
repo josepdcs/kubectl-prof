@@ -296,8 +296,8 @@ func Test_bpfManager_invoke(t *testing.T) {
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000.txt"), b.String())
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"), b.String())
 
-				commander := executil.NewFakeCommander()
-				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
+    commander := executil.NewMockCommander()
+    commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
 				publisher.On("Do").Return(nil)
 
@@ -363,8 +363,8 @@ func Test_bpfManager_invoke(t *testing.T) {
 			name: "should invoke return nil when fail handle flamegraph",
 			given: func() (fields, args) {
 				log.SetPrintLogs(true)
-				commander := executil.NewFakeCommander()
-				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
+    commander := executil.NewMockCommander()
+    commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
 				publisher.On("Do").Return(nil)
 
@@ -478,8 +478,8 @@ func Test_bpfManager_handleFlamegraph(t *testing.T) {
 				b.Write([]byte("testtesttesttesttesttesttesttesttesttesttesttesttest"))
 				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
 
-				commander := executil.NewFakeCommander()
-				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
+    commander := executil.NewMockCommander()
+    commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
 
 				return fields{
