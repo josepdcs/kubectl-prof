@@ -20,6 +20,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -41,7 +42,7 @@ func TestPythonProfiler_SetUp(t *testing.T) {
 			given: func() (fields, args) {
 				return fields{
 						PythonProfiler: &PythonProfiler{
-							PythonManager: newFakePythonManager(),
+							PythonManager: newMockPythonManager(),
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -64,7 +65,7 @@ func TestPythonProfiler_SetUp(t *testing.T) {
 			given: func() (fields, args) {
 				return fields{
 						PythonProfiler: &PythonProfiler{
-							PythonManager: newFakePythonManager(),
+							PythonManager: newMockPythonManager(),
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -88,7 +89,7 @@ func TestPythonProfiler_SetUp(t *testing.T) {
 			given: func() (fields, args) {
 				return fields{
 						PythonProfiler: &PythonProfiler{
-							PythonManager: newFakePythonManager(),
+							PythonManager: newMockPythonManager(),
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -138,10 +139,10 @@ func TestPythonProfiler_Invoke(t *testing.T) {
 		{
 			name: "should invoke",
 			given: func() (fields, args) {
-				pythonManager := newFakePythonManager()
-				pythonManager.On("invoke").
+				pythonManager := newMockPythonManager()
+				pythonManager.On("invoke", mock.Anything, mock.AnythingOfType("string")).
 					Return(nil, time.Duration(0)).
-					Return(nil, time.Duration(0))
+					Twice()
 
 				return fields{
 						PythonProfiler: &PythonProfiler{
@@ -163,14 +164,16 @@ func TestPythonProfiler_Invoke(t *testing.T) {
 			},
 			then: func(t *testing.T, err error, fields fields) {
 				assert.Nil(t, err)
-				assert.Equal(t, 2, fields.PythonProfiler.PythonManager.(FakePythonManager).On("invoke").InvokedTimes())
+				fields.PythonProfiler.PythonManager.(*mockPythonManager).AssertNumberOfCalls(t, "invoke", 2)
 			},
 		},
 		{
 			name: "should invoke fail when invoke fail",
 			given: func() (fields, args) {
-				pythonManager := newFakePythonManager()
-				pythonManager.On("invoke").Return(errors.New("fake invoke error"), time.Duration(0))
+				pythonManager := newMockPythonManager()
+				pythonManager.On("invoke", mock.Anything, mock.AnythingOfType("string")).
+					Return(errors.New("fake invoke error"), time.Duration(0)).
+					Once()
 
 				return fields{
 						PythonProfiler: &PythonProfiler{
@@ -193,7 +196,7 @@ func TestPythonProfiler_Invoke(t *testing.T) {
 			then: func(t *testing.T, err error, fields fields) {
 				require.Error(t, err)
 				assert.EqualError(t, err, "fake invoke error")
-				assert.Equal(t, 1, fields.PythonProfiler.PythonManager.(FakePythonManager).On("invoke").InvokedTimes())
+				fields.PythonProfiler.PythonManager.(*mockPythonManager).AssertNumberOfCalls(t, "invoke", 1)
 			},
 		},
 	}
@@ -232,7 +235,7 @@ func TestPythonProfiler_CleanUp(t *testing.T) {
 				_, _ = os.Create(f + compressor.GetExtensionFileByCompressor[compressor.Gzip])
 				return fields{
 						PythonProfiler: &PythonProfiler{
-							PythonManager: newFakePythonManager(),
+							PythonManager: newMockPythonManager(),
 						},
 					}, args{
 						job: &job.ProfilingJob{

@@ -17,6 +17,7 @@ import (
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -38,7 +39,7 @@ func TestNodeDummyProfiler_SetUp(t *testing.T) {
 			given: func() (fields, args) {
 				return fields{
 						NodeDummyProfiler: &NodeDummyProfiler{
-							NodeDummyManager: newFakeNodeDummyManager(),
+							NodeDummyManager: newMockNodeDummyManager(),
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -61,7 +62,7 @@ func TestNodeDummyProfiler_SetUp(t *testing.T) {
 			given: func() (fields, args) {
 				return fields{
 						NodeDummyProfiler: &NodeDummyProfiler{
-							NodeDummyManager: newFakeNodeDummyManager(),
+							NodeDummyManager: newMockNodeDummyManager(),
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -84,7 +85,7 @@ func TestNodeDummyProfiler_SetUp(t *testing.T) {
 			given: func() (fields, args) {
 				return fields{
 						NodeDummyProfiler: &NodeDummyProfiler{
-							NodeDummyManager: newFakeNodeDummyManager(),
+							NodeDummyManager: newMockNodeDummyManager(),
 						},
 					}, args{
 						job: &job.ProfilingJob{
@@ -134,10 +135,9 @@ func TestNodeDummyProfiler_Invoke(t *testing.T) {
 		{
 			name: "should invoke",
 			given: func() (fields, args) {
-				nodeDummyManager := newFakeNodeDummyManager()
-				nodeDummyManager.On("invoke").
-					Return(nil, time.Duration(0)).
-					Return(nil, time.Duration(0))
+				nodeDummyManager := newMockNodeDummyManager()
+				nodeDummyManager.On("invoke", mock.Anything, mock.AnythingOfType("string"), mock.AnythingOfType("string")).
+					Return(nil, time.Duration(0)).Once()
 
 				return fields{
 						NodeDummyProfiler: &NodeDummyProfiler{
@@ -157,13 +157,13 @@ func TestNodeDummyProfiler_Invoke(t *testing.T) {
 			},
 			then: func(t *testing.T, err error, fields fields) {
 				assert.Nil(t, err)
-				assert.Equal(t, 1, fields.NodeDummyProfiler.NodeDummyManager.(FakeNodeDummyManager).On("invoke").InvokedTimes())
+				fields.NodeDummyProfiler.NodeDummyManager.(*mockNodeDummyManager).AssertNumberOfCalls(t, "invoke", 1)
 			},
 		},
 		{
 			name: "should invoke fail when get root PID fail",
 			given: func() (fields, args) {
-				nodeDummyManager := newFakeNodeDummyManager()
+				nodeDummyManager := newMockNodeDummyManager()
 
 				return fields{
 						NodeDummyProfiler: &NodeDummyProfiler{
@@ -183,14 +183,15 @@ func TestNodeDummyProfiler_Invoke(t *testing.T) {
 			then: func(t *testing.T, err error, fields fields) {
 				require.Error(t, err)
 				assert.EqualError(t, err, "container runtime and container ID are mandatory")
-				assert.Equal(t, 0, fields.NodeDummyProfiler.NodeDummyManager.(FakeNodeDummyManager).On("invoke").InvokedTimes())
+				fields.NodeDummyProfiler.NodeDummyManager.(*mockNodeDummyManager).AssertNumberOfCalls(t, "invoke", 0)
 			},
 		},
 		{
 			name: "should invoke fail when invoke fail",
 			given: func() (fields, args) {
-				nodeDummyManager := newFakeNodeDummyManager()
-				nodeDummyManager.On("invoke").Return(errors.New("fake invoke error"), time.Duration(0))
+				nodeDummyManager := newMockNodeDummyManager()
+				nodeDummyManager.On("invoke", mock.Anything, mock.AnythingOfType("string"), mock.AnythingOfType("string")).
+					Return(errors.New("fake invoke error"), time.Duration(0)).Once()
 
 				return fields{
 						NodeDummyProfiler: &NodeDummyProfiler{
@@ -211,7 +212,7 @@ func TestNodeDummyProfiler_Invoke(t *testing.T) {
 			then: func(t *testing.T, err error, fields fields) {
 				require.Error(t, err)
 				assert.EqualError(t, err, "fake invoke error")
-				assert.Equal(t, 1, fields.NodeDummyProfiler.NodeDummyManager.(FakeNodeDummyManager).On("invoke").InvokedTimes())
+				fields.NodeDummyProfiler.NodeDummyManager.(*mockNodeDummyManager).AssertNumberOfCalls(t, "invoke", 1)
 			},
 		},
 	}
@@ -248,15 +249,15 @@ func TestNodeDummyProfiler_CleanUp(t *testing.T) {
 				f := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph.svg")
 				_, _ = os.Create(f)
 				_, _ = os.Create(f + compressor.GetExtensionFileByCompressor[compressor.Gzip])
-				return fields{
-						NodeDummyProfiler: &NodeDummyProfiler{
-							NodeDummyManager: newFakeNodeDummyManager(),
-						},
-					}, args{
-						job: &job.ProfilingJob{
-							Duration:         0,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
+    return fields{
+                        NodeDummyProfiler: &NodeDummyProfiler{
+                            NodeDummyManager: newMockNodeDummyManager(),
+                        },
+                    }, args{
+                        job: &job.ProfilingJob{
+                            Duration:         0,
+                            ContainerRuntime: api.FakeContainer,
+                            ContainerID:      "ContainerID",
 						},
 					}
 			},
