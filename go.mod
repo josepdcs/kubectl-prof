@@ -7,7 +7,7 @@ require (
 	github.com/alitto/pond v1.9.2
 	github.com/golang/snappy v1.0.0
 	github.com/json-iterator/go v1.1.12
-	github.com/klauspost/compress v1.18.1
+	github.com/klauspost/compress v1.18.2
 	github.com/opencontainers/runtime-spec v1.3.0
 	github.com/pkg/errors v0.9.1
 	github.com/rasky/go-lzo v0.0.0-20200203143853-96a758eda86e
