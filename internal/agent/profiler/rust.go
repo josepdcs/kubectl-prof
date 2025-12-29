@@ -28,7 +28,7 @@ const (
 )
 
 var rustCommand = func(commander executil.Commander, job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-	args := []string{"-p", pid, "-o", fileName, "--root"}
+	args := []string{"-p", pid, "-o", fileName, "--verbose"}
 	return commander.Command(cargoFlameLocation, args...)
 }
 
@@ -136,21 +136,33 @@ func (p *rustManager) invoke(job *job.ProfilingJob, pid string) (error, time.Dur
 		Setpgid: true, // Create new process group
 	}
 
-	// Ensure PATH is set correctly for the subprocess
+	// Ensure PATH and PERF are set correctly for the subprocess
 	currentEnv := os.Environ()
 	pathSet := false
+	perfSet := false
 	for i, env := range currentEnv {
 		if len(env) > 5 && env[:5] == "PATH=" {
-			// Ensure /app is at the beginning of PATH
-			currentEnv[i] = "PATH=/app:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+			// Ensure /app and /usr/bin are in PATH
+			currentEnv[i] = "PATH=/app:/usr/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/sbin:/bin"
 			pathSet = true
-			break
+		}
+		if len(env) > 5 && env[:5] == "PERF=" {
+			currentEnv[i] = "PERF=/usr/bin/perf"
+			perfSet = true
 		}
 	}
 	if !pathSet {
-		currentEnv = append(currentEnv, "PATH=/app:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
+		currentEnv = append(currentEnv, "PATH=/app:/usr/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/sbin:/bin")
 	}
+	if !perfSet {
+		currentEnv = append(currentEnv, "PERF=/usr/bin/perf")
+	}
+	// Forzar locale C para evitar problemas de UTF-8 en la salida de perf
+	currentEnv = append(currentEnv, "LC_ALL=C")
 	cmd.Env = currentEnv
+	cmd.Dir = "/tmp"
+	// Ensure no stale perf.data exists
+	_ = os.Remove("/tmp/perf.data")
 
 	log.DebugLogLn(fmt.Sprintf("Command: %s %v", cmd.Path, cmd.Args))
 
@@ -185,7 +197,7 @@ func (p *rustManager) invoke(job *job.ProfilingJob, pid string) (error, time.Dur
 	log.DebugLogLn(fmt.Sprintf("Waiting for flamegraph to complete file writing: %s", fileName))
 
 	// Poll for the file existence with timeout
-	maxWait := 10 * time.Second
+	maxWait := 30 * time.Second
 	pollInterval := 500 * time.Millisecond
 	waited := time.Duration(0)
 

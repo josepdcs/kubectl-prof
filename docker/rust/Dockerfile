@@ -9,10 +9,10 @@ FROM rust:1.89-trixie AS rusttools
 RUN cargo install flamegraph
 
 FROM bitnami/minideb:trixie
-# Install dependencies including perf
+# Install dependencies including perf and sudo
 RUN mkdir -p /app && \
     apt-get update && \
-    apt-get install -y procps strace linux-perf && \
+    apt-get install -y procps strace linux-perf sudo binutils && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
