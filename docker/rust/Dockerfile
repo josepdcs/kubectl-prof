@@ -6,13 +6,11 @@ WORKDIR /go/src/github.com/josepdcs/kubectl-prof/cmd/agent
 RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /go/bin/agent
 
 FROM rust:1.89-trixie AS rusttools
-RUN cargo install flamegraph \
-    && test -x /usr/local/cargo/bin/flamegraph \
-    && /usr/local/cargo/bin/flamegraph --version
+RUN cargo install flamegraph
 
 FROM bitnami/minideb:trixie
 RUN apt-get update  \
-    && apt-get install -y procps strace  \
+    && apt-get install -y procps strace linux-perf \
     && apt-get clean
 COPY --from=agentbuild /go/bin/agent /app/agent
 COPY --from=rusttools /usr/local/cargo/bin/flamegraph /app/flamegraph

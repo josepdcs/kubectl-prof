@@ -35,6 +35,8 @@ func Get(tool api.ProfilingTool) Profiler {
 		return NewPerfProfiler(executil.NewCommander(), publish.NewPublisher())
 	case api.Rbspy:
 		return NewRubyProfiler(executil.NewCommander(), publish.NewPublisher())
+	case api.CargoFlame:
+		return NewRustProfiler(executil.NewCommander(), publish.NewPublisher())
 	case api.NodeDummy:
 		return NewNodeDummyProfiler(publish.NewPublisher())
 	default:

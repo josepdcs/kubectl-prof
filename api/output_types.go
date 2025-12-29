@@ -36,6 +36,7 @@ var GetOutputTypesByProfilingTool = map[ProfilingTool][]OutputType{
 	Bpf:           {FlameGraph, Raw},
 	Perf:          {FlameGraph, Raw},
 	Rbspy:         {FlameGraph, SpeedScope, Callgrind, Summary, SummaryByLine},
+	CargoFlame:    {FlameGraph},
 	NodeDummy:     {HeapSnapshot, HeapDump},
 	FakeTool:      {FlameGraph},
 }
