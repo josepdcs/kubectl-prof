@@ -9,12 +9,23 @@ FROM rust:1.89-trixie AS rusttools
 RUN cargo install flamegraph
 
 FROM bitnami/minideb:trixie
-RUN apt-get update  \
-    && apt-get install -y procps strace linux-perf \
-    && apt-get clean
+# Install dependencies including perf
+RUN mkdir -p /app && \
+    apt-get update && \
+    apt-get install -y procps strace linux-perf && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Verify perf is accessible
+RUN perf --version
+
+# Add /app to PATH so flamegraph can find perf wrapper
+ENV PATH="/app:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
 COPY --from=agentbuild /go/bin/agent /app/agent
 COPY --from=rusttools /usr/local/cargo/bin/flamegraph /app/flamegraph
 COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/get-ps-command.sh /app/get-ps-command.sh
-RUN chmod +x /app/get-ps-command.sh
+COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/perf-wrapper.sh /app/perf
+RUN chmod +x /app/get-ps-command.sh && chmod +x /app/perf
 
 CMD [ "/app/agent" ]

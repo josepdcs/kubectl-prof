@@ -107,6 +107,12 @@ func Test_rustCreate_create(t *testing.T) {
 							Image:           cfg.Target.Image,
 							Command:         []string{"/app/agent"},
 							Args:            kubernetes.GetArgs(targetPod, cfg, id),
+							Env: []apiv1.EnvVar{
+								{
+									Name:  "PATH",
+									Value: "/app:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+								},
+							},
 							VolumeMounts: []apiv1.VolumeMount{
 								{
 									Name:      "target-filesystem",

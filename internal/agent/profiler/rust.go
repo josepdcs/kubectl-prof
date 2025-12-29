@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"syscall"
 	"time"
@@ -101,6 +102,26 @@ func (r *RustProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 func (p *rustManager) invoke(job *job.ProfilingJob, pid string) (error, time.Duration) {
 	start := time.Now()
 
+	// Log environment for debugging
+	log.DebugLogLn(fmt.Sprintf("PATH=%s", os.Getenv("PATH")))
+	log.DebugLogLn(fmt.Sprintf("PERF=%s", os.Getenv("PERF")))
+
+	// Verify perf is accessible
+	perfCheckCmd := p.commander.Command("which", "perf")
+	if output, err := perfCheckCmd.CombinedOutput(); err != nil {
+		log.ErrorLogLn(fmt.Sprintf("perf not found in PATH: %v, output: %s", err, string(output)))
+
+		// Try absolute path
+		perfCheckCmd2 := p.commander.Command("ls", "-la", "/app/perf")
+		if output2, err2 := perfCheckCmd2.CombinedOutput(); err2 != nil {
+			log.ErrorLogLn(fmt.Sprintf("/app/perf not accessible: %v, output: %s", err2, string(output2)))
+		} else {
+			log.DebugLogLn(fmt.Sprintf("/app/perf exists: %s", string(output2)))
+		}
+	} else {
+		log.DebugLogLn(fmt.Sprintf("perf found at: %s", string(output)))
+	}
+
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 
@@ -109,6 +130,30 @@ func (p *rustManager) invoke(job *job.ProfilingJob, pid string) (error, time.Dur
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 
+	// Set up the process group so we can send signals to the entire process tree
+	// This is crucial because flamegraph spawns perf as a subprocess
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true, // Create new process group
+	}
+
+	// Ensure PATH is set correctly for the subprocess
+	currentEnv := os.Environ()
+	pathSet := false
+	for i, env := range currentEnv {
+		if len(env) > 5 && env[:5] == "PATH=" {
+			// Ensure /app is at the beginning of PATH
+			currentEnv[i] = "PATH=/app:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+			pathSet = true
+			break
+		}
+	}
+	if !pathSet {
+		currentEnv = append(currentEnv, "PATH=/app:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
+	}
+	cmd.Env = currentEnv
+
+	log.DebugLogLn(fmt.Sprintf("Command: %s %v", cmd.Path, cmd.Args))
+
 	// Start the profiler process
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("could not start profiler: %w", err), time.Since(start)
@@ -116,7 +161,7 @@ func (p *rustManager) invoke(job *job.ProfilingJob, pid string) (error, time.Dur
 
 	log.DebugLogLn(fmt.Sprintf("Flamegraph process started (PID: %d), interval: %s", cmd.Process.Pid, job.Interval.String()))
 
-	// Create a timer to send SIGTERM after the specified interval
+	// Create a timer to send SIGINT (Ctrl+C equivalent) after the specified interval
 	timer := time.AfterFunc(job.Interval, func() {
 		p.sendTerminationSignal(cmd, job.Interval)
 	})
@@ -135,20 +180,69 @@ func (p *rustManager) invoke(job *job.ProfilingJob, pid string) (error, time.Dur
 		return fmt.Errorf("could not launch profiler: %w - stderr: %s", err, stderr.String()), time.Since(start)
 	}
 
+	// Give flamegraph time to flush the output file after SIGTERM
+	// Flamegraph needs to process perf data and write the SVG after receiving the signal
+	log.DebugLogLn(fmt.Sprintf("Waiting for flamegraph to complete file writing: %s", fileName))
+
+	// Poll for the file existence with timeout
+	maxWait := 10 * time.Second
+	pollInterval := 500 * time.Millisecond
+	waited := time.Duration(0)
+
+	for waited < maxWait {
+		if file.Exists(fileName) {
+			log.DebugLogLn(fmt.Sprintf("Output file found after %v: %s", waited, fileName))
+			break
+		}
+		time.Sleep(pollInterval)
+		waited += pollInterval
+	}
+
+	// Verify the output file exists before trying to publish
+	if !file.Exists(fileName) {
+		log.ErrorLogLn(fmt.Sprintf("Output file not found after waiting %v: %s", waited, fileName))
+
+		// Log stdout and stderr for debugging
+		if out.Len() > 0 {
+			log.DebugLogLn(fmt.Sprintf("flamegraph stdout: %s", out.String()))
+		}
+		if stderr.Len() > 0 {
+			log.DebugLogLn(fmt.Sprintf("flamegraph stderr: %s", stderr.String()))
+		}
+
+		// List files in tmp directory for debugging
+		if entries, err := os.ReadDir(common.TmpDir()); err == nil {
+			log.DebugLogLn(fmt.Sprintf("Files in %s:", common.TmpDir()))
+			for _, entry := range entries {
+				log.DebugLogLn(fmt.Sprintf("  - %s", entry.Name()))
+			}
+		}
+		return fmt.Errorf("output file not found: %s", fileName), time.Since(start)
+	}
+
+	log.DebugLogLn(fmt.Sprintf("Output file successfully created: %s", fileName))
 	return p.publisher.Do(job.Compressor, fileName, job.OutputType), time.Since(start)
 }
 
-// sendTerminationSignal sends SIGTERM to the flamegraph process
+// sendTerminationSignal sends SIGINT to the flamegraph process
+// SIGINT (Ctrl+C) allows flamegraph and perf to terminate gracefully
 func (p *rustManager) sendTerminationSignal(cmd *exec.Cmd, interval time.Duration) {
 	if cmd.Process != nil {
-		log.DebugLogLn(fmt.Sprintf("Sending SIGTERM to flamegraph process (PID: %d) after %v", cmd.Process.Pid, interval))
-		if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
-			log.ErrorLogLn(fmt.Sprintf("Failed to send SIGTERM to flamegraph process: %v", err))
+		log.DebugLogLn(fmt.Sprintf("Sending SIGINT to flamegraph process (PID: %d) after %v", cmd.Process.Pid, interval))
+
+		// Try sending to process group first
+		pgid := cmd.Process.Pid
+		if err := syscall.Kill(-pgid, syscall.SIGINT); err != nil {
+			log.DebugLogLn(fmt.Sprintf("Could not send to process group, sending to process directly: %v", err))
+			// Fallback: send to just the process
+			if err := cmd.Process.Signal(syscall.SIGINT); err != nil {
+				log.ErrorLogLn(fmt.Sprintf("Failed to send SIGINT to process %d: %v", cmd.Process.Pid, err))
+			}
 		}
 	}
 }
 
-// isExpectedTermination checks if the error is due to SIGTERM we sent (expected behavior)
+// isExpectedTermination checks if the error is due to SIGINT we sent (expected behavior)
 func (p *rustManager) isExpectedTermination(err error) bool {
 	var exitErr *exec.ExitError
 	if !errors.As(err, &exitErr) {
@@ -160,9 +254,9 @@ func (p *rustManager) isExpectedTermination(err error) bool {
 		return false
 	}
 
-	// If the process was terminated by SIGTERM, it's expected
-	if status.Signaled() && status.Signal() == syscall.SIGTERM {
-		log.DebugLogLn("Flamegraph process terminated successfully with SIGTERM")
+	// If the process was terminated by SIGINT (Ctrl+C), it's expected
+	if status.Signaled() && status.Signal() == syscall.SIGINT {
+		log.DebugLogLn("Flamegraph process terminated successfully with SIGINT")
 		return true
 	}
 

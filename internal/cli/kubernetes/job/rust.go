@@ -72,6 +72,12 @@ func (r *rustCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (
 							Image:           imageName,
 							Command:         []string{command},
 							Args:            kubernetes.GetArgs(targetPod, cfg, id),
+							Env: []apiv1.EnvVar{
+								{
+									Name:  "PATH",
+									Value: "/app:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+								},
+							},
 							VolumeMounts: []apiv1.VolumeMount{
 								{
 									Name:      "target-filesystem",
