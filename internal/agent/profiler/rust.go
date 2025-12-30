@@ -149,36 +149,8 @@ func (p *rustManager) invoke(job *job.ProfilingJob, pid string) (error, time.Dur
 		return fmt.Errorf("could not launch profiler: %w - stderr: %s", err, stderr.String()), time.Since(start)
 	}
 
-	// Give flamegraph time to flush the output file after SIGTERM
-	// Flamegraph needs to process perf data and write the SVG after receiving the signal
-	log.DebugLogLn(fmt.Sprintf("Waiting for flamegraph to complete file writing: %s", fileName))
-
-	// Poll for the file existence with timeout
-	maxWait := 5 * time.Second
-	pollInterval := 500 * time.Millisecond
-	waited := time.Duration(0)
-
-	for waited < maxWait {
-		if file.Exists(fileName) {
-			log.DebugLogLn(fmt.Sprintf("Output file found after %v: %s", waited, fileName))
-			break
-		}
-		time.Sleep(pollInterval)
-		waited += pollInterval
-	}
-
 	// Verify the output file exists before trying to publish
 	if !file.Exists(fileName) {
-		log.ErrorLogLn(fmt.Sprintf("Output file not found after waiting %v: %s", waited, fileName))
-
-		// Log stdout and stderr for debugging
-		if out.Len() > 0 {
-			log.DebugLogLn(fmt.Sprintf("flamegraph stdout: %s", out.String()))
-		}
-		if stderr.Len() > 0 {
-			log.DebugLogLn(fmt.Sprintf("flamegraph stderr: %s", stderr.String()))
-		}
-
 		return fmt.Errorf("output file not found: %s", fileName), time.Since(start)
 	}
 
