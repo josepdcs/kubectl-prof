@@ -85,6 +85,14 @@ func TestGet(t *testing.T) {
 			want: &perfCreator{},
 		},
 		{
+			name: "rust with cargo-flamegraph creator is instanced",
+			args: args{
+				lang: api.Rust,
+				tool: api.CargoFlame,
+			},
+			want: &rustCreator{},
+		},
+		{
 			name: "clang creator is instanced",
 			args: args{
 				lang: api.Clang,

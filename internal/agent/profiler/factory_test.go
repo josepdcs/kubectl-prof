@@ -11,9 +11,6 @@ import (
 )
 
 func TestGet(t *testing.T) {
-	type args struct {
-		tool api.ProfilingTool
-	}
 	tests := []struct {
 		name string
 		tool api.ProfilingTool
@@ -48,6 +45,11 @@ func TestGet(t *testing.T) {
 			name: "should return perf profiler",
 			tool: api.Perf,
 			want: NewPerfProfiler(executil.NewCommander(), publish.NewPublisher()),
+		},
+		{
+			name: "should return cargo flame profiler",
+			tool: api.CargoFlame,
+			want: NewRustProfiler(executil.NewCommander(), publish.NewPublisher()),
 		},
 		{
 			name: "should return node dummy profiler",

@@ -1,4 +1,4 @@
-VERSION ?= v1.8.0-dev
+VERSION ?= v1.9.0-dev
 CLI_NAME ?= kubectl-prof
 CLI_DIR ?= ./cmd/cli/
 AGENT_NAME ?= agent
@@ -18,6 +18,8 @@ DOCKER_PYTHON_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-python
 DOCKERFILE_PYTHON ?= ./docker/python/Dockerfile
 DOCKER_RUBY_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-ruby
 DOCKERFILE_RUBY ?= ./docker/ruby/Dockerfile
+DOCKER_RUST_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-rust
+DOCKERFILE_RUST ?= ./docker/rust/Dockerfile
 DOCKER_DUMMY_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-dummy
 DOCKERFILE_DUMMY ?= ./docker/dummy/Dockerfile
 DOCKER_TARGET_PLATFORM ?= linux/amd64,linux/arm64
@@ -27,7 +29,7 @@ M = $(shell printf "\033[34;1m▶\033[0m")
 
 ## all: Build the kubectl-prof plugin and push all docker images
 .PHONY: all
-all: build-cli push-docker-jvm push-docker-jvm-alpine push-docker-bpf push-docker-perf push-docker-python push-docker-ruby
+all: build-cli push-docker-jvm push-docker-jvm-alpine push-docker-bpf push-docker-perf push-docker-python push-docker-ruby push-docker-rust
 
 ## build: Build the kubectl-prof plugin and the agent binary
 .PHONY: build
@@ -35,7 +37,7 @@ build: build-cli build-agent
 
 ## build-docker-agents: Build the docker images
 .PHONY: build-docker-agents
-build-docker-agents: build-docker-bpf build-docker-jvm build-docker-jvm-alpine build-docker-perf build-docker-python build-docker-ruby
+build-docker-agents: build-docker-bpf build-docker-jvm build-docker-jvm-alpine build-docker-perf build-docker-python build-docker-ruby build-docker-rust
 
 ## install-deps: install dependencies if needed
 .PHONY: install-deps
@@ -141,6 +143,18 @@ push-docker-ruby: build-docker-ruby
 	$(info $(M) pushing RUBY docker image to DockerHub...)
 	@docker push $(REGISTRY)/$(DOCKER_RUBY_IMAGE)
 
+## build-docker-rust: Build the RUST docker image
+.PHONY: build-docker-rust
+build-docker-rust: quemu-multi
+	$(info $(M) building RUST docker image...)
+	docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_RUST_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_RUST) .
+
+## push-docker-rust: Build and push the RUST docker image
+.PHONY: push-docker-rust
+push-docker-rust: build-docker-rust
+	$(info $(M) pushing RUST docker image to DockerHub...)
+	@docker push $(REGISTRY)/$(DOCKER_RUST_IMAGE)
+
 ## build-docker-dummy: Build the DUMMY docker image
 .PHONY: build-docker-dummy
 build-docker-dummy: quemu-multi
@@ -155,7 +169,7 @@ push-docker-dummy: build-docker-dummy
 
 ## push-docker-all: Build and push all docker images
 .PHONY: push-docker-all
-push-docker-all: push-docker-jvm push-docker-jvm-alpine push-docker-bpf push-docker-perf push-docker-python push-docker-ruby push-docker-dummy
+push-docker-all: push-docker-jvm push-docker-jvm-alpine push-docker-bpf push-docker-perf push-docker-python push-docker-ruby push-docker-rust push-docker-dummy
 
 ## test: Run unit tests
 .PHONY: test
@@ -257,6 +271,11 @@ minikube-build-and-push-python-agent:
 .PHONY: minikube-build-and-push-ruby-agent
 minikube-build-and-push-ruby-agent:
 	@test/minikube-lab/build_and_push_image.sh "docker/ruby" "docker" "ruby"
+
+## minikube-build-and-push-rust-agent: Build image of rust agent and load it into minikube
+.PHONY: minikube-build-and-push-rust-agent
+minikube-build-and-push-rust-agent:
+	@test/minikube-lab/build_and_push_image.sh "docker/rust" "docker" "rust"
 
 ## minikube-deploy-stupid-apps: Deploy stupid apps into minikube
 .PHONY: minikube-deploy-stupid-apps

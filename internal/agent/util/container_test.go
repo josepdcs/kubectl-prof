@@ -273,11 +273,10 @@ func TestGetCandidatePIDs(t *testing.T) {
 					interation: 0,
 					results:    []string{"PID_12334_CONTAINERD\nPID_12335_CONTAINERD"},
 				}
-				commander = executil.NewFakeCommander()
-				commander.(executil.FakeCommander).
-					On("Command").
-					Return(exec.Command("echo", "PID_12334_CONTAINERD")).
-					Return(exec.Command("echo", ""))
+    mc := executil.NewMockCommander()
+    mc.On("Command").Return(exec.Command("echo", "PID_12334_CONTAINERD")).Once()
+    mc.On("Command").Return(exec.Command("echo", "")).Once()
+    commander = mc
 			},
 			expected: []string{"PID_12334_CONTAINERD"},
 		},
@@ -296,10 +295,9 @@ func TestGetCandidatePIDs(t *testing.T) {
 					interation: 0,
 					results:    []string{"PID_12334_CONTAINERD\nPID_12335_CONTAINERD"},
 				}
-				commander = executil.NewFakeCommander()
-				commander.(executil.FakeCommander).
-					On("Command").
-					Return(&exec.Cmd{})
+    mc := executil.NewMockCommander()
+    mc.On("Command").Return(&exec.Cmd{}).Once()
+    commander = mc
 			},
 			containedErrMsg: "ps command failed with error:",
 		},

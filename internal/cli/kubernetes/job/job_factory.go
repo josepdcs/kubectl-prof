@@ -27,12 +27,20 @@ func Get(lang api.ProgrammingLanguage, tool api.ProfilingTool) (Creator, error) 
 	switch lang {
 	case api.Java:
 		return &jvmCreator{}, nil
-	case api.Go, api.Clang, api.ClangPlusPlus, api.Node, api.Rust:
+	case api.Go, api.Clang, api.ClangPlusPlus, api.Node:
 		if tool == api.Perf {
 			return &perfCreator{}, nil
 		}
 		if tool == api.NodeDummy {
 			return &dummyCreator{}, nil
+		}
+		return &bpfCreator{}, nil
+	case api.Rust:
+		if tool == api.CargoFlame {
+			return &rustCreator{}, nil
+		}
+		if tool == api.Perf {
+			return &perfCreator{}, nil
 		}
 		return &bpfCreator{}, nil
 	case api.Python:
