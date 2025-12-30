@@ -1,7 +1,7 @@
 package profiler
 
 import (
-	"bytes"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -290,12 +290,19 @@ func Test_rustManager_invoke(t *testing.T) {
 		{
 			name: "should invoke",
 			given: func() (fields, args) {
-				var b bytes.Buffer
-				b.Write([]byte("test"))
-				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"), b.String())
+				fileName := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000-0.svg")
 
 				commander := executil.NewMockCommander()
-				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
+				// Create a mock command that simulates flamegraph behavior:
+				// Creates the output file and sleeps briefly, then exits when receives SIGINT
+				script := fmt.Sprintf(`
+#!/bin/sh
+touch '%s'
+trap 'exit 0' INT TERM
+sleep 0.5 &
+wait $!
+`, fileName)
+				commander.On("Command").Return(exec.Command("sh", "-c", script))
 				publisher := publish.NewFakePublisher()
 				publisher.On("Do").Return(nil)
 
@@ -304,12 +311,14 @@ func Test_rustManager_invoke(t *testing.T) {
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,
+							Interval:         100 * time.Millisecond, // Send SIGINT after 0.1 second
 							ContainerRuntime: api.FakeContainer,
 							ContainerID:      "ContainerID",
 							OutputType:       api.FlameGraph,
 							Language:         api.FakeLang,
 							Tool:             api.CargoFlame,
 							Compressor:       compressor.None,
+							Iteration:        0,
 						},
 						pid: "1000",
 					}
@@ -319,12 +328,14 @@ func Test_rustManager_invoke(t *testing.T) {
 			},
 			then: func(t *testing.T, fields fields, err error) {
 				assert.Nil(t, err)
-				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
+				fileName := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000-0.svg")
+				assert.True(t, file.Exists(fileName))
 				assert.True(t, fields.RustProfiler.RustManager.(*rustManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 1)
 				fields.RustProfiler.RustManager.(*rustManager).commander.(*executil.MockCommander).AssertNumberOfCalls(t, "Command", 1)
 			},
 			after: func() {
-				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"))
+				fileName := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000-0.svg")
+				_ = file.Remove(fileName)
 			},
 		},
 		{
@@ -361,12 +372,18 @@ func Test_rustManager_invoke(t *testing.T) {
 		{
 			name: "should fail when publisher fail",
 			given: func() (fields, args) {
-				var b bytes.Buffer
-				b.Write([]byte("test"))
-				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"), b.String())
+				fileName := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000-0.svg")
 
 				commander := executil.NewMockCommander()
-				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
+				// Create a mock command that creates the output file
+				script := fmt.Sprintf(`
+#!/bin/sh
+touch '%s'
+trap 'exit 0' INT TERM
+sleep 0.5 &
+wait $!
+`, fileName)
+				commander.On("Command").Return(exec.Command("sh", "-c", script))
 				publisher := publish.NewFakePublisher()
 				publisher.On("Do").Return(errors.New("fake publisher with error"))
 
@@ -375,12 +392,14 @@ func Test_rustManager_invoke(t *testing.T) {
 					}, args{
 						job: &job.ProfilingJob{
 							Duration:         0,
+							Interval:         100 * time.Millisecond, // Send SIGINT after 0.1 second
 							ContainerRuntime: api.FakeContainer,
 							ContainerID:      "ContainerID",
 							OutputType:       api.FlameGraph,
 							Language:         api.FakeLang,
 							Tool:             api.CargoFlame,
 							Compressor:       compressor.None,
+							Iteration:        0,
 						},
 						pid: "1000",
 					}
@@ -391,13 +410,15 @@ func Test_rustManager_invoke(t *testing.T) {
 			then: func(t *testing.T, fields fields, err error) {
 				require.Error(t, err)
 				assert.ErrorContains(t, err, "fake publisher with error")
-				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
+				fileName := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000-0.svg")
+				assert.True(t, file.Exists(fileName))
 				assert.True(t, fields.RustProfiler.RustManager.(*rustManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 1)
 				fields.RustProfiler.RustManager.(*rustManager).commander.(*executil.MockCommander).AssertNumberOfCalls(t, "Command", 1)
 
 			},
 			after: func() {
-				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"))
+				fileName := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000-0.svg")
+				_ = file.Remove(fileName)
 			},
 		},
 	}
@@ -440,7 +461,7 @@ func Test_rustCommand(t *testing.T) {
 				pid:      "1000",
 				fileName: "/tmp/flamegraph.svg",
 			},
-			want: []string{cargoFlameLocation, "-p", "1000", "-o", "/tmp/flamegraph.svg", "--verbose"},
+			want: []string{cargoFlameLocation, "-p", "1000", "-o", "/tmp/flamegraph.svg", "--palette", "rust", "--title", "Flamegraph for PID 1000"},
 		},
 		{
 			name: "should build rust command with different interval",
@@ -452,7 +473,7 @@ func Test_rustCommand(t *testing.T) {
 				pid:      "2000",
 				fileName: "/tmp/output.svg",
 			},
-			want: []string{cargoFlameLocation, "-p", "2000", "-o", "/tmp/output.svg", "--verbose"},
+			want: []string{cargoFlameLocation, "-p", "2000", "-o", "/tmp/output.svg", "--palette", "rust", "--title", "Flamegraph for PID 2000"},
 		},
 	}
 

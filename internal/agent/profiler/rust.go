@@ -224,7 +224,7 @@ func (p *rustManager) isExpectedTermination(err error) bool {
 	return false
 }
 
-func (r *RustProfiler) CleanUp(job *job.ProfilingJob) error {
+func (r *RustProfiler) CleanUp(_ *job.ProfilingJob) error {
 	file.RemoveAll(common.TmpDir(), config.ProfilingPrefix)
 
 	return nil
