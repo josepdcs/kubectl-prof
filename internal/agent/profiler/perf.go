@@ -133,7 +133,8 @@ func (m *perfManager) invoke(job *job.ProfilingJob, pid string) (error, time.Dur
 func (m *perfManager) runPerfRecord(job *job.ProfilingJob, pid string) error {
 	interval := strconv.Itoa(int(job.Interval.Seconds()))
 	var stderr bytes.Buffer
-	cmd := m.commander.Command(perfLocation, "record", "-p", pid, "-o", fmt.Sprintf(perfRecordOutputFileName, pid, job.Iteration), "-g", "--", "sleep", interval)
+	// perf record -F 997 --call-graph dwarf,64000 -g -o perf.data -p 1683198
+	cmd := m.commander.Command(perfLocation, "record", "--call-graph", "dwarf,64000", "-p", pid, "-o", fmt.Sprintf(perfRecordOutputFileName, pid, job.Iteration), "-g", "--", "sleep", interval)
 	cmd.Stderr = &stderr
 
 	err := cmd.Run()

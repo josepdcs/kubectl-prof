@@ -30,6 +30,7 @@
   - [Go Profiling](#-go-profiling)
   - [Node.js Profiling](#-nodejs-profiling)
   - [Ruby Profiling](#-ruby-profiling)
+  - [Rust Profiling](#-rust-profiling)
   - [Clang/Clang++ Profiling](#-clangclang-profiling)
   - [Advanced Usage](#-advanced-usage)
 - [How It Works](#-how-it-works)
@@ -48,7 +49,7 @@
 | 🐍 **Python** | ✅ Fully Supported | py-spy |
 | 💎 **Ruby** | ✅ Fully Supported | rbspy |
 | 📗 **Node.js** | ✅ Fully Supported | eBPF profiling, perf |
-| 🦀 **Rust** | ✅ Fully Supported | eBPF profiling |
+| 🦀 **Rust** | ✅ Fully Supported | cargo-flamegraph |
 | ⚙️ **Clang/Clang++** | ✅ Fully Supported | eBPF profiling, perf |
 
 ### Container Runtimes 🐳
@@ -68,6 +69,12 @@ Profile a Python application and save to a specific location:
 
 ```shell
 kubectl prof my-pod -t 1m -l python --local-path=/tmp
+```
+
+Profile a Rust application with cargo-flamegraph:
+
+```shell
+kubectl prof my-pod -t 1m -l rust
 ```
 
 Profile multiple pods using a label selector:
@@ -234,6 +241,28 @@ kubectl prof mypod -t 1m -l ruby -o flamegraph
 - `speedscope` - SpeedScope format
 - `callgrind` - Callgrind format
 
+---
+
+### 🦀 Rust Profiling
+
+Profile a Rust application using **cargo-flamegraph** (default and recommended):
+
+```shell
+kubectl prof mypod -t 1m -l rust -o flamegraph
+```
+
+#### 🔥 cargo-flamegraph Benefits
+
+`kubectl-prof` uses [cargo-flamegraph](https://github.com/flamegraph-rs/flamegraph) as the default profiling tool for Rust applications, offering several advantages:
+
+- **📊 Rust-optimized profiling** - Specifically designed for Rust applications with excellent symbol resolution
+- **🎨 Beautiful visualizations** - Generates clean, colorized FlameGraphs with Rust-specific color palette
+- **⚡ Low overhead** - Minimal performance impact during profiling
+- **🔍 Deep insights** - Captures detailed stack traces including inline functions and generics
+- **🛠️ Built on perf** - Leverages the powerful Linux `perf` tool under the hood
+
+**Available output format:**
+- `flamegraph` - Interactive FlameGraph visualization (SVG format)
 ---
 
 ### ⚙️ Clang/Clang++ Profiling
@@ -494,11 +523,18 @@ make build-docker-agents
 - SpeedScope: `-o speedscope`
 - Raw output: `-o raw`
 
-#### 🐹 Go & 🦀 Rust
+#### 🐹 Go
 
 **[eBPF profiling](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter)** - Kernel-level profiling
 - FlameGraphs: `-o flamegraph` (default)
 - Raw output: `-o raw`
+
+#### 🦀 Rust
+
+**[cargo-flamegraph](https://github.com/flamegraph-rs/flamegraph)** - Rust-optimized profiling tool (default)
+- FlameGraphs: `--tool cargo-flamegraph -o flamegraph` (default)
+- Rust-specific color palette and symbol resolution
+- Low overhead, built on perf
 
 #### 💎 Ruby
 
