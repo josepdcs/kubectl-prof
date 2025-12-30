@@ -440,7 +440,7 @@ func Test_rustCommand(t *testing.T) {
 				pid:      "1000",
 				fileName: "/tmp/flamegraph.svg",
 			},
-			want: []string{cargoFlameLocation, "-p", "1000", "-o", "/tmp/flamegraph.svg", "--root"},
+			want: []string{cargoFlameLocation, "-p", "1000", "-o", "/tmp/flamegraph.svg", "--verbose"},
 		},
 		{
 			name: "should build rust command with different interval",
@@ -452,7 +452,7 @@ func Test_rustCommand(t *testing.T) {
 				pid:      "2000",
 				fileName: "/tmp/output.svg",
 			},
-			want: []string{cargoFlameLocation, "-p", "2000", "-o", "/tmp/output.svg", "--root"},
+			want: []string{cargoFlameLocation, "-p", "2000", "-o", "/tmp/output.svg", "--verbose"},
 		},
 	}
 

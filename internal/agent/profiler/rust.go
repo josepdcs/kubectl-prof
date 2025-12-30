@@ -28,7 +28,7 @@ const (
 )
 
 var rustCommand = func(commander executil.Commander, job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-	args := []string{"-p", pid, "-o", fileName, "--verbose"}
+	args := []string{"-p", pid, "-o", fileName, "--palette", "rust", "--title", fmt.Sprintf("Flamegraph for PID %s", pid)}
 	return commander.Command(cargoFlameLocation, args...)
 }
 
@@ -102,26 +102,6 @@ func (r *RustProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 func (p *rustManager) invoke(job *job.ProfilingJob, pid string) (error, time.Duration) {
 	start := time.Now()
 
-	// Log environment for debugging
-	log.DebugLogLn(fmt.Sprintf("PATH=%s", os.Getenv("PATH")))
-	log.DebugLogLn(fmt.Sprintf("PERF=%s", os.Getenv("PERF")))
-
-	// Verify perf is accessible
-	perfCheckCmd := p.commander.Command("which", "perf")
-	if output, err := perfCheckCmd.CombinedOutput(); err != nil {
-		log.ErrorLogLn(fmt.Sprintf("perf not found in PATH: %v, output: %s", err, string(output)))
-
-		// Try absolute path
-		perfCheckCmd2 := p.commander.Command("ls", "-la", "/app/perf")
-		if output2, err2 := perfCheckCmd2.CombinedOutput(); err2 != nil {
-			log.ErrorLogLn(fmt.Sprintf("/app/perf not accessible: %v, output: %s", err2, string(output2)))
-		} else {
-			log.DebugLogLn(fmt.Sprintf("/app/perf exists: %s", string(output2)))
-		}
-	} else {
-		log.DebugLogLn(fmt.Sprintf("perf found at: %s", string(output)))
-	}
-
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 
@@ -136,42 +116,19 @@ func (p *rustManager) invoke(job *job.ProfilingJob, pid string) (error, time.Dur
 		Setpgid: true, // Create new process group
 	}
 
-	// Ensure PATH and PERF are set correctly for the subprocess
+	// Get current environment variables
 	currentEnv := os.Environ()
-	pathSet := false
-	perfSet := false
-	for i, env := range currentEnv {
-		if len(env) > 5 && env[:5] == "PATH=" {
-			// Ensure /app and /usr/bin are in PATH
-			currentEnv[i] = "PATH=/app:/usr/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/sbin:/bin"
-			pathSet = true
-		}
-		if len(env) > 5 && env[:5] == "PERF=" {
-			currentEnv[i] = "PERF=/usr/bin/perf"
-			perfSet = true
-		}
-	}
-	if !pathSet {
-		currentEnv = append(currentEnv, "PATH=/app:/usr/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/sbin:/bin")
-	}
-	if !perfSet {
-		currentEnv = append(currentEnv, "PERF=/usr/bin/perf")
-	}
-	// Forzar locale C para evitar problemas de UTF-8 en la salida de perf
+	// Force LC_ALL to C for consistent locale behavior
 	currentEnv = append(currentEnv, "LC_ALL=C")
 	cmd.Env = currentEnv
 	cmd.Dir = "/tmp"
 	// Ensure no stale perf.data exists
-	_ = os.Remove("/tmp/perf.data")
-
-	log.DebugLogLn(fmt.Sprintf("Command: %s %v", cmd.Path, cmd.Args))
+	file.RemoveAll(common.TmpDir(), "perf.data")
 
 	// Start the profiler process
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("could not start profiler: %w", err), time.Since(start)
 	}
-
-	log.DebugLogLn(fmt.Sprintf("Flamegraph process started (PID: %d), interval: %s", cmd.Process.Pid, job.Interval.String()))
 
 	// Create a timer to send SIGINT (Ctrl+C equivalent) after the specified interval
 	timer := time.AfterFunc(job.Interval, func() {
@@ -197,7 +154,7 @@ func (p *rustManager) invoke(job *job.ProfilingJob, pid string) (error, time.Dur
 	log.DebugLogLn(fmt.Sprintf("Waiting for flamegraph to complete file writing: %s", fileName))
 
 	// Poll for the file existence with timeout
-	maxWait := 30 * time.Second
+	maxWait := 5 * time.Second
 	pollInterval := 500 * time.Millisecond
 	waited := time.Duration(0)
 
@@ -222,17 +179,9 @@ func (p *rustManager) invoke(job *job.ProfilingJob, pid string) (error, time.Dur
 			log.DebugLogLn(fmt.Sprintf("flamegraph stderr: %s", stderr.String()))
 		}
 
-		// List files in tmp directory for debugging
-		if entries, err := os.ReadDir(common.TmpDir()); err == nil {
-			log.DebugLogLn(fmt.Sprintf("Files in %s:", common.TmpDir()))
-			for _, entry := range entries {
-				log.DebugLogLn(fmt.Sprintf("  - %s", entry.Name()))
-			}
-		}
 		return fmt.Errorf("output file not found: %s", fileName), time.Since(start)
 	}
 
-	log.DebugLogLn(fmt.Sprintf("Output file successfully created: %s", fileName))
 	return p.publisher.Do(job.Compressor, fileName, job.OutputType), time.Since(start)
 }
 

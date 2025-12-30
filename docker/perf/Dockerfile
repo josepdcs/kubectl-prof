@@ -1,9 +1,12 @@
-FROM golang:1.25.2-alpine AS agentbuild
+FROM --platform=$BUILDPLATFORM golang:1.25.2-alpine AS agentbuild
+ARG TARGETOS
+ARG TARGETARCH
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof
-COPY . /go/src/github.com/josepdcs/kubectl-prof
-RUN go get -d -v ./...
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof/cmd/agent
-RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /go/bin/agent
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /go/bin/agent
 
 FROM alpine:3.22.1 AS tools
 RUN apk add --no-cache git  \
