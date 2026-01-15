@@ -217,8 +217,8 @@ func setAsyncProfilerArgs(args map[string]interface{}, j *job.ProfilingJob) {
 			if j.AdditionalArguments == nil {
 				j.AdditionalArguments = make(map[string]string)
 			}
-			// Store all async-profiler args in a comma-separated string
-			// We'll parse them when building the command
+			// Store each async-profiler argument with an indexed key (async-profiler-arg-0, async-profiler-arg-1, etc.)
+			// These will be retrieved in order when building the async-profiler command
 			for i, arg := range asyncProfilerArgs {
 				key := fmt.Sprintf("async-profiler-arg-%d", i)
 				j.AdditionalArguments[key] = arg
