@@ -46,6 +46,7 @@ type ExtraTargetOptions struct {
 	PID                         string
 	Pgrep                       string
 	NodeHeapSnapshotSignal      int
+	AsyncProfilerArgs           []string
 }
 
 // DeepCopy returns a deep copy of the target config

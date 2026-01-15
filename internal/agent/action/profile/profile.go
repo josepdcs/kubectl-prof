@@ -35,6 +35,7 @@ const (
 	Pid                               = "pid"
 	Pgrep                             = "pgrep"
 	NodeHeapSnapshotSignal            = "node-heap-snapshot-signal"
+	AsyncProfilerArg                  = "async-profiler-arg"
 
 	defaultDuration                 = 60 * time.Second
 	defaultContainerRuntime         = api.Containerd
@@ -174,6 +175,9 @@ func getProfilingJob(args map[string]interface{}) (*job.ProfilingJob, error) {
 	// set node heap snapshot signal if exists
 	setNodeHeapSnapshotSignal(args, j)
 
+	// set async profiler args if exists
+	setAsyncProfilerArgs(args, j)
+
 	log.DebugLogLn(j.String())
 
 	return j, nil
@@ -203,6 +207,23 @@ func setPgrep(args map[string]interface{}, j *job.ProfilingJob) {
 func setNodeHeapSnapshotSignal(args map[string]interface{}, j *job.ProfilingJob) {
 	if args[NodeHeapSnapshotSignal] != nil {
 		j.NodeHeapSnapshotSignal = args[NodeHeapSnapshotSignal].(int)
+	}
+}
+
+func setAsyncProfilerArgs(args map[string]interface{}, j *job.ProfilingJob) {
+	if args[AsyncProfilerArg] != nil {
+		asyncProfilerArgs := args[AsyncProfilerArg].([]string)
+		if len(asyncProfilerArgs) > 0 {
+			if j.AdditionalArguments == nil {
+				j.AdditionalArguments = make(map[string]string)
+			}
+			// Store all async-profiler args in a comma-separated string
+			// We'll parse them when building the command
+			for i, arg := range asyncProfilerArgs {
+				key := fmt.Sprintf("async-profiler-arg-%d", i)
+				j.AdditionalArguments[key] = arg
+			}
+		}
 	}
 }
 

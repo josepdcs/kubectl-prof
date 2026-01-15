@@ -44,7 +44,19 @@ func GetArgs(targetPod *apiv1.Pod, cfg *config.ProfilerConfig, id string) []stri
 	args = appendArgument(args, "--node-heap-snapshot-signal", strconv.Itoa(cfg.Target.NodeHeapSnapshotSignal), func() bool {
 		return cfg.Target.NodeHeapSnapshotSignal > 0 && cfg.Target.Language == api.Node
 	})
+	args = appendAsyncProfilerArgs(args, cfg.Target.AsyncProfilerArgs, func() bool {
+		return len(cfg.Target.AsyncProfilerArgs) > 0
+	})
 
+	return args
+}
+
+func appendAsyncProfilerArgs(args []string, asyncProfilerArgs []string, condition func() bool) []string {
+	if condition() {
+		for _, arg := range asyncProfilerArgs {
+			args = append(args, "--async-profiler-arg", arg)
+		}
+	}
 	return args
 }
 

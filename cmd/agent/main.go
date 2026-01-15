@@ -164,6 +164,11 @@ func runApp() error {
 				Usage:    "the signal to be sent to the target process to trigger a heap snapshot",
 				Required: false,
 			},
+			&cli.StringSliceFlag{
+				Name:     profile.AsyncProfilerArg,
+				Usage:    "additional arguments to pass to async-profiler",
+				Required: false,
+			},
 		},
 		Action: func(c *cli.Context) error {
 			period, errParse := time.ParseDuration(c.String(profile.GracePeriodForEnding))
@@ -206,6 +211,7 @@ func toArgs(c *cli.Context) map[string]interface{} {
 		profile.Pid:                        c.String(profile.Pid),
 		profile.Pgrep:                      c.String(profile.Pgrep),
 		profile.NodeHeapSnapshotSignal:     c.Int(profile.NodeHeapSnapshotSignal),
+		profile.AsyncProfilerArg:           c.StringSlice(profile.AsyncProfilerArg),
 	}
 }
 
