@@ -290,10 +290,164 @@ func TestGetArgs(t *testing.T) {
 				"--node-heap-snapshot-signal", "12",
 			},
 		},
+		{
+			name: "With async-profiler arguments",
+			args: args{
+				targetPod: &v1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						UID:  "UID",
+						Name: "PodName",
+					},
+					Spec: v1.PodSpec{
+						NodeName: "NodeName",
+					},
+				},
+				cfg: &config.ProfilerConfig{
+					Target: &config.TargetConfig{
+						Namespace:            "",
+						PodName:              "",
+						ContainerName:        "",
+						ContainerID:          "ContainerID",
+						Event:                api.Wall,
+						Duration:             60 * time.Second,
+						Id:                   "",
+						LocalPath:            "LocalPath",
+						DryRun:               false,
+						Image:                "",
+						ContainerRuntime:     api.Containerd,
+						ContainerRuntimePath: "/run/containerd",
+						Language:             api.Java,
+						Compressor:           compressor.Gzip,
+						ImagePullSecret:      "",
+						ServiceAccountName:   "",
+						ProfilingTool:        api.AsyncProfiler,
+						OutputType:           api.FlameGraph,
+						ExtraTargetOptions: config.ExtraTargetOptions{
+							GracePeriodEnding: 5 * time.Minute,
+							AsyncProfilerArgs: []string{"-t", "--alloc=2m"},
+						},
+					},
+					Job:      nil,
+					LogLevel: "",
+				},
+				id: "ID",
+			},
+			want: []string{
+				"--target-container-runtime", "containerd",
+				"--target-container-runtime-path", "/run/containerd",
+				"--target-pod-uid", "UID",
+				"--target-container-id", "ContainerID",
+				"--lang", "java",
+				"--event-type", "wall",
+				"--compressor-type", "gzip",
+				"--profiling-tool", "async-profiler",
+				"--output-type", "flamegraph",
+				"--grace-period-ending", "5m0s",
+				"--job-id", "ID",
+				"--duration", "1m0s",
+				"--async-profiler-arg", "-t",
+				"--async-profiler-arg", "--alloc=2m",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equalf(t, tt.want, GetArgs(tt.args.targetPod, tt.args.cfg, tt.args.id), "getArgs(%v, %v, %v)", tt.args.targetPod, tt.args.cfg, tt.args.id)
+		})
+	}
+}
+
+func Test_appendAsyncProfilerArgs(t *testing.T) {
+	type args struct {
+		args              []string
+		asyncProfilerArgs []string
+		condition         func() bool
+	}
+	tests := []struct {
+		name string
+		args args
+		want []string
+	}{
+		{
+			name: "should append single async-profiler argument",
+			args: args{
+				args:              []string{"--existing-arg", "value"},
+				asyncProfilerArgs: []string{"-t"},
+				condition:         func() bool { return true },
+			},
+			want: []string{"--existing-arg", "value", "--async-profiler-arg", "-t"},
+		},
+		{
+			name: "should append multiple async-profiler arguments",
+			args: args{
+				args:              []string{"--existing-arg", "value"},
+				asyncProfilerArgs: []string{"-t", "--alloc=2m", "--lock=10ms"},
+				condition:         func() bool { return true },
+			},
+			want: []string{
+				"--existing-arg", "value",
+				"--async-profiler-arg", "-t",
+				"--async-profiler-arg", "--alloc=2m",
+				"--async-profiler-arg", "--lock=10ms",
+			},
+		},
+		{
+			name: "should not append when condition is false",
+			args: args{
+				args:              []string{"--existing-arg", "value"},
+				asyncProfilerArgs: []string{"-t"},
+				condition:         func() bool { return false },
+			},
+			want: []string{"--existing-arg", "value"},
+		},
+		{
+			name: "should handle empty async-profiler arguments with condition true",
+			args: args{
+				args:              []string{"--existing-arg", "value"},
+				asyncProfilerArgs: []string{},
+				condition:         func() bool { return true },
+			},
+			want: []string{"--existing-arg", "value"},
+		},
+		{
+			name: "should handle nil async-profiler arguments",
+			args: args{
+				args:              []string{"--existing-arg", "value"},
+				asyncProfilerArgs: nil,
+				condition:         func() bool { return true },
+			},
+			want: []string{"--existing-arg", "value"},
+		},
+		{
+			name: "should work with empty initial args",
+			args: args{
+				args:              []string{},
+				asyncProfilerArgs: []string{"-t", "--alloc=2m"},
+				condition:         func() bool { return true },
+			},
+			want: []string{
+				"--async-profiler-arg", "-t",
+				"--async-profiler-arg", "--alloc=2m",
+			},
+		},
+		{
+			name: "should handle arguments with special characters",
+			args: args{
+				args:              []string{"--existing-arg", "value"},
+				asyncProfilerArgs: []string{"--cstack=fp", "--begin=MyClass::myMethod"},
+				condition:         func() bool { return true },
+			},
+			want: []string{
+				"--existing-arg", "value",
+				"--async-profiler-arg", "--cstack=fp",
+				"--async-profiler-arg", "--begin=MyClass::myMethod",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := appendAsyncProfilerArgs(tt.args.args, tt.args.asyncProfilerArgs, tt.args.condition)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
