@@ -17,17 +17,20 @@ FROM alpine:3.22.1 AS libbpf-builder
 RUN apk add --no-cache \
     build-base \
     clang \
+    llvm20 \
     elfutils-dev \
     linux-headers \
     libbpf-dev \
     zlib-dev \
     git \
-    bpftool
+    bpftool \
+    argp-standalone
 
 # Clone and build libbpf-tools profile
 RUN git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/iovisor/bcc.git /bcc && \
     cd /bcc/libbpf-tools && \
-    make profile
+    sed -i '1i #include <libgen.h>' bpftool/src/gen.c && \
+    make EXTRA_CFLAGS="-I/usr/include" EXTRA_LDFLAGS="-largp" profile
 
 FROM alpine:3.22.1
 # Install only runtime dependencies (no bcc-tools needed for CO-RE)
