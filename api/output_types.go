@@ -21,7 +21,7 @@ const (
 	Tree          OutputType = "tree"            // Tree represents a tree-based profile format.
 	Callgrind     OutputType = "callgrind"       // Callgrind represents callgrind format for use with kcachegrind.
 	Raw           OutputType = "raw"             // Raw represents raw profiling data.
-	Pprof         OutputType = "pprof"           // Pprof represents Go pprof format.
+	Pprof         OutputType = "pprof"           // Pprof represents Google pprof format.
 	Summary       OutputType = "summary"         // Summary represents a summary report.
 	SummaryByLine OutputType = "summary-by-line" // SummaryByLine represents a line-by-line summary report.
 	HeapSnapshot  OutputType = "heapsnapshot"    // HeapSnapshot represents a heap snapshot for Node.js applications.

@@ -162,6 +162,29 @@ kubectl prof mypod -t 5m -l java -e lock
 
 **Supported events:** `cpu`, `alloc`, `lock`, `cache-misses`, `wall`, `itimer`, `ctimer`
 
+#### Additional Arguments for async-profiler
+
+You can pass additional command-line arguments to `async-profiler` using the `--async-profiler-args` flag. This is useful for enabling specific profiling modes or customizing profiler behavior:
+
+```shell
+# Wall-clock profiling in per-thread mode (most useful for wall-clock profiling)
+kubectl prof mypod -t 5m -l java -e wall --async-profiler-args -t
+
+# Multiple additional arguments
+kubectl prof mypod -t 5m -l java -e alloc --async-profiler-args -t --async-profiler-args --alloc=2m
+
+# Combine with other options
+kubectl prof mypod -t 5m -l java -e wall -o flamegraph --async-profiler-args -t
+```
+
+**Common use cases:**
+- `-t` - Per-thread mode (recommended for wall-clock profiling)
+- `--alloc=SIZE` - Set allocation profiling interval
+- `--lock=DURATION` - Set lock profiling threshold
+- `--cstack=MODE` - Control how native frames are captured
+
+> 💡 **Tip:** Refer to the [async-profiler documentation](https://github.com/async-profiler/async-profiler) for a complete list of available arguments and their descriptions.
+
 ---
 
 ### 🐍 Python Profiling

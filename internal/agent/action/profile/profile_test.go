@@ -513,3 +513,113 @@ func Test_validateOutputType(t *testing.T) {
 		})
 	}
 }
+
+func Test_setAsyncProfilerArgs(t *testing.T) {
+	type args struct {
+		args map[string]interface{}
+		job  *job.ProfilingJob
+	}
+	tests := []struct {
+		name   string
+		args   args
+		assert func(t *testing.T, job *job.ProfilingJob)
+	}{
+		{
+			name: "should set single async-profiler argument",
+			args: args{
+				args: map[string]interface{}{
+					AsyncProfilerArg: []string{"-t"},
+				},
+				job: &job.ProfilingJob{},
+			},
+			assert: func(t *testing.T, job *job.ProfilingJob) {
+				assert.NotNil(t, job.AdditionalArguments)
+				assert.Equal(t, "-t", job.AdditionalArguments["async-profiler-arg-0"])
+				assert.Equal(t, 1, len(job.AdditionalArguments))
+			},
+		},
+		{
+			name: "should set multiple async-profiler arguments in order",
+			args: args{
+				args: map[string]interface{}{
+					AsyncProfilerArg: []string{"-t", "--alloc=2m", "--lock=10ms"},
+				},
+				job: &job.ProfilingJob{},
+			},
+			assert: func(t *testing.T, job *job.ProfilingJob) {
+				assert.NotNil(t, job.AdditionalArguments)
+				assert.Equal(t, "-t", job.AdditionalArguments["async-profiler-arg-0"])
+				assert.Equal(t, "--alloc=2m", job.AdditionalArguments["async-profiler-arg-1"])
+				assert.Equal(t, "--lock=10ms", job.AdditionalArguments["async-profiler-arg-2"])
+				assert.Equal(t, 3, len(job.AdditionalArguments))
+			},
+		},
+		{
+			name: "should not set anything when args is nil",
+			args: args{
+				args: map[string]interface{}{
+					AsyncProfilerArg: nil,
+				},
+				job: &job.ProfilingJob{},
+			},
+			assert: func(t *testing.T, job *job.ProfilingJob) {
+				assert.Nil(t, job.AdditionalArguments)
+			},
+		},
+		{
+			name: "should not set anything when args is empty slice",
+			args: args{
+				args: map[string]interface{}{
+					AsyncProfilerArg: []string{},
+				},
+				job: &job.ProfilingJob{},
+			},
+			assert: func(t *testing.T, job *job.ProfilingJob) {
+				assert.Nil(t, job.AdditionalArguments)
+			},
+		},
+		{
+			name: "should not override existing additional arguments",
+			args: args{
+				args: map[string]interface{}{
+					AsyncProfilerArg: []string{"-t"},
+				},
+				job: &job.ProfilingJob{
+					AdditionalArguments: map[string]string{
+						"existing-key": "existing-value",
+					},
+				},
+			},
+			assert: func(t *testing.T, job *job.ProfilingJob) {
+				assert.NotNil(t, job.AdditionalArguments)
+				assert.Equal(t, "-t", job.AdditionalArguments["async-profiler-arg-0"])
+				assert.Equal(t, "existing-value", job.AdditionalArguments["existing-key"])
+				assert.Equal(t, 2, len(job.AdditionalArguments))
+			},
+		},
+		{
+			name: "should handle arguments with special characters",
+			args: args{
+				args: map[string]interface{}{
+					AsyncProfilerArg: []string{"--cstack=fp", "--begin=MyClass::myMethod"},
+				},
+				job: &job.ProfilingJob{},
+			},
+			assert: func(t *testing.T, job *job.ProfilingJob) {
+				assert.NotNil(t, job.AdditionalArguments)
+				assert.Equal(t, "--cstack=fp", job.AdditionalArguments["async-profiler-arg-0"])
+				assert.Equal(t, "--begin=MyClass::myMethod", job.AdditionalArguments["async-profiler-arg-1"])
+				assert.Equal(t, 2, len(job.AdditionalArguments))
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Given & When
+			setAsyncProfilerArgs(tt.args.args, tt.args.job)
+
+			// Then
+			tt.assert(t, tt.args.job)
+		})
+	}
+}

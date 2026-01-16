@@ -221,6 +221,7 @@ func NewProfileCommand(streams genericiooptions.IOStreams) *cobra.Command {
 	cmd.Flags().IntVar(&target.NodeHeapSnapshotSignal, "node-heap-snapshot-signal", 12, "The signal to be sent to the target process to generate a heap snapshot for Node.js applications")
 	cmd.Flags().StringSliceVar(&flags.capabilities, "capabilities", nil, "The capabilities to be added to the agent container. It can be used multiple times to add more than one capability (e.g. --capabilities SYS_ADMIN --capabilities SYS_PTRACE)")
 	cmd.Flags().StringSliceVar(&job.TolerationsRaw, "tolerations", nil, "Tolerations for the profiling job pod in the format key=value:effect or key:effect. It can be used multiple times to add more than one toleration (e.g. --tolerations key1=value1:NoSchedule --tolerations key2:NoExecute)")
+	cmd.Flags().StringSliceVar(&target.AsyncProfilerArgs, "async-profiler-args", nil, "Additional arguments to pass to async-profiler. It can be used multiple times to add more than one argument (e.g. --async-profiler-args -t --async-profiler-args --alloc=2m)")
 
 	options.configFlags.AddFlags(cmd.Flags())
 

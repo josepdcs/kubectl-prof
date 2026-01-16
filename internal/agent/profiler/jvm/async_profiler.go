@@ -47,9 +47,25 @@ var asyncProfilerCommand = func(j *asyncProfilerManager, job *job.ProfilingJob, 
 		"-d", interval, 
 		"-f", fileName, 
 		"-e", event, 
-		"--fdtransfer", 
-		pid,
+		"--fdtransfer",
 	}
+	
+	// Add additional async-profiler arguments if they exist
+	if job.AdditionalArguments != nil {
+		// Iterate through additional arguments in order
+		i := 0
+		for {
+			key := fmt.Sprintf("async-profiler-arg-%d", i)
+			if arg, ok := job.AdditionalArguments[key]; ok {
+				args = append(args, arg)
+				i++
+			} else {
+				break
+			}
+		}
+	}
+	
+	args = append(args, pid)
 
 	return j.commander.Command(filepath.Join(j.getTmpDir(), asprofPath), args...)
 }

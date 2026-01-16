@@ -618,3 +618,70 @@ func Test_asyncProfilerManager_cleanUp(t *testing.T) {
 	}, "1000")
 	commander.AssertNumberOfCalls(t, "Command", 1)
 }
+
+func Test_asyncProfilerCommand_WithAdditionalArguments(t *testing.T) {
+	log.SetPrintLogs(false)
+	manager := &asyncProfilerManager{
+		commander: executil.NewCommander(),
+	}
+
+	t.Run("should include additional arguments in command", func(t *testing.T) {
+		profilingJob := &job.ProfilingJob{
+			Interval:   60 * time.Second,
+			Event:      api.Cpu,
+			OutputType: api.FlameGraph,
+			AdditionalArguments: map[string]string{
+				"async-profiler-arg-0": "-t",
+				"async-profiler-arg-1": "--alloc=2m",
+			},
+		}
+
+		cmd := asyncProfilerCommand(manager, profilingJob, "1234", "/tmp/test.txt")
+
+		// Verify the command contains the additional arguments
+		args := cmd.Args
+		assert.Contains(t, args, "-t")
+		assert.Contains(t, args, "--alloc=2m")
+		// Verify the PID is at the end
+		assert.Equal(t, "1234", args[len(args)-1])
+	})
+
+	t.Run("should work without additional arguments", func(t *testing.T) {
+		profilingJob := &job.ProfilingJob{
+			Interval:            60 * time.Second,
+			Event:               api.Cpu,
+			OutputType:          api.FlameGraph,
+			AdditionalArguments: nil,
+		}
+
+		cmd := asyncProfilerCommand(manager, profilingJob, "1234", "/tmp/test.txt")
+
+		// Verify the command doesn't have extra unexpected arguments
+		args := cmd.Args
+		assert.Equal(t, "1234", args[len(args)-1])
+		assert.NotContains(t, args, "-t")
+	})
+
+	t.Run("should handle single additional argument", func(t *testing.T) {
+		profilingJob := &job.ProfilingJob{
+			Interval:   60 * time.Second,
+			Event:      api.Wall,
+			OutputType: api.FlameGraph,
+			AdditionalArguments: map[string]string{
+				"async-profiler-arg-0": "-t",
+			},
+		}
+
+		cmd := asyncProfilerCommand(manager, profilingJob, "5678", "/tmp/test2.txt")
+
+		args := cmd.Args
+		assert.Contains(t, args, "-t")
+		assert.Equal(t, "5678", args[len(args)-1])
+		// Verify the -e flag has wall event
+		for i, arg := range args {
+			if arg == "-e" && i+1 < len(args) {
+				assert.Equal(t, "wall", args[i+1])
+			}
+		}
+	})
+}
