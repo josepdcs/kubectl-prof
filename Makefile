@@ -12,6 +12,8 @@ DOCKER_JVM_ALPINE_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-jvm-alpine
 DOCKERFILE_JVM_ALPINE ?= ./docker/jvm/alpine/Dockerfile
 DOCKER_BPF_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-bpf
 DOCKERFILE_BPF ?= ./docker/bpf/Dockerfile
+DOCKER_BTF_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-btf
+DOCKERFILE_BTF ?= ./docker/btf/Dockerfile
 DOCKER_PERF_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-perf
 DOCKERFILE_PERF ?= ./docker/perf/Dockerfile
 DOCKER_PYTHON_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-python
@@ -29,7 +31,7 @@ M = $(shell printf "\033[34;1m▶\033[0m")
 
 ## all: Build the kubectl-prof plugin and push all docker images
 .PHONY: all
-all: build-cli push-docker-jvm push-docker-jvm-alpine push-docker-bpf push-docker-perf push-docker-python push-docker-ruby push-docker-rust
+all: build-cli push-docker-jvm push-docker-jvm-alpine push-docker-bpf push-docker-btf push-docker-perf push-docker-python push-docker-ruby push-docker-rust
 
 ## build: Build the kubectl-prof plugin and the agent binary
 .PHONY: build
@@ -37,7 +39,7 @@ build: build-cli build-agent
 
 ## build-docker-agents: Build the docker images
 .PHONY: build-docker-agents
-build-docker-agents: build-docker-bpf build-docker-jvm build-docker-jvm-alpine build-docker-perf build-docker-python build-docker-ruby build-docker-rust
+build-docker-agents: build-docker-bpf build-docker-btf build-docker-jvm build-docker-jvm-alpine build-docker-perf build-docker-python build-docker-ruby build-docker-rust
 
 ## install-deps: install dependencies if needed
 .PHONY: install-deps
@@ -106,6 +108,18 @@ build-docker-bpf: quemu-multi
 push-docker-bpf: build-docker-bpf
 	$(info $(M) pushing BPF docker image to DockerHub...)
 	@docker push $(REGISTRY)/$(DOCKER_BPF_IMAGE)
+
+## build-docker-btf: Build the BTF docker image
+.PHONY: build-docker-btf
+build-docker-btf: quemu-multi
+	$(info $(M) building BTF docker image...)
+	docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_BTF_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_BTF) .
+
+## push-docker-btf: Build and push the BTF docker image
+.PHONY: push-docker-btf
+push-docker-btf: build-docker-btf
+	$(info $(M) pushing BTF docker image to DockerHub...)
+	@docker push $(REGISTRY)/$(DOCKER_BTF_IMAGE)
 
 ## build-docker-perf: Build the PERF docker image
 .PHONY: build-docker-perf

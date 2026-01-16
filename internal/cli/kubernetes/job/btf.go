@@ -13,11 +13,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/uuid"
 )
 
-type bpfCreator struct{}
+type btfCreator struct{}
 
-var bpfDefaultCapabilities = []apiv1.Capability{"SYS_ADMIN"}
+var btfDefaultCapabilities = []apiv1.Capability{"SYS_ADMIN"}
 
-func (b *bpfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
+func (b *btfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
 	id := string(uuid.NewUUID())
 	imageName := b.getImageName(cfg.Target)
 
@@ -28,7 +28,7 @@ func (b *bpfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 
 	capabilities := cfg.Job.Capabilities
 	if len(capabilities) == 0 {
-		capabilities = bpfDefaultCapabilities
+		capabilities = btfDefaultCapabilities
 	}
 
 	commonMeta := b.getObjectMeta(id, cfg)
@@ -64,10 +64,10 @@ func (b *bpfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 							},
 						},
 						{
-							Name: "modules",
+							Name: "sys-kernel-btf",
 							VolumeSource: apiv1.VolumeSource{
 								HostPath: &apiv1.HostPathVolumeSource{
-									Path: "/lib/modules",
+									Path: "/sys/kernel/btf",
 								},
 							},
 						},
@@ -87,8 +87,9 @@ func (b *bpfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 									MountPath: cfg.Target.ContainerRuntimePath,
 								},
 								{
-									Name:      "modules",
-									MountPath: "/lib/modules",
+									Name:      "sys-kernel-btf",
+									MountPath: "/sys/kernel/btf",
+									ReadOnly:  true,
 								},
 							},
 							SecurityContext: &apiv1.SecurityContext{
@@ -115,19 +116,19 @@ func (b *bpfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 }
 
 // getImageName if image name is provider from config.TargetConfig this one is returned otherwise a new one is built
-func (b *bpfCreator) getImageName(t *config.TargetConfig) string {
+func (b *btfCreator) getImageName(t *config.TargetConfig) string {
 	var imageName string
 	if t.Image != "" {
 		imageName = t.Image
 	} else {
-		imageName = fmt.Sprintf("%s:%s-bpf", baseImageName, version.GetCurrent())
+		imageName = fmt.Sprintf("%s:%s-btf", baseImageName, version.GetCurrent())
 	}
 	return imageName
 }
 
-func (b *bpfCreator) getObjectMeta(id string, cfg *config.ProfilerConfig) metav1.ObjectMeta {
+func (b *btfCreator) getObjectMeta(id string, cfg *config.ProfilerConfig) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
-		Name:      fmt.Sprintf("%s-bpf-%s", ContainerName, id),
+		Name:      fmt.Sprintf("%s-btf-%s", ContainerName, id),
 		Namespace: cfg.Job.Namespace,
 		Labels: map[string]string{
 			LabelID: id,

@@ -24,43 +24,49 @@ import (
 )
 
 const (
-	profilerLocation    = "/app/bcc-profiler/profile"
-	bpfDelayBetweenJobs = 5 * time.Second
+	btfProfilerLocation = "/app/libbpf-profiler/profile"
+	btfDelayBetweenJobs = 5 * time.Second
 )
 
-var bccProfilerCommand = func(commander executil.Commander, job *job.ProfilingJob, pid string) *exec.Cmd {
+var btfProfilerCommand = func(commander executil.Commander, job *job.ProfilingJob, pid string) *exec.Cmd {
 	interval := strconv.Itoa(int(job.Interval.Seconds()))
-	args := []string{"-df", "-U", "-F", "99", "-p", pid, interval}
-	return commander.Command(profilerLocation, args...)
+	// libbpf-tools profile command-line arguments:
+	// -f: folded output format (single line per stack, suitable for FlameGraph)
+	// -U: user stacks only (no kernel stacks - delimiter not needed)
+	// -F 99: sample frequency at 99 Hz
+	// -p: profile specific PID
+	// interval: duration in seconds
+	args := []string{"-f", "-U", "-F", "99", "-p", pid, interval}
+	return commander.Command(btfProfilerLocation, args...)
 }
 
-type BpfProfiler struct {
+type BtfProfiler struct {
 	targetPIDs []string
 	delay      time.Duration
-	BpfManager
+	BtfManager
 }
 
-type BpfManager interface {
+type BtfManager interface {
 	invoke(*job.ProfilingJob, string) (error, time.Duration)
 	handleFlamegraph(*job.ProfilingJob, flamegraph.FrameGrapher, string, string) error
 }
 
-type bpfManager struct {
+type btfManager struct {
 	commander executil.Commander
 	publisher publish.Publisher
 }
 
-func NewBpfProfiler(commander executil.Commander, publisher publish.Publisher) *BpfProfiler {
-	return &BpfProfiler{
-		delay: bpfDelayBetweenJobs,
-		BpfManager: &bpfManager{
+func NewBtfProfiler(commander executil.Commander, publisher publish.Publisher) *BtfProfiler {
+	return &BtfProfiler{
+		delay: btfDelayBetweenJobs,
+		BtfManager: &btfManager{
 			commander: commander,
 			publisher: publisher,
 		},
 	}
 }
 
-func (b *BpfProfiler) SetUp(job *job.ProfilingJob) error {
+func (b *BtfProfiler) SetUp(job *job.ProfilingJob) error {
 	if stringUtils.IsNotBlank(job.PID) {
 		b.targetPIDs = []string{job.PID}
 		return nil
@@ -75,7 +81,7 @@ func (b *BpfProfiler) SetUp(job *job.ProfilingJob) error {
 	return nil
 }
 
-func (b *BpfProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
+func (b *BtfProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	start := time.Now()
 
 	pool := pond.New(len(b.targetPIDs), 0, pond.MinWorkers(len(b.targetPIDs)))
@@ -101,13 +107,13 @@ func (b *BpfProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	return err, time.Since(start)
 }
 
-func (b *bpfManager) invoke(job *job.ProfilingJob, pid string) (error, time.Duration) {
+func (b *btfManager) invoke(job *job.ProfilingJob, pid string) (error, time.Duration) {
 	start := time.Now()
 
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 
-	cmd := bccProfilerCommand(b.commander, job, pid)
+	cmd := btfProfilerCommand(b.commander, job, pid)
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 	err := cmd.Run()
@@ -131,7 +137,7 @@ func (b *bpfManager) invoke(job *job.ProfilingJob, pid string) (error, time.Dura
 	return b.publisher.Do(job.Compressor, resultFileName, job.OutputType), time.Since(start)
 }
 
-func (b *bpfManager) handleFlamegraph(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher, rawFileName string,
+func (b *btfManager) handleFlamegraph(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher, rawFileName string,
 	flameFileName string) error {
 	if job.OutputType == api.FlameGraph {
 		if file.Size(rawFileName) < common.MinimumRawSize {
@@ -146,7 +152,7 @@ func (b *bpfManager) handleFlamegraph(job *job.ProfilingJob, flameGrapher flameg
 	return nil
 }
 
-func (b *BpfProfiler) CleanUp(*job.ProfilingJob) error {
+func (b *BtfProfiler) CleanUp(*job.ProfilingJob) error {
 	file.RemoveAll(common.TmpDir(), config.ProfilingPrefix)
 
 	return nil

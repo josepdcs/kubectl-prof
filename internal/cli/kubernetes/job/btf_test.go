@@ -12,7 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func Test_bpfCreate_create(t *testing.T) {
+func Test_btfCreate_create(t *testing.T) {
 	targetPod := &apiv1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
@@ -61,7 +61,7 @@ func Test_bpfCreate_create(t *testing.T) {
 			Namespace: "Namespace",
 		},
 	}
-	b := &bpfCreator{}
+	b := &btfCreator{}
 	id, job, err := b.Create(targetPod, cfg)
 
 	require.NoError(t, err)
@@ -99,10 +99,10 @@ func Test_bpfCreate_create(t *testing.T) {
 							},
 						},
 						{
-							Name: "modules",
+							Name: "sys-kernel-btf",
 							VolumeSource: apiv1.VolumeSource{
 								HostPath: &apiv1.HostPathVolumeSource{
-									Path: "/lib/modules",
+									Path: "/sys/kernel/btf",
 								},
 							},
 						},
@@ -122,8 +122,9 @@ func Test_bpfCreate_create(t *testing.T) {
 									MountPath: cfg.Target.ContainerRuntimePath,
 								},
 								{
-									Name:      "modules",
-									MountPath: "/lib/modules",
+									Name:      "sys-kernel-btf",
+									MountPath: "/sys/kernel/btf",
+									ReadOnly:  true,
 								},
 							},
 							SecurityContext: &apiv1.SecurityContext{
@@ -143,98 +144,50 @@ func Test_bpfCreate_create(t *testing.T) {
 		},
 	}
 
-	assert.Equal(t, job, wantedJob)
+	assert.Equal(t, wantedJob, job)
 }
 
-func Test_bpfCreate_shouldFailWhenUnableGenerateResources(t *testing.T) {
-	targetPod := &apiv1.Pod{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Pod",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			UID: "UID",
-		},
-		Spec: apiv1.PodSpec{
-			NodeName: "NodeName",
-		},
-	}
+func Test_btfCreate_shouldFailWhenUnableGenerateResources(t *testing.T) {
+	targetPod := &apiv1.Pod{}
 	cfg := &config.ProfilerConfig{
-		Target: &config.TargetConfig{
-			Namespace:            "Namespace",
-			PodName:              "PodName",
-			ContainerName:        "ContainerName",
-			ContainerID:          "ContainerID",
-			Event:                "Event",
-			Duration:             100,
-			Id:                   "ID",
-			LocalPath:            "LocalPath",
-			DryRun:               false,
-			Image:                "Image",
-			ContainerRuntime:     "ContainerRuntime",
-			ContainerRuntimePath: "ContainerRuntimePath",
-			Language:             "Language",
-			Compressor:           "Compressor",
-			ServiceAccountName:   "ServiceAccountName",
-		},
+		Target: &config.TargetConfig{},
 		Job: &config.JobConfig{
 			ContainerConfig: config.ContainerConfig{
 				RequestConfig: config.ResourceConfig{
-					CPU:    "error",
-					Memory: "100Mi",
+					CPU: "invalid",
 				},
-				LimitConfig: config.ResourceConfig{
-					CPU:    "error",
-					Memory: "200Mi",
-				},
-				Privileged: false,
 			},
-			Namespace: "Namespace",
 		},
 	}
-	b := &bpfCreator{}
-	id, job, err := b.Create(targetPod, cfg)
+	b := &btfCreator{}
+	_, _, err := b.Create(targetPod, cfg)
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "unable to generate resource requirements")
-	assert.Empty(t, id)
-	assert.Empty(t, job)
-
 }
 
-func Test_bpfCreator_getImageName(t *testing.T) {
-	type args struct {
-		cfg *config.TargetConfig
-	}
+func Test_btfCreator_getImageName(t *testing.T) {
 	tests := []struct {
 		name string
-		args args
+		args *config.TargetConfig
 		want string
 	}{
 		{
 			name: "Get image name from TargetConfig",
-			args: args{
-				cfg: &config.TargetConfig{
-					Image: "Image",
-				},
+			args: &config.TargetConfig{
+				Image: "my-custom-image",
 			},
-			want: "Image",
+			want: "my-custom-image",
 		},
 		{
 			name: "Get default image",
-			args: args{
-				cfg: &config.TargetConfig{
-					Image: "",
-				},
-			},
-			want: "josepdcs/kubectl-prof:-bpf",
+			args: &config.TargetConfig{},
+			want: "josepdcs/kubectl-prof:-btf", // Empty version when not set by goreleaser
 		},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			b := &bpfCreator{}
-			assert.Equalf(t, tt.want, b.getImageName(tt.args.cfg), "getImageName(%v)", tt.args.cfg)
+			b := &btfCreator{}
+			assert.Equal(t, tt.want, b.getImageName(tt.args))
 		})
 	}
 }

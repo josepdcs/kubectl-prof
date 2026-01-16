@@ -457,22 +457,22 @@ func TestGetProfilingToolsByProgrammingLanguage(t *testing.T) {
 		{
 			name:     "Go",
 			language: Go,
-			expected: []ProfilingTool{Bpf, CargoFlame},
+			expected: []ProfilingTool{Bpf, Btf, CargoFlame},
 		},
 		{
 			name:     "Node",
 			language: Node,
-			expected: []ProfilingTool{Bpf, Perf, NodeDummy, CargoFlame},
+			expected: []ProfilingTool{Bpf, Btf, Perf, NodeDummy, CargoFlame},
 		},
 		{
 			name:     "Clang",
 			language: Clang,
-			expected: []ProfilingTool{Bpf, Perf, CargoFlame},
+			expected: []ProfilingTool{Bpf, Btf, Perf, CargoFlame},
 		},
 		{
 			name:     "ClangPlusPlus",
 			language: ClangPlusPlus,
-			expected: []ProfilingTool{Bpf, Perf, CargoFlame},
+			expected: []ProfilingTool{Bpf, Btf, Perf, CargoFlame},
 		},
 		{
 			name:     "Ruby",
@@ -482,7 +482,7 @@ func TestGetProfilingToolsByProgrammingLanguage(t *testing.T) {
 		{
 			name:     "Rust",
 			language: Rust,
-			expected: []ProfilingTool{CargoFlame, Bpf, Perf},
+			expected: []ProfilingTool{CargoFlame, Bpf, Btf, Perf},
 		},
 	}
 	for _, tt := range tests {
