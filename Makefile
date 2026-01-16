@@ -72,6 +72,7 @@ build-agent: install-deps ## Build the binary file
 quemu-multi:
 	$(info $(M) ensuring docker buildx with multi-platform support is available...)
 	@docker run --privileged --rm tonistiigi/binfmt --install all
+	@docker buildx create --name kubectl-prof-builder --use --bootstrap 2>/dev/null || docker buildx use kubectl-prof-builder || true
 
 ## build-docker-jvm: Build the JVM docker image
 .PHONY: build-docker-jvm
