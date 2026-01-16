@@ -24,13 +24,14 @@ import (
 )
 
 const (
-	profilerLocation    = "/app/bcc-profiler/profile"
+	profilerLocation    = "/app/libbpf-profiler/profile"
 	bpfDelayBetweenJobs = 5 * time.Second
 )
 
 var bccProfilerCommand = func(commander executil.Commander, job *job.ProfilingJob, pid string) *exec.Cmd {
 	interval := strconv.Itoa(int(job.Interval.Seconds()))
-	args := []string{"-df", "-U", "-F", "99", "-p", pid, interval}
+	// libbpf-tools profile uses similar args: -f for folded output, -U for user stacks only, -F for frequency, -p for PID
+	args := []string{"-f", "-U", "-F", "99", "-p", pid, interval}
 	return commander.Command(profilerLocation, args...)
 }
 

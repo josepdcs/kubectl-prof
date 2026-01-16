@@ -64,10 +64,10 @@ func (b *bpfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 							},
 						},
 						{
-							Name: "modules",
+							Name: "sys-kernel-btf",
 							VolumeSource: apiv1.VolumeSource{
 								HostPath: &apiv1.HostPathVolumeSource{
-									Path: "/lib/modules",
+									Path: "/sys/kernel/btf",
 								},
 							},
 						},
@@ -87,8 +87,9 @@ func (b *bpfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 									MountPath: cfg.Target.ContainerRuntimePath,
 								},
 								{
-									Name:      "modules",
-									MountPath: "/lib/modules",
+									Name:      "sys-kernel-btf",
+									MountPath: "/sys/kernel/btf",
+									ReadOnly:  true,
 								},
 							},
 							SecurityContext: &apiv1.SecurityContext{
