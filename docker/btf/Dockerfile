@@ -25,7 +25,7 @@ RUN apk add --no-cache \
     bpftool
 
 # Clone and build libbpf-tools profile
-RUN git clone --depth 1 https://github.com/iovisor/bcc.git /bcc && \
+RUN git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/iovisor/bcc.git /bcc && \
     cd /bcc/libbpf-tools && \
     make profile
 
