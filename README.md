@@ -57,6 +57,18 @@
 - **Containerd** - `--runtime=containerd` (default)
 - **CRI-O** - `--runtime=crio`
 
+### System Requirements for eBPF Profiling ⚙️
+
+For eBPF profiling (Go, Node.js, Clang/Clang++), the following are required:
+
+- **Linux Kernel 4.9+** - BPF perf event support
+- **BTF (BPF Type Format)** - Kernel 5.2+ with BTF enabled (check `/sys/kernel/btf/vmlinux`)
+  - Most modern distributions (Ubuntu 20.04+, RHEL 8+, etc.) include BTF by default
+  - **No kernel headers required** - Uses CO-RE (Compile Once - Run Everywhere) technology
+  - Works on cloud providers like DigitalOcean without kheaders module
+
+> 💡 **Note:** kubectl-prof uses [CO-RE](https://nakryiko.com/posts/bpf-core-reference-guide/) for eBPF profiling, eliminating the need for kernel headers on host machines. It only requires BTF information available at `/sys/kernel/btf/vmlinux`.
+
 ## 🚀 Quick Start
 
 Profile a Java application for 1 minute and save the FlameGraph:
@@ -548,9 +560,12 @@ make build-docker-agents
 
 #### 🐹 Go
 
-**[eBPF profiling](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter)** - Kernel-level profiling
+**[eBPF profiling with CO-RE](https://nakryiko.com/posts/bpf-core-reference-guide/)** - Kernel-level profiling using libbpf-tools
 - FlameGraphs: `-o flamegraph` (default)
 - Raw output: `-o raw`
+- **No kernel headers required** - Uses BTF and CO-RE for portability
+
+> 💡 **CO-RE Technology:** kubectl-prof uses [Compile Once - Run Everywhere](https://nakryiko.com/posts/bpf-core-reference-guide/) (CO-RE) eBPF technology with [libbpf-tools](https://github.com/iovisor/bcc/tree/master/libbpf-tools), which means eBPF profiling works across different kernel versions without requiring kernel headers or the kheaders module on the host machine.
 
 #### 🦀 Rust
 
@@ -568,9 +583,13 @@ make build-docker-agents
 
 #### 📗 Node.js
 
-**[eBPF profiling](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter)** (recommended) and **[perf](https://perf.wiki.kernel.org/index.php/Main_Page)**
+**[eBPF profiling with CO-RE](https://nakryiko.com/posts/bpf-core-reference-guide/)** (recommended) - Kernel-level profiling using libbpf-tools
 - FlameGraphs: `-o flamegraph` (default)
 - Raw output: `-o raw`
+- **No kernel headers required** - Uses BTF and CO-RE for portability
+
+**Alternative: [perf](https://perf.wiki.kernel.org/index.php/Main_Page)**
+- Available for fallback if eBPF profiling unavailable
 - Heap snapshot: `-o heapsnapshot`
 
 > 💡 **Tip:** For JavaScript symbol resolution, run Node.js with `--perf-basic-prof` flag  
@@ -578,9 +597,13 @@ make build-docker-agents
 
 #### ⚙️ Clang/Clang++
 
-**[perf](https://perf.wiki.kernel.org/index.php/Main_Page)** (default) and **[eBPF profiling](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter)**
+**[eBPF profiling with CO-RE](https://nakryiko.com/posts/bpf-core-reference-guide/)** (recommended) - Kernel-level profiling using libbpf-tools
 - FlameGraphs: `-o flamegraph`
 - Raw output: `-o raw`
+- **No kernel headers required** - Uses BTF and CO-RE for portability
+
+**Alternative: [perf](https://perf.wiki.kernel.org/index.php/Main_Page)**
+- Available for fallback if eBPF profiling unavailable
 
 ---
 
