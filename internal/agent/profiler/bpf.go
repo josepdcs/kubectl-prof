@@ -30,7 +30,12 @@ const (
 
 var bccProfilerCommand = func(commander executil.Commander, job *job.ProfilingJob, pid string) *exec.Cmd {
 	interval := strconv.Itoa(int(job.Interval.Seconds()))
-	// libbpf-tools profile uses similar args: -f for folded output, -U for user stacks only, -F for frequency, -p for PID
+	// libbpf-tools profile command-line arguments:
+	// -f: folded output format (single line per stack, suitable for FlameGraph)
+	// -U: user stacks only (no kernel stacks - delimiter not needed)
+	// -F 99: sample frequency at 99 Hz
+	// -p: profile specific PID
+	// interval: duration in seconds
 	args := []string{"-f", "-U", "-F", "99", "-p", pid, interval}
 	return commander.Command(profilerLocation, args...)
 }
