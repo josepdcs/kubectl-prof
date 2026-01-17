@@ -13,27 +13,31 @@ RUN apk add --no-cache git  \
     && git clone https://github.com/brendangregg/FlameGraph
 
 FROM alpine:3.22.1 AS libbpf-builder
-# Install build dependencies for libbpf-tools
+# Install build dependencies for libbpf-tools including static libraries
 RUN apk add --no-cache \
     build-base \
     clang \
     llvm20 \
     elfutils-dev \
+    elfutils-static \
     linux-headers \
     libbpf-dev \
+    libbpf-static \
     zlib-dev \
+    zlib-static \
     git \
     bpftool \
-    argp-standalone
+    argp-standalone \
+    musl-dev
 
 # Clone and build libbpf-tools profile
 # Using -mcpu=v2 for better kernel compatibility (supports kernels 5.2+)
-# -mcpu=v1 would support even older kernels but with fewer features
+# Build as static binary to avoid library dependencies when copying to target container
 RUN git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/iovisor/bcc.git /bcc && \
     cd /bcc/libbpf-tools && \
     sed -i '1i #include <libgen.h>' bpftool/src/gen.c && \
     sed -i 's/BPFCFLAGS := -g -O2 -Wall -Werror=undef/BPFCFLAGS := -g -O2 -Wall -Werror=undef -mcpu=v2/' Makefile && \
-    make EXTRA_CFLAGS="-I/usr/include" EXTRA_LDFLAGS="-largp" profile
+    make EXTRA_CFLAGS="-I/usr/include" EXTRA_LDFLAGS="-largp -static" profile
 
 FROM alpine:3.22.1
 # Install only runtime dependencies (no bcc-tools needed for CO-RE)
