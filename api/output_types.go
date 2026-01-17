@@ -34,6 +34,7 @@ var GetOutputTypesByProfilingTool = map[ProfilingTool][]OutputType{
 	Jcmd:          {Jfr, ThreadDump, HeapDump, HeapHistogram},
 	Pyspy:         {FlameGraph, SpeedScope, ThreadDump, Raw},
 	Bpf:           {FlameGraph, Raw},
+	Btf:           {FlameGraph, Raw},
 	Perf:          {FlameGraph, Raw},
 	Rbspy:         {FlameGraph, SpeedScope, Callgrind, Summary, SummaryByLine},
 	CargoFlame:    {FlameGraph},

@@ -57,6 +57,32 @@
 - **Containerd** - `--runtime=containerd` (default)
 - **CRI-O** - `--runtime=crio`
 
+### eBPF Profiling Tools 🔧
+
+For eBPF profiling (Go, Node.js, Clang/Clang++), two tools are available:
+
+#### BPF (default) - BCC-based profiler
+- **Requirements:** Kernel headers or kheaders module (`/lib/modules`)
+- **Usage:** Automatically used by default (no `--tool` flag needed)
+- **Compatibility:** Works on most systems with kernel headers installed
+
+#### BTF - CO-RE eBPF profiler (NEW)
+- **Requirements:** 
+  - Linux kernel 5.2+ with BTF enabled (check `/sys/kernel/btf/vmlinux`)
+  - BPF CPU v2 support (kernel 5.2+)
+- **Usage:** Add `--tool btf` flag to your command
+- **Benefits:**
+  - ✅ No kernel headers required - works on DigitalOcean and other cloud providers without kheaders
+  - ✅ Uses [CO-RE](https://nakryiko.com/posts/bpf-core-reference-guide/) (Compile Once - Run Everywhere) technology
+  - ✅ Portable across different kernel versions without recompilation
+  - ✅ Smaller Docker image size
+- **Note:** Most modern distributions (Ubuntu 20.04+, RHEL 8+, etc.) include BTF by default and meet the kernel requirements
+
+**Example using BTF:**
+```shell
+kubectl prof my-pod -t 1m -l go --tool btf
+```
+
 ## 🚀 Quick Start
 
 Profile a Java application for 1 minute and save the FlameGraph:
@@ -548,7 +574,20 @@ make build-docker-agents
 
 #### 🐹 Go
 
-**[eBPF profiling](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter)** - Kernel-level profiling
+**eBPF Profiling** - Two options available:
+
+1. **BPF (default)** - BCC-based profiler
+   - Uses BCC tools with runtime compilation
+   - Requires kernel headers (`/lib/modules`)
+   - Usage: No `--tool` flag needed (default)
+
+2. **BTF** - [CO-RE eBPF profiler](https://nakryiko.com/posts/bpf-core-reference-guide/)
+   - Uses libbpf-tools with CO-RE support
+   - **No kernel headers required** - only needs BTF (available on modern kernels)
+   - Usage: Add `--tool btf` flag
+   - Example: `kubectl prof my-pod -t 1m -l go --tool btf`
+
+**Output formats (both tools):**
 - FlameGraphs: `-o flamegraph` (default)
 - Raw output: `-o raw`
 
@@ -568,7 +607,21 @@ make build-docker-agents
 
 #### 📗 Node.js
 
-**[eBPF profiling](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter)** (recommended) and **[perf](https://perf.wiki.kernel.org/index.php/Main_Page)**
+**eBPF Profiling** - Two options available (recommended):
+
+1. **BPF (default)** - BCC-based profiler
+   - Requires kernel headers (`/lib/modules`)
+   - Usage: No `--tool` flag needed (default)
+
+2. **BTF** - [CO-RE eBPF profiler](https://nakryiko.com/posts/bpf-core-reference-guide/)
+   - **No kernel headers required** - only needs BTF
+   - Usage: Add `--tool btf` flag
+   - Example: `kubectl prof my-pod -t 1m -l node --tool btf`
+
+**Alternative: [perf](https://perf.wiki.kernel.org/index.php/Main_Page)**
+- Available for fallback if eBPF profiling unavailable
+
+**Output formats:**
 - FlameGraphs: `-o flamegraph` (default)
 - Raw output: `-o raw`
 - Heap snapshot: `-o heapsnapshot`
@@ -578,7 +631,21 @@ make build-docker-agents
 
 #### ⚙️ Clang/Clang++
 
-**[perf](https://perf.wiki.kernel.org/index.php/Main_Page)** (default) and **[eBPF profiling](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter)**
+**eBPF Profiling** - Two options available (recommended):
+
+1. **BPF (default)** - BCC-based profiler
+   - Requires kernel headers (`/lib/modules`)
+   - Usage: No `--tool` flag needed (default)
+
+2. **BTF** - [CO-RE eBPF profiler](https://nakryiko.com/posts/bpf-core-reference-guide/)
+   - **No kernel headers required** - only needs BTF
+   - Usage: Add `--tool btf` flag
+   - Example: `kubectl prof my-pod -t 1m -l clang --tool btf`
+
+**Alternative: [perf](https://perf.wiki.kernel.org/index.php/Main_Page)**
+- Available for fallback if eBPF profiling unavailable
+
+**Output formats:**
 - FlameGraphs: `-o flamegraph`
 - Raw output: `-o raw`
 

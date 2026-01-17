@@ -29,6 +29,8 @@ func Get(tool api.ProfilingTool) Profiler {
 		return jvm.NewAsyncProfiler(executil.NewCommander(), publish.NewPublisher())
 	case api.Bpf:
 		return NewBpfProfiler(executil.NewCommander(), publish.NewPublisher())
+	case api.Btf:
+		return NewBtfProfiler(executil.NewCommander(), publish.NewPublisher())
 	case api.Pyspy:
 		return NewPythonProfiler(executil.NewCommander(), publish.NewPublisher())
 	case api.Perf:

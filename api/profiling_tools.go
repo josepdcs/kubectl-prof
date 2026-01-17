@@ -14,6 +14,7 @@ const (
 	Jcmd          ProfilingTool = "jcmd"             // Jcmd is a profiling tool used primarily for Java applications to output various performance metrics.
 	Pyspy         ProfilingTool = "pyspy"            // Pyspy is a profiling tool used primarily for Python applications to output various performance metrics.
 	Bpf           ProfilingTool = "bpf"              // Bpf is a profiling tool used primarily for C/C++ applications to output various performance metrics.
+	Btf           ProfilingTool = "btf"              // Btf is a CO-RE eBPF profiling tool using libbpf-tools that requires BTF kernel support.
 	Perf          ProfilingTool = "perf"             // Perf is a profiling tool used primarily for Linux applications to output various performance metrics.
 	Rbspy         ProfilingTool = "rbspy"            // Rbspy is a profiling tool used primarily for Ruby applications to output various performance metrics.
 	NodeDummy     ProfilingTool = "node-dummy"       // NodeDummy is a profiling tool used primarily for Node.js applications to output various performance metrics.
@@ -23,7 +24,7 @@ const (
 
 var (
 	// profilingTools contains all supported profiling tools.
-	profilingTools = []ProfilingTool{AsyncProfiler, Jcmd, Pyspy, Bpf, Perf, Rbspy, NodeDummy, CargoFlame}
+	profilingTools = []ProfilingTool{AsyncProfiler, Jcmd, Pyspy, Bpf, Btf, Perf, Rbspy, NodeDummy, CargoFlame}
 )
 
 // AvailableProfilingTools returns the list of all available profiling tools.
@@ -77,12 +78,12 @@ var GetProfilingTool = func(l ProgrammingLanguage, o OutputType) ProfilingTool {
 var GetProfilingToolsByProgrammingLanguage = map[ProgrammingLanguage][]ProfilingTool{
 	Java:          {Jcmd, AsyncProfiler},
 	Python:        {Pyspy},
-	Go:            {Bpf, CargoFlame},
-	Node:          {Bpf, Perf, NodeDummy, CargoFlame},
-	Clang:         {Bpf, Perf, CargoFlame},
-	ClangPlusPlus: {Bpf, Perf, CargoFlame},
+	Go:            {Bpf, Btf, CargoFlame},
+	Node:          {Bpf, Btf, Perf, NodeDummy, CargoFlame},
+	Clang:         {Bpf, Btf, Perf, CargoFlame},
+	ClangPlusPlus: {Bpf, Btf, Perf, CargoFlame},
 	Ruby:          {Rbspy},
-	Rust:          {CargoFlame, Bpf, Perf},
+	Rust:          {CargoFlame, Bpf, Btf, Perf},
 	FakeLang:      {FakeTool},
 }
 

@@ -34,6 +34,9 @@ func Get(lang api.ProgrammingLanguage, tool api.ProfilingTool) (Creator, error) 
 		if tool == api.NodeDummy {
 			return &dummyCreator{}, nil
 		}
+		if tool == api.Btf {
+			return &btfCreator{}, nil
+		}
 		return &bpfCreator{}, nil
 	case api.Rust:
 		if tool == api.CargoFlame {
@@ -41,6 +44,9 @@ func Get(lang api.ProgrammingLanguage, tool api.ProfilingTool) (Creator, error) 
 		}
 		if tool == api.Perf {
 			return &perfCreator{}, nil
+		}
+		if tool == api.Btf {
+			return &btfCreator{}, nil
 		}
 		return &bpfCreator{}, nil
 	case api.Python:
