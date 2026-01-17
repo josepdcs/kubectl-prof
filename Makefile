@@ -1,4 +1,4 @@
-VERSION ?= v1.10.0-dev
+VERSION ?= v1.11.0-dev
 CLI_NAME ?= kubectl-prof
 CLI_DIR ?= ./cmd/cli/
 AGENT_NAME ?= agent
@@ -26,6 +26,7 @@ DOCKER_DUMMY_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-dummy
 DOCKERFILE_DUMMY ?= ./docker/dummy/Dockerfile
 DOCKER_TARGET_PLATFORM ?= linux/amd64,linux/arm64
 DOCKER_BUILD_ADDITIONAL_ARGS ?=
+DOCKER_BUILD_PUSH_ARG =
 
 M = $(shell printf "\033[34;1m▶\033[0m")
 
@@ -72,115 +73,106 @@ build-agent: install-deps ## Build the binary file
 quemu-multi:
 	$(info $(M) ensuring docker buildx with multi-platform support is available...)
 	@docker run --privileged --rm tonistiigi/binfmt --install all
-	@docker buildx create --name kubectl-prof-builder --use --bootstrap 2>/dev/null || docker buildx use kubectl-prof-builder || true
+	@#docker buildx create --name kubectl-prof-builder --use --bootstrap 2>/dev/null || docker buildx use kubectl-prof-builder || true
 
 ## build-docker-jvm: Build the JVM docker image
 .PHONY: build-docker-jvm
 build-docker-jvm: quemu-multi
 	$(info $(M) building JVM docker image...)
-	@docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} --progress plain --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_JVM_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_JVM) .
+	@docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} ${DOCKER_BUILD_PUSH_ARG} --progress plain --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_JVM_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_JVM) .
 
 ## push-docker-jvm: Build and push the JVM docker image
 .PHONY: push-docker-jvm
+push-docker-jvm: DOCKER_BUILD_PUSH_ARG = --push
 push-docker-jvm: build-docker-jvm
-	$(info $(M) pushing JVM docker image to DockerHub...)
-	@docker push $(REGISTRY)/$(DOCKER_JVM_IMAGE)
 
 ## build-docker-jvm-alpine: Build the JVM docker image for Alpine
 .PHONY: build-docker-jvm-alpine
 build-docker-jvm-alpine: quemu-multi
 	$(info $(M) building JVM Alpine docker image...)
-	@docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} --progress plain --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_JVM_ALPINE_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_JVM_ALPINE) .
+	@docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} ${DOCKER_BUILD_PUSH_ARG} --progress plain --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_JVM_ALPINE_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_JVM_ALPINE) .
 
 ## push-docker-jvm-alpine: Build and push the JVM docker image for Alpine
 .PHONY: push-docker-jvm-alpine
+push-docker-jvm-alpine: DOCKER_BUILD_PUSH_ARG = --push
 push-docker-jvm-alpine: build-docker-jvm-alpine
-	$(info $(M) pushing JVM Alpine docker image to DockerHub...)
-	@docker push $(REGISTRY)/$(DOCKER_JVM_ALPINE_IMAGE)
 
 ## build-docker-bpf: Build the BPF docker image
 .PHONY: build-docker-bpf
 build-docker-bpf: quemu-multi
 	$(info $(M) building BPF docker image...)
-	docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_BPF_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_BPF) .
+	docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} ${DOCKER_BUILD_PUSH_ARG} --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_BPF_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_BPF) .
 
 ## push-docker-bpf: Build and push the BPF docker image
 .PHONY: push-docker-bpf
+push-docker-bpf: DOCKER_BUILD_PUSH_ARG = --push
 push-docker-bpf: build-docker-bpf
-	$(info $(M) pushing BPF docker image to DockerHub...)
-	@docker push $(REGISTRY)/$(DOCKER_BPF_IMAGE)
 
 ## build-docker-btf: Build the BTF docker image
 .PHONY: build-docker-btf
 build-docker-btf: quemu-multi
 	$(info $(M) building BTF docker image...)
-	docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_BTF_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_BTF) .
+	docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} ${DOCKER_BUILD_PUSH_ARG} --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_BTF_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_BTF) .
 
 ## push-docker-btf: Build and push the BTF docker image
 .PHONY: push-docker-btf
+push-docker-btf: DOCKER_BUILD_PUSH_ARG = --push
 push-docker-btf: build-docker-btf
-	$(info $(M) pushing BTF docker image to DockerHub...)
-	@docker push $(REGISTRY)/$(DOCKER_BTF_IMAGE)
 
 ## build-docker-perf: Build the PERF docker image
 .PHONY: build-docker-perf
 build-docker-perf: quemu-multi
 	$(info $(M) building PERF docker image...)
-	docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} --platform=${DOCKER_TARGET_PLATFORM} --no-cache -t ${DOCKER_PERF_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_PERF) .
+	docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} ${DOCKER_BUILD_PUSH_ARG} --platform=${DOCKER_TARGET_PLATFORM} --no-cache -t ${DOCKER_PERF_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_PERF) .
 
 ## push-docker-perf: Build and push the PERF docker image
 .PHONY: push-docker-perf
+push-docker-perf: DOCKER_BUILD_PUSH_ARG = --push
 push-docker-perf: build-docker-perf
-	$(info $(M) pushing PERF docker image to DockerHub...)
-	@docker push $(REGISTRY)/$(DOCKER_PERF_IMAGE)
 
 ## build-docker-python: Build the PYTHON docker image
 .PHONY: build-docker-python
 build-docker-python: quemu-multi
 	$(info $(M) building PYTHON docker image...)
-	docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_PYTHON_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_PYTHON) .
+	docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} ${DOCKER_BUILD_PUSH_ARG} --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_PYTHON_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_PYTHON) .
 
 ## push-docker-python: Build and push the PYTHON docker image
 .PHONY: push-docker-python
+push-docker-python: DOCKER_BUILD_PUSH_ARG = --push
 push-docker-python: build-docker-python
-	$(info $(M) pushing PYTHON docker image to DockerHub...)
-	@docker push $(REGISTRY)/$(DOCKER_PYTHON_IMAGE)
 
 ## build-docker-ruby: Build the RUBY docker image
 .PHONY: build-docker-ruby
 build-docker-ruby: quemu-multi
 	$(info $(M) building RUBY docker image...)
-	docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_RUBY_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_RUBY) .
+	docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} ${DOCKER_BUILD_PUSH_ARG} --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_RUBY_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_RUBY) .
 
 ## push-docker-ruby: Build and push the RUBY docker image
 .PHONY: push-docker-ruby
+push-docker-ruby: DOCKER_BUILD_PUSH_ARG = --push
 push-docker-ruby: build-docker-ruby
-	$(info $(M) pushing RUBY docker image to DockerHub...)
-	@docker push $(REGISTRY)/$(DOCKER_RUBY_IMAGE)
 
 ## build-docker-rust: Build the RUST docker image
 .PHONY: build-docker-rust
 build-docker-rust: quemu-multi
 	$(info $(M) building RUST docker image...)
-	docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_RUST_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_RUST) .
+	docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} ${DOCKER_BUILD_PUSH_ARG} --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_RUST_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_RUST) .
 
 ## push-docker-rust: Build and push the RUST docker image
 .PHONY: push-docker-rust
+push-docker-rust: DOCKER_BUILD_PUSH_ARG = --push
 push-docker-rust: build-docker-rust
-	$(info $(M) pushing RUST docker image to DockerHub...)
-	@docker push $(REGISTRY)/$(DOCKER_RUST_IMAGE)
 
 ## build-docker-dummy: Build the DUMMY docker image
 .PHONY: build-docker-dummy
 build-docker-dummy: quemu-multi
 	$(info $(M) building DUMMY docker image...)
-	docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_DUMMY_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_DUMMY) .
+	docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} ${DOCKER_BUILD_PUSH_ARG} --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_DUMMY_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_DUMMY) .
 
 ## push-docker-dummy: Build and push the DUMMY docker image
 .PHONY: push-docker-dummy
+push-docker-dummy: DOCKER_BUILD_PUSH_ARG = --push
 push-docker-dummy: build-docker-dummy
-	$(info $(M) pushing DUMMY docker image to DockerHub...)
-	@docker push $(REGISTRY)/$(DOCKER_DUMMY_IMAGE)
 
 ## push-docker-all: Build and push all docker images
 .PHONY: push-docker-all

@@ -18,7 +18,7 @@ FROM alpine:3.22.1 AS libbpf-builder
 RUN apk add --no-cache \
     build-base \
     clang \
-    llvm20 \
+    llvm-dev \
     elfutils-dev \
     linux-headers \
     libbpf-dev \
@@ -38,9 +38,11 @@ RUN git clone --depth 1 --recurse-submodules --shallow-submodules https://github
     cd /bcc/libbpf-tools && \
     sed -i '1i #include <libgen.h>' bpftool/src/gen.c && \
     sed -i 's/BPFCFLAGS := -g -O2 -Wall -Werror=undef/BPFCFLAGS := -g -O2 -Wall -Werror=undef -mcpu=v2/' Makefile && \
-    sed -i 's|LIBS = -lelf -lz|LIBS = -lelf -lz -lzstd|' bpftool/src/Makefile && \
-    sed -i 's|-lelf -lz|-lelf -lz -lzstd|g' Makefile && \
-    make EXTRA_CFLAGS="-I/usr/include" EXTRA_LDFLAGS="-largp -static" LIBS="-lelf -lz -lzstd" profile
+    sed -i 's|LIBS = -lelf -lz|LIBS = -lelf -lz -lzstd|g' bpftool/src/Makefile && \
+    sed -i 's|$(QUIET_LINK)$(CC) $(BINARY_CFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)|$(QUIET_LINK)$(CC) $(BINARY_CFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS) -lzstd|g' /bcc/libbpf-tools/bpftool/src/Makefile && \
+    sed -i 's|$(QUIET_LINK)$(CC) $(BINARY_CFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)|$(QUIET_LINK)$(CC) $(BINARY_CFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS) -lzstd|g' /bcc/src/cc/libbpf/src/Makefile && \
+    find /bcc -name "Makefile*" -exec sed -i 's|-lelf -lz|-lelf -lz -lzstd|g' {} + && \
+    make EXTRA_CFLAGS="-I/usr/include" EXTRA_LDFLAGS="-largp -static -lzstd" LIBS="-lelf -lz -lzstd" profile
 
 FROM alpine:3.22.1
 # Install only runtime dependencies (no bcc-tools needed for CO-RE)
