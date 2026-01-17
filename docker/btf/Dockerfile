@@ -13,16 +13,15 @@ RUN apk add --no-cache git  \
     && git clone https://github.com/brendangregg/FlameGraph
 
 FROM alpine:3.22.1 AS libbpf-builder
-# Install build dependencies for libbpf-tools including static libraries
+# Install build dependencies for libbpf-tools
+# Note: Alpine's musl libc allows static linking with -static flag
 RUN apk add --no-cache \
     build-base \
     clang \
     llvm20 \
     elfutils-dev \
-    elfutils-static \
     linux-headers \
     libbpf-dev \
-    libbpf-static \
     zlib-dev \
     zlib-static \
     git \
