@@ -28,16 +28,24 @@ if [ -z "$PID" ]; then
     exit 1
 fi
 
-# Copy the profile binary to the target's /tmp directory
+# Access the target's root filesystem
 PROC_ROOT="/proc/$PID/root"
-TARGET_PROFILE="$PROC_ROOT/tmp/kubectl-prof-profile-$$"
 
 if [ ! -d "$PROC_ROOT" ]; then
     echo "Error: Cannot access $PROC_ROOT" >&2
     exit 1
 fi
 
-# Copy profile binary to target's filesystem
+# Ensure /tmp exists in the target's filesystem, create if needed
+if [ ! -d "$PROC_ROOT/tmp" ]; then
+    mkdir -p "$PROC_ROOT/tmp" 2>/dev/null || {
+        echo "Error: Cannot create /tmp in target container" >&2
+        exit 1
+    }
+fi
+
+# Copy the profile binary to the target's /tmp directory
+TARGET_PROFILE="$PROC_ROOT/tmp/kubectl-prof-profile-$$"
 cp /app/libbpf-profiler/profile "$TARGET_PROFILE"
 chmod +x "$TARGET_PROFILE"
 
