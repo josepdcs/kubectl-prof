@@ -67,14 +67,16 @@ For eBPF profiling (Go, Node.js, Clang/Clang++), two tools are available:
 - **Compatibility:** Works on most systems with kernel headers installed
 
 #### BTF - CO-RE eBPF profiler (NEW)
-- **Requirements:** Linux kernel 5.2+ with BTF enabled (check `/sys/kernel/btf/vmlinux`)
+- **Requirements:** 
+  - Linux kernel 5.2+ with BTF enabled (check `/sys/kernel/btf/vmlinux`)
+  - BPF CPU v2 support (kernel 5.2+)
 - **Usage:** Add `--tool btf` flag to your command
 - **Benefits:**
   - ✅ No kernel headers required - works on DigitalOcean and other cloud providers without kheaders
   - ✅ Uses [CO-RE](https://nakryiko.com/posts/bpf-core-reference-guide/) (Compile Once - Run Everywhere) technology
   - ✅ Portable across different kernel versions without recompilation
   - ✅ Smaller Docker image size
-- **Note:** Most modern distributions (Ubuntu 20.04+, RHEL 8+, etc.) include BTF by default
+- **Note:** Most modern distributions (Ubuntu 20.04+, RHEL 8+, etc.) include BTF by default and meet the kernel requirements
 
 **Example using BTF:**
 ```shell

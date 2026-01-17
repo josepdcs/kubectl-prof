@@ -27,9 +27,12 @@ RUN apk add --no-cache \
     argp-standalone
 
 # Clone and build libbpf-tools profile
+# Using -mcpu=v2 for better kernel compatibility (supports kernels 5.2+)
+# -mcpu=v1 would support even older kernels but with fewer features
 RUN git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/iovisor/bcc.git /bcc && \
     cd /bcc/libbpf-tools && \
     sed -i '1i #include <libgen.h>' bpftool/src/gen.c && \
+    sed -i 's/BPFCFLAGS := -g -O2 -Wall -Werror=undef/BPFCFLAGS := -g -O2 -Wall -Werror=undef -mcpu=v2/' Makefile && \
     make EXTRA_CFLAGS="-I/usr/include" EXTRA_LDFLAGS="-largp" profile
 
 FROM alpine:3.22.1
