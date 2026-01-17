@@ -42,6 +42,8 @@ RUN apk add --no-cache bash perl procps strace libbpf util-linux \
 COPY --from=builder /FlameGraph /app/FlameGraph
 COPY --from=libbpf-builder /bcc/libbpf-tools/profile /app/libbpf-profiler/profile
 RUN chmod +x /app/libbpf-profiler/profile
+COPY docker/btf/profile-wrapper.sh /app/libbpf-profiler/profile-wrapper.sh
+RUN chmod +x /app/libbpf-profiler/profile-wrapper.sh
 COPY --from=agentbuild /go/bin/agent /app
 COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/get-ps-command.sh /app/get-ps-command.sh
 RUN chmod +x /app/get-ps-command.sh

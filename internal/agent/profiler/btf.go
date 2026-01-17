@@ -24,25 +24,22 @@ import (
 )
 
 const (
-	btfProfilerLocation = "/app/libbpf-profiler/profile"
+	btfProfilerLocation = "/app/libbpf-profiler/profile-wrapper.sh"
 	btfDelayBetweenJobs = 5 * time.Second
 )
 
 var btfProfilerCommand = func(commander executil.Commander, job *job.ProfilingJob, pid string) *exec.Cmd {
 	interval := strconv.Itoa(int(job.Interval.Seconds()))
-	// Use nsenter to run profile in the target process's mount namespace
-	// This allows the profiler to access the target process's binaries for symbol resolution
-	// -t <pid>: target PID
-	// -m: enter mount namespace
-	// --: separator before the command to run
 	// libbpf-tools profile command-line arguments:
 	// -f: folded output format (single line per stack, suitable for FlameGraph)
 	// -U: user stacks only (no kernel stacks - delimiter not needed)
 	// -F 99: sample frequency at 99 Hz
 	// -p: profile specific PID
 	// interval: duration in seconds
-	args := []string{"-t", pid, "-m", "--", btfProfilerLocation, "-f", "-U", "-F", "99", "-p", pid, interval}
-	return commander.Command("/usr/bin/nsenter", args...)
+	// Note: The profile tool accesses /proc/<pid>/maps and /proc/<pid>/root/* for symbol resolution
+	// This works with hostPID: true as the profiler can see all PIDs and access their /proc entries
+	args := []string{"-f", "-U", "-F", "99", "-p", pid, interval}
+	return commander.Command(btfProfilerLocation, args...)
 }
 
 type BtfProfiler struct {
