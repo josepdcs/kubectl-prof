@@ -39,6 +39,7 @@ RUN git clone --depth 1 --recurse-submodules --shallow-submodules https://github
     sed -i '1i #include <libgen.h>' bpftool/src/gen.c && \
     sed -i 's/BPFCFLAGS := -g -O2 -Wall -Werror=undef/BPFCFLAGS := -g -O2 -Wall -Werror=undef -mcpu=v2/' Makefile && \
     sed -i 's|LIBS = -lelf -lz|LIBS = -lelf -lz -lzstd|' bpftool/src/Makefile && \
+    sed -i 's|-lelf -lz|-lelf -lz -lzstd|g' Makefile && \
     make EXTRA_CFLAGS="-I/usr/include" EXTRA_LDFLAGS="-largp -static" LIBS="-lelf -lz -lzstd" profile
 
 FROM alpine:3.22.1
