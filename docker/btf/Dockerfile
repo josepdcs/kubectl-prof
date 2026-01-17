@@ -24,6 +24,8 @@ RUN apk add --no-cache \
     libbpf-dev \
     zlib-dev \
     zlib-static \
+    zstd-dev \
+    zstd-static \
     git \
     bpftool \
     argp-standalone \
@@ -36,7 +38,7 @@ RUN git clone --depth 1 --recurse-submodules --shallow-submodules https://github
     cd /bcc/libbpf-tools && \
     sed -i '1i #include <libgen.h>' bpftool/src/gen.c && \
     sed -i 's/BPFCFLAGS := -g -O2 -Wall -Werror=undef/BPFCFLAGS := -g -O2 -Wall -Werror=undef -mcpu=v2/' Makefile && \
-    make EXTRA_CFLAGS="-I/usr/include" EXTRA_LDFLAGS="-largp -static" profile
+    make EXTRA_CFLAGS="-I/usr/include" EXTRA_LDFLAGS="-largp -lzstd -static" profile
 
 FROM alpine:3.22.1
 # Install only runtime dependencies (no bcc-tools needed for CO-RE)
