@@ -37,7 +37,7 @@ RUN git clone --depth 1 --recurse-submodules --shallow-submodules https://github
 
 FROM alpine:3.22.1
 # Install only runtime dependencies (no bcc-tools needed for CO-RE)
-RUN apk add --no-cache bash perl procps strace libbpf \
+RUN apk add --no-cache bash perl procps strace libbpf util-linux \
     && mkdir -p /app/FlameGraph /app/libbpf-profiler
 COPY --from=builder /FlameGraph /app/FlameGraph
 COPY --from=libbpf-builder /bcc/libbpf-tools/profile /app/libbpf-profiler/profile
