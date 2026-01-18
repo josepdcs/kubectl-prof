@@ -73,7 +73,21 @@ func (b *btfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 						},
 					},
 					ImagePullSecrets: imagePullSecret,
-					InitContainers:   nil,
+					InitContainers: []apiv1.Container{
+						{
+							Name:            "sysctl-setup",
+							Image:           "busybox:latest",
+							ImagePullPolicy: apiv1.PullIfNotPresent,
+							Command: []string{
+								"sh",
+								"-c",
+								"sysctl -w kernel.perf_event_paranoid=-1 || true; sysctl -w kernel.kptr_restrict=0 || true",
+							},
+							SecurityContext: &apiv1.SecurityContext{
+								Privileged: boolPtr(true),
+							},
+						},
+					},
 					Containers: []apiv1.Container{
 						{
 							ImagePullPolicy: cfg.Target.ImagePullPolicy,
@@ -138,4 +152,8 @@ func (b *btfCreator) getObjectMeta(id string, cfg *config.ProfilerConfig) metav1
 			"linkerd.io/inject":       "disabled",
 		},
 	}
+}
+
+func boolPtr(b bool) *bool {
+	return &b
 }
