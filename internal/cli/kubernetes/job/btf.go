@@ -139,7 +139,3 @@ func (b *btfCreator) getObjectMeta(id string, cfg *config.ProfilerConfig) metav1
 		},
 	}
 }
-
-func boolPtr(b bool) *bool {
-	return &b
-}

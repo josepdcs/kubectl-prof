@@ -99,10 +99,10 @@ func Test_btfCreate_create(t *testing.T) {
 							},
 						},
 						{
-							Name: "sys-kernel-btf",
+							Name: "sys",
 							VolumeSource: apiv1.VolumeSource{
 								HostPath: &apiv1.HostPathVolumeSource{
-									Path: "/sys/kernel/btf",
+									Path: "/sys",
 								},
 							},
 						},
@@ -122,15 +122,15 @@ func Test_btfCreate_create(t *testing.T) {
 									MountPath: cfg.Target.ContainerRuntimePath,
 								},
 								{
-									Name:      "sys-kernel-btf",
-									MountPath: "/sys/kernel/btf",
+									Name:      "sys",
+									MountPath: "/sys",
 									ReadOnly:  true,
 								},
 							},
 							SecurityContext: &apiv1.SecurityContext{
 								Privileged: &cfg.Job.Privileged,
 								Capabilities: &apiv1.Capabilities{
-									Add: []apiv1.Capability{"SYS_ADMIN"},
+									Add: []apiv1.Capability{"SYS_ADMIN", "PERFMON", "BPF"},
 								},
 							},
 							Resources: resources,
