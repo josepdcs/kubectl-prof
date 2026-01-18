@@ -55,10 +55,10 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Use nsenter to run the profiler in the target's mount and PID namespaces
-# -m: mount namespace (for accessing target's binaries)
-# -p: PID namespace (for accessing process information)
-# -n: network namespace (helps with some profiling operations)
+# Use nsenter to run the profiler in the target's mount namespace only
+# -m: mount namespace (for accessing target's binaries for symbol resolution)
+# We do NOT enter the PID namespace (-p) because:
+# 1. The profiler needs to use perf_event_open on the host's PID perspective
+# 2. Entering the PID namespace would change the PID numbers and break profiling
 # The profile binary is now accessible at /tmp/kubectl-prof-profile-$$ in that namespace
-# We still pass the host PID since we're profiling from the host's PID namespace perspective
-exec nsenter -t "$PID" -m -p -n "/tmp/kubectl-prof-profile-$$" "${PROFILE_ARGS[@]}"
+exec nsenter -t "$PID" -m "/tmp/kubectl-prof-profile-$$" "${PROFILE_ARGS[@]}"

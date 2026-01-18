@@ -15,7 +15,7 @@ import (
 
 type btfCreator struct{}
 
-var btfDefaultCapabilities = []apiv1.Capability{"SYS_ADMIN"}
+var btfDefaultCapabilities = []apiv1.Capability{"SYS_ADMIN", "PERFMON", "BPF"}
 
 func (b *btfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
 	id := string(uuid.NewUUID())
