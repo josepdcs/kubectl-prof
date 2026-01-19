@@ -89,6 +89,17 @@ jobs:
             josepdcs/kubectl-prof:${{ env.tag }}-bpf
             ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-bpf
 
+      - name: Build and Push BTF Agent Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          file: 'docker/btf/Dockerfile'
+          push: true
+          tags: |
+            josepdcs/kubectl-prof:${{ env.tag }}-btf
+            ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-btf
+
       - name: Build and Push Python Agent Image
         uses: docker/build-push-action@v5
         with:
