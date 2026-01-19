@@ -1,0 +1,15 @@
+.git
+.github
+.idea
+.run
+bin/
+coverage.out
+test/
+docker/
+docs/
+*.md
+LICENSE
+.gitignore
+.goreleaser.yml
+.krew.yaml
+sonar-project.properties
