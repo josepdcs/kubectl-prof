@@ -66,7 +66,7 @@ For eBPF profiling (Go, Node.js, Clang/Clang++), two tools are available:
 - **Usage:** Automatically used by default (no `--tool` flag needed)
 - **Compatibility:** Works on most systems with kernel headers installed
 
-#### BTF - CO-RE eBPF profiler (NEW)
+#### BTF - CO-RE eBPF profiler (NEW - Experimental)
 - **Requirements:** 
   - Linux kernel 5.2+ with BTF enabled (check `/sys/kernel/btf/vmlinux`)
   - BPF CPU v2 support (kernel 5.2+)
@@ -514,7 +514,7 @@ Download the Windows binary from the [releases page](https://github.com/josepdcs
 
 ### Prerequisites
 
-- Go 1.21 or higher
+- Go 1.24 or higher
 - Make
 - Docker (for building agent containers)
 
