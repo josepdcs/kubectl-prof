@@ -133,6 +133,17 @@ jobs:
             josepdcs/kubectl-prof:${{ env.tag }}-perf
             ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-perf
 
+      - name: Build and Push Rust Agent Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          file: 'docker/rust/Dockerfile'
+          push: true
+          tags: |
+            josepdcs/kubectl-prof:${{ env.tag }}-rust
+            ghcr.io/josepdcs/kubectl-prof:${{ env.tag }}-rust
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
