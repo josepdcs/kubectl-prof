@@ -170,14 +170,22 @@ func retrieveFileOrRetry(pod *v1.Pod, containerName string, exec podexec.Executo
 	for i := 0; i <= target.RetrieveFileRetries; i++ {
 		offset := 0
 		n := 0
+		var err error
 		for (remoteFile.FileSizeInBytes - int64(n)) > 0 {
-			_, out, errOut, err := exec.Execute(pod.Namespace, pod.Name, containerName, []string{"sh", "-c", fmt.Sprintf("tail -c+%d %s", offset, remoteFile.FileName)})
+			var out, errOut *bytes.Buffer
+			_, out, errOut, err = exec.Execute(pod.Namespace, pod.Name, containerName, []string{"sh", "-c", fmt.Sprintf("tail -c+%d %s", offset, remoteFile.FileName)})
 			if err != nil {
-				return nil, errors.Wrapf(err, "could not download profiler result file from pod: %s", errOut.String())
+				log.Errorf("could not download profiler result file from pod: %s, error: %v", errOut.String(), err)
+				break
 			}
 			n += out.Len()
 			offset += out.Len() + 1
 			fileBuff = append(fileBuff, out.Bytes()...)
+		}
+
+		if err != nil {
+			fileBuff = make([]byte, 0, remoteFile.FileSizeInBytes)
+			continue
 		}
 
 		// check the checksum of the downloaded file
@@ -201,7 +209,8 @@ func retrieveChunkOrRetry(chunk api.ChunkData, pod *v1.Pod, containerName string
 		// download the chunk file
 		fileBuff, err := retrieveChunk(chunk, pod, containerName, exec)
 		if err != nil {
-			return "", err
+			log.Errorf("could not download profiler chunk file from pod: %v", err)
+			continue
 		}
 
 		// check the checksum of the downloaded chunk
@@ -232,15 +241,23 @@ func retrieveChunk(chunk api.ChunkData, pod *v1.Pod, containerName string, exec 
 	offset := 0
 	n := 0
 	log.Debugf("Downloading chunk file %s ...", chunk.File)
+	var err error
 	for (chunk.FileSizeInBytes - int64(n)) > 0 {
-		_, out, errOut, err := exec.Execute(pod.Namespace, pod.Name, containerName, []string{"sh", "-c", fmt.Sprintf("tail -c+%d %s", offset, chunk.File)})
+		var out, errOut *bytes.Buffer
+		_, out, errOut, err = exec.Execute(pod.Namespace, pod.Name, containerName, []string{"sh", "-c", fmt.Sprintf("tail -c+%d %s", offset, chunk.File)})
 		if err != nil {
-			return nil, errors.Wrapf(err, "could not download profiler chunk file from pod: %s", errOut.String())
+			log.Errorf("could not download profiler chunk file from pod: %s, error: %v", errOut.String(), err)
+			break
 		}
 		n += out.Len()
 		offset += out.Len() + 1
 		fileBuff = append(fileBuff, out.Bytes()...)
 	}
+
+	if err != nil {
+		return nil, errors.Wrap(err, "could not download profiler chunk file")
+	}
+
 	return fileBuff, nil
 }
 

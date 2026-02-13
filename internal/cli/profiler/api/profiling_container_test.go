@@ -28,6 +28,18 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+type mockExecutor struct {
+	outFake    *bytes.Buffer
+	errOutFake *bytes.Buffer
+	fakeError  error
+	calls      int
+}
+
+func (e *mockExecutor) Execute(string, string, string, []string) (*bytes.Buffer, *bytes.Buffer, *bytes.Buffer, error) {
+	e.calls++
+	return nil, e.outFake, e.errOutFake, e.fakeError
+}
+
 func Test_profilingContainerAdapter_HandleProfilingContainerLogs(t *testing.T) {
 	type fields struct {
 		ProfilingContainerApi
@@ -331,7 +343,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 			},
 			then: func(t *testing.T, r result, f fields) {
 				require.Error(t, r.err)
-				assert.EqualError(t, r.err, "could not download profiler result file from pod: error message: error")
+				assert.EqualError(t, r.err, "checksum does not match for file /tmp/flamegraph.svg.gz")
 			},
 		},
 		{
@@ -397,6 +409,155 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 			then: func(t *testing.T, r result, f fields) {
 				require.Error(t, r.err)
 				assert.EqualError(t, r.err, "checksum does not match for file /tmp/flamegraph.svg.gz")
+			},
+		},
+		{
+			name: "should retry when download failed",
+			given: func() (fields, args) {
+				pod := &v1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:         "PodName",
+						GenerateName: "",
+						Namespace:    "Namespace",
+						Labels: map[string]string{
+							job.LabelID: "Id",
+						},
+					},
+					Spec: v1.PodSpec{
+						Containers: []v1.Container{
+							{
+								Name:  "ContainerName",
+								Image: "Image",
+							},
+						},
+					},
+					Status: v1.PodStatus{
+						Phase: v1.PodRunning,
+					},
+				}
+				remoteFileContent := "test"
+				errOutFake := bytes.NewBufferString("error message")
+				timestamp, _ := time.Parse(time.RFC3339, "2023-02-28T11:44:12.678378359Z")
+
+				// Use a mock executor that counts calls
+				return fields{
+						&profilingContainerApi{
+							connectionInfo: kubernetes.ConnectionInfo{
+								ClientSet: testclient.NewSimpleClientset(),
+							},
+							executor: &mockExecutor{
+								errOutFake: errOutFake,
+								fakeError:  errors.New("network error"),
+							},
+						},
+					},
+					args{
+						pod:           pod,
+						containerName: "ContainerName",
+						remoteFile: resultfile.File{
+							FileName:        filepath.Join(common.TmpDir(), "flamegraph.svg") + ".gz",
+							Checksum:        getMD5Hash([]byte(remoteFileContent)),
+							Timestamp:       timestamp,
+							FileSizeInBytes: int64(len(remoteFileContent)),
+						},
+						target: &config.TargetConfig{
+							LocalPath:  "/tmp",
+							Compressor: compressor.None,
+							ExtraTargetOptions: config.ExtraTargetOptions{
+								RetrieveFileRetries: 2,
+							},
+						},
+					}
+			},
+			when: func(fields fields, args args) result {
+				file, err := fields.GetRemoteFile(args.pod, args.containerName, args.remoteFile, args.target.PodName, args.target)
+				return result{
+					remoteFile: file,
+					err:        err,
+				}
+			},
+			then: func(t *testing.T, r result, f fields) {
+				require.Error(t, r.err)
+				assert.EqualError(t, r.err, "checksum does not match for file /tmp/flamegraph.svg.gz")
+				// 1 initial try + 2 retries = 3 calls
+				assert.Equal(t, 3, f.ProfilingContainerApi.(*profilingContainerApi).executor.(*mockExecutor).calls)
+			},
+		},
+		{
+			name: "should retry when download chunk failed",
+			given: func() (fields, args) {
+				pod := &v1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:         "PodName",
+						GenerateName: "",
+						Namespace:    "Namespace",
+						Labels: map[string]string{
+							job.LabelID: "Id",
+						},
+					},
+					Spec: v1.PodSpec{
+						Containers: []v1.Container{
+							{
+								Name:  "ContainerName",
+								Image: "Image",
+							},
+						},
+					},
+					Status: v1.PodStatus{
+						Phase: v1.PodRunning,
+					},
+				}
+				remoteFileContent := "test"
+				errOutFake := bytes.NewBufferString("error message")
+				timestamp, _ := time.Parse(time.RFC3339, "2023-02-28T11:44:12.678378359Z")
+				return fields{
+						&profilingContainerApi{
+							connectionInfo: kubernetes.ConnectionInfo{
+								ClientSet: testclient.NewSimpleClientset(),
+							},
+							executor: &mockExecutor{
+								errOutFake: errOutFake,
+								fakeError:  errors.New("network error"),
+							},
+						},
+					},
+					args{
+						pod:           pod,
+						containerName: "ContainerName",
+						remoteFile: resultfile.File{
+							FileName:        filepath.Join(common.TmpDir(), "flamegraph.svg") + ".gz",
+							Checksum:        getMD5Hash([]byte(remoteFileContent)),
+							Timestamp:       timestamp,
+							FileSizeInBytes: int64(len(remoteFileContent)),
+							Chunks: []api.ChunkData{
+								{
+									File:            filepath.Join(common.TmpDir(), "flamegraph.svg") + ".gz.00",
+									FileSizeInBytes: int64(len(remoteFileContent)),
+									Checksum:        getMD5Hash([]byte(remoteFileContent)),
+								},
+							},
+						},
+						target: &config.TargetConfig{
+							LocalPath:  "/tmp",
+							Compressor: compressor.None,
+							ExtraTargetOptions: config.ExtraTargetOptions{
+								RetrieveFileRetries: 2,
+							},
+						},
+					}
+			},
+			when: func(fields fields, args args) result {
+				file, err := fields.GetRemoteFile(args.pod, args.containerName, args.remoteFile, args.target.PodName, args.target)
+				return result{
+					remoteFile: file,
+					err:        err,
+				}
+			},
+			then: func(t *testing.T, r result, f fields) {
+				require.Error(t, r.err)
+				assert.EqualError(t, r.err, "checksum does not match for chunk file /tmp/flamegraph.svg.gz.00")
+				// 1 initial try + 2 retries = 3 calls
+				assert.Equal(t, 3, f.ProfilingContainerApi.(*profilingContainerApi).executor.(*mockExecutor).calls)
 			},
 		},
 		{
@@ -725,7 +886,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 			},
 			then: func(t *testing.T, r result, f fields) {
 				require.Error(t, r.err)
-				assert.EqualError(t, r.err, "could not download profiler chunk file from pod: error message: error")
+				assert.EqualError(t, r.err, "checksum does not match for chunk file /tmp/flamegraph.svg.gz.00")
 			},
 		},
 		{
