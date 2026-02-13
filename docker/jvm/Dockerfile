@@ -12,7 +12,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /go/bin/agen
 
 FROM eclipse-temurin:$JAVA_VERSION_TAG AS tools
 ARG TARGETPLATFORM
-ARG ASYNCP_VERSION=4.2.1
+ARG ASYNCP_VERSION=4.3
 RUN apt-get update  \
     && apt-get install -y tar wget  \
     && echo "ASYNCP_VERSION=${ASYNCP_VERSION}, TARGETPLATFORM=${TARGETPLATFORM}"  \
