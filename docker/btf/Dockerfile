@@ -29,7 +29,9 @@ RUN apk add --no-cache \
     git \
     bpftool \
     argp-standalone \
-    musl-dev
+    musl-dev \
+    openssl-dev \
+    openssl-libs-static
 
 # Clone and build libbpf-tools profile
 # Using -mcpu=v2 for better kernel compatibility (supports kernels 5.2+)
