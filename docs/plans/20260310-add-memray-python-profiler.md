@@ -112,9 +112,9 @@ It integrates into the existing profiler architecture using the same Docker imag
 - Modify: `internal/agent/profiler/factory.go`
 - Modify: `internal/agent/profiler/factory_test.go`
 
-- [ ] add `case api.Memray: return NewMemrayProfiler(...)` to `Get` switch in `factory.go`
-- [ ] add test case for `api.Memray` in `factory_test.go`
-- [ ] run tests — must pass before task 5
+- [x] add `case api.Memray: return NewMemrayProfiler(...)` to `Get` switch in `factory.go`
+- [x] add test case for `api.Memray` in `factory_test.go`
+- [x] run tests — must pass before task 5
 
 ### Task 5: K8s job factory — route Python+Memray to pythonCreator
 

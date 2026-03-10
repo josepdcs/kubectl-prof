@@ -37,6 +37,11 @@ func TestGet(t *testing.T) {
 			want: NewPythonProfiler(executil.NewCommander(), publish.NewPublisher()),
 		},
 		{
+			name: "should return memray profiler",
+			tool: api.Memray,
+			want: NewMemrayProfiler(executil.NewCommander(), publish.NewPublisher()),
+		},
+		{
 			name: "should return Rbspy profiler",
 			tool: api.Rbspy,
 			want: NewRubyProfiler(executil.NewCommander(), publish.NewPublisher()),
