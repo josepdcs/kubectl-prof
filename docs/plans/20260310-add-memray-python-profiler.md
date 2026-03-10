@@ -85,7 +85,7 @@ It integrates into the existing profiler architecture using the same Docker imag
 - Create: `internal/agent/profiler/python_memory_mock.go`
 - Create: `internal/agent/profiler/python_memory_test.go`
 
-- [ ] create `python_memory.go` with:
+- [x] create `python_memory.go` with:
   - `memrayLocation = "/app/memray"` constant
   - `memrayDelayBetweenJobs` constant (2s like pyspy)
   - `memrayCommand` func: `memray attach --aggregate -o <raw.bin> --duration <seconds> <pid>`
@@ -97,14 +97,14 @@ It integrates into the existing profiler architecture using the same Docker imag
   - `SetUp`, `Invoke`, `CleanUp` methods (same pattern as `PythonProfiler`)
   - `invoke`: runs attach cmd → runs report cmd → publishes result
   - `handleReport`: for `FlameGraph` calls memray flamegraph; for `Summary`/`Tree` writes stdout to file
-- [ ] create `python_memory_mock.go` with `mockMemrayManager` following `mockPythonManager` pattern
-- [ ] create `python_memory_test.go` with table-driven tests for:
+- [x] create `python_memory_mock.go` with `mockMemrayManager` following `mockPythonManager` pattern
+- [x] create `python_memory_test.go` with table-driven tests for:
   - `TestMemrayProfiler_SetUp` (setup, setup with given PID, fail when PID not found)
   - `TestMemrayProfiler_Invoke` (invoke success, invoke fail)
   - `TestMemrayProfiler_CleanUp`
   - `Test_memrayManager_invoke` (FlameGraph, Summary, Tree, command fail, publish fail)
   - `Test_memrayManager_handleReport` (FlameGraph, Summary, Tree, error cases)
-- [ ] run tests — must pass before task 4
+- [x] run tests — must pass before task 4
 
 ### Task 4: Agent profiler factory — register Memray
 
