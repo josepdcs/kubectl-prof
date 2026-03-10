@@ -136,11 +136,11 @@ It integrates into the existing profiler architecture using the same Docker imag
 
 ### Task 7: Verify acceptance criteria
 
-- [ ] verify all output types (FlameGraph, Summary, Tree) are properly registered
-- [ ] verify `IsSupportedProfilingTool("memray")` returns true
-- [ ] verify `IsValidProfilingTool(Memray, Python)` returns true
-- [ ] run full test suite: `go test ./...`
-- [ ] verify test coverage for new files
+- [x] verify all output types (FlameGraph, Summary, Tree) are properly registered
+- [x] verify `IsSupportedProfilingTool("memray")` returns true
+- [x] verify `IsValidProfilingTool(Memray, Python)` returns true
+- [x] run full test suite: `go test ./...`
+- [x] verify test coverage for new files
 
 ### Task 8: [Final] Update documentation
 
