@@ -71,12 +71,12 @@ It integrates into the existing profiler architecture using the same Docker imag
 - Modify: `internal/agent/profiler/common/common.go`
 - Modify: `internal/agent/profiler/common/common_test.go`
 
-- [ ] add `Memray: {FlameGraph, Summary, Tree}` to `GetOutputTypesByProfilingTool` in `output_types.go`
-- [ ] add `case api.Memray` to `GetFileExtension` in `common.go`:
+- [x] add `Memray: {FlameGraph, Summary, Tree}` to `GetOutputTypesByProfilingTool` in `output_types.go`
+- [x] add `case api.Memray` to `GetFileExtension` in `common.go`:
   - `FlameGraph` → `.html`
   - `Summary`, `Tree` → `.txt`
-- [ ] add test cases to `common_test.go` for `Memray + FlameGraph`, `Memray + Summary`, `Memray + Tree`
-- [ ] run tests — must pass before task 3
+- [x] add test cases to `common_test.go` for `Memray + FlameGraph`, `Memray + Summary`, `Memray + Tree`
+- [x] run tests — must pass before task 3
 
 ### Task 3: Agent profiler — MemrayProfiler implementation
 
