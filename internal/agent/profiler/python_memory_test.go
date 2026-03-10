@@ -189,7 +189,7 @@ func TestMemrayProfiler_Invoke(t *testing.T) {
 			},
 			when: func(fields fields, args args) (error, time.Duration) {
 				fields.MemrayProfiler.delay = 0
-				fields.MemrayProfiler.targetPIDs = []string{"1000", "2000"}
+				fields.MemrayProfiler.targetPIDs = []string{"1000"}
 				return fields.MemrayProfiler.Invoke(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
@@ -325,6 +325,7 @@ func Test_memrayManager_invoke(t *testing.T) {
 			},
 			then: func(t *testing.T, fields fields, err error) {
 				assert.Nil(t, err)
+				assert.False(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000-1.bin")))
 				assert.True(t, fields.MemrayProfiler.MemrayManager.(*memrayManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 1)
 			},
 			after: func() {
@@ -365,7 +366,9 @@ func Test_memrayManager_invoke(t *testing.T) {
 			},
 			then: func(t *testing.T, fields fields, err error) {
 				assert.Nil(t, err)
-				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"summary-1000-1.txt")))
+				summaryFile := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"summary-1000-1.txt")
+				assert.True(t, file.Exists(summaryFile))
+				assert.Contains(t, file.Read(summaryFile), "summary output")
 				assert.True(t, fields.MemrayProfiler.MemrayManager.(*memrayManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 1)
 			},
 			after: func() {
@@ -406,7 +409,9 @@ func Test_memrayManager_invoke(t *testing.T) {
 			},
 			then: func(t *testing.T, fields fields, err error) {
 				assert.Nil(t, err)
-				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"tree-1000-1.txt")))
+				treeFile := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"tree-1000-1.txt")
+				assert.True(t, file.Exists(treeFile))
+				assert.Contains(t, file.Read(treeFile), "tree output")
 				assert.True(t, fields.MemrayProfiler.MemrayManager.(*memrayManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 1)
 			},
 			after: func() {
@@ -442,6 +447,46 @@ func Test_memrayManager_invoke(t *testing.T) {
 			then: func(t *testing.T, fields fields, err error) {
 				require.Error(t, err)
 				assert.True(t, fields.MemrayProfiler.MemrayManager.(*memrayManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 0)
+			},
+		},
+		{
+			name: "should invoke fail when report command fails",
+			given: func() (fields, args) {
+				log.SetPrintLogs(true)
+
+				commander := executil.NewMockCommander()
+				// first command (attach) succeeds, second command (report) fails
+				commander.On("Command").Return(exec.Command("ls", common.TmpDir())).Once()
+				commander.On("Command").Return(&exec.Cmd{}).Once()
+				publisher := publish.NewFakePublisher()
+				publisher.On("Do").Return(nil)
+
+				return fields{
+						MemrayProfiler: NewMemrayProfiler(commander, publisher),
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							OutputType:       api.FlameGraph,
+							Language:         api.FakeLang,
+							Tool:             api.Memray,
+							Compressor:       compressor.None,
+							Iteration:        1,
+						},
+						pid: "1000",
+					}
+			},
+			when: func(fields fields, args args) (error, time.Duration) {
+				return fields.MemrayProfiler.invoke(args.job, args.pid)
+			},
+			then: func(t *testing.T, fields fields, err error) {
+				require.Error(t, err)
+				assert.True(t, fields.MemrayProfiler.MemrayManager.(*memrayManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 0)
+			},
+			after: func() {
+				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000-1.bin"))
+				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000-1.html"))
 			},
 		},
 		{
@@ -655,6 +700,35 @@ func Test_memrayManager_handleReport(t *testing.T) {
 			then: func(t *testing.T, err error, fields fields) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "could not generate flamegraph report")
+			},
+		},
+		{
+			name: "should fail handle report when output type is unsupported",
+			given: func() (fields, args) {
+				commander := executil.NewMockCommander()
+				publisher := publish.NewFakePublisher()
+
+				return fields{
+						MemrayProfiler: NewMemrayProfiler(commander, publisher),
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							OutputType:       api.SpeedScope,
+							Language:         api.FakeLang,
+							Tool:             api.Memray,
+						},
+						rawFileName:    filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.bin"),
+						resultFileName: filepath.Join(common.TmpDir(), config.ProfilingPrefix+"speedscope.json"),
+					}
+			},
+			when: func(fields fields, args args) error {
+				return fields.MemrayProfiler.handleReport(args.job, args.rawFileName, args.resultFileName)
+			},
+			then: func(t *testing.T, err error, fields fields) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "unsupported output type for memray")
 			},
 		},
 	}

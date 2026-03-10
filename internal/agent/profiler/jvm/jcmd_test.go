@@ -480,6 +480,8 @@ func Test_jcmdManager_publishResult(t *testing.T) {
 		{
 			name: "should publish heap dump",
 			given: func() (fields, args) {
+				// remove stale gz file from any previous test run to ensure idempotency
+				_ = file.Remove(filepath.Join(common.TmpDir(), "heapdump.hprof.gz"))
 				cmd := exec.Command("cp", filepath.Join(testdata.ResultTestDataDir(), "heapdump.hprof"), common.TmpDir())
 				_ = cmd.Run()
 				return fields{

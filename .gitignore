@@ -2,3 +2,5 @@
 .run/
 bin/
 coverage.out
+# ralphex progress logs
+.ralphex/progress/

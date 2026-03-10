@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"strconv"
 	"time"
@@ -38,10 +39,14 @@ var memrayReportCommand = func(commander executil.Commander, job *job.ProfilingJ
 	case api.FlameGraph:
 		args := []string{"flamegraph", rawFileName, "-o", outputFileName}
 		return commander.Command(memrayLocation, args...)
-	default:
-		// api.Summary or api.Tree — output goes to stdout
-		args := []string{string(job.OutputType), rawFileName}
+	case api.Summary:
+		args := []string{"summary", rawFileName}
 		return commander.Command(memrayLocation, args...)
+	case api.Tree:
+		args := []string{"tree", rawFileName}
+		return commander.Command(memrayLocation, args...)
+	default:
+		return nil
 	}
 }
 
@@ -128,7 +133,7 @@ func (p *memrayManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if err != nil {
-		log.ErrorLogLn(out.String())
+		log.ErrorLogLn(stderr.String())
 		return errors.Wrapf(err, "could not launch profiler: %s", stderr.String()), time.Since(start)
 	}
 
@@ -136,8 +141,10 @@ func (p *memrayManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 	err = p.handleReport(job, rawFileName, resultFileName)
 	if err != nil {
 		log.ErrorLogLn(fmt.Sprintf("could not generate report (PID: %s): %s", pid, err.Error()))
-		return nil, time.Since(start)
+		_ = file.Remove(rawFileName)
+		return err, time.Since(start)
 	}
+	_ = file.Remove(rawFileName)
 
 	return p.publisher.Do(job.Compressor, resultFileName, job.OutputType), time.Since(start)
 }
@@ -147,6 +154,9 @@ func (p *memrayManager) handleReport(job *job.ProfilingJob, rawFileName string, 
 	var stderr bytes.Buffer
 
 	cmd := memrayReportCommand(p.commander, job, rawFileName, resultFileName)
+	if cmd == nil {
+		return fmt.Errorf("unsupported output type for memray: %s", job.OutputType)
+	}
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 
@@ -157,7 +167,9 @@ func (p *memrayManager) handleReport(job *job.ProfilingJob, rawFileName string, 
 
 	if job.OutputType != api.FlameGraph {
 		// for summary/tree the report writes to stdout; persist it to the result file
-		file.Write(resultFileName, out.String())
+		if err := os.WriteFile(resultFileName, []byte(out.String()), 0600); err != nil {
+			return errors.Wrapf(err, "could not write %s report to file: %s", string(job.OutputType), resultFileName)
+		}
 	}
 
 	return nil
