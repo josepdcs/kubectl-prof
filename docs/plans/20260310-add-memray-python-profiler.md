@@ -131,8 +131,8 @@ It integrates into the existing profiler architecture using the same Docker imag
 **Files:**
 - Modify: `docker/python/Dockerfile`
 
-- [ ] add `pip3 install memray` to the `pyspybuild` stage (alongside py-spy install)
-- [ ] copy `memray` binary to final image: `COPY --from=pyspybuild /usr/local/bin/memray /app/memray`
+- [x] add `pip3 install memray` to the `pyspybuild` stage (alongside py-spy install)
+- [x] copy `memray` binary to final image: `COPY --from=pyspybuild /usr/local/bin/memray /app/memray`
 
 ### Task 7: Verify acceptance criteria
 

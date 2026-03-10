@@ -9,7 +9,7 @@ WORKDIR /go/src/github.com/josepdcs/kubectl-prof/cmd/agent
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /go/bin/agent
 
 FROM python:3.13.6-slim-bullseye AS pyspybuild
-RUN pip3 install py-spy==0.4.1  \
+RUN pip3 install py-spy==0.4.1 memray \
     && apt-get update && apt-get install -y git \
     && git clone https://github.com/brendangregg/FlameGraph
 
@@ -19,6 +19,7 @@ RUN apk add --update --no-cache perl procps strace  \
 COPY --from=pyspybuild /FlameGraph /app/FlameGraph
 COPY --from=agentbuild /go/bin/agent /app/agent
 COPY --from=pyspybuild /usr/local/bin/py-spy /app/py-spy
+COPY --from=pyspybuild /usr/local/bin/memray /app/memray
 COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/get-ps-command.sh /app/get-ps-command.sh
 RUN chmod +x /app/get-ps-command.sh
 
