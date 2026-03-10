@@ -144,8 +144,8 @@ It integrates into the existing profiler architecture using the same Docker imag
 
 ### Task 8: [Final] Update documentation
 
-- [ ] update README.md if it lists supported profiling tools/languages
-- [ ] move this plan to `docs/plans/completed/`
+- [x] update README.md if it lists supported profiling tools/languages
+- [x] move this plan to `docs/plans/completed/`
 
 ## Technical Details
 
