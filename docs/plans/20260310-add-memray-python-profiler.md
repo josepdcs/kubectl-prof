@@ -122,9 +122,9 @@ It integrates into the existing profiler architecture using the same Docker imag
 - Modify: `internal/cli/kubernetes/job/job_factory.go`
 - Modify: `internal/cli/kubernetes/job/job_factory_test.go`
 
-- [ ] update `case api.Python` in `job_factory.go` to handle `api.Memray` tool (returns `&pythonCreator{}`, same as current default)
-- [ ] add test case for `Python + Memray` in `job_factory_test.go`
-- [ ] run tests — must pass before task 6
+- [x] update `case api.Python` in `job_factory.go` to handle `api.Memray` tool (returns `&pythonCreator{}`, same as current default)
+- [x] add test case for `Python + Memray` in `job_factory_test.go`
+- [x] run tests — must pass before task 6
 
 ### Task 6: Dockerfile — add memray to Python image
 
