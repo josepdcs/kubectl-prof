@@ -40,6 +40,7 @@ func (h *EventHandler) Handle(events chan string, done chan bool, resultFile cha
 				Checksum:        eventType.Checksum,
 				Chunks:          eventType.Chunks,
 				Timestamp:       eventType.Time,
+				Content:         eventType.Content,
 			}
 		case *api.ProgressData:
 			h.reportProgress(eventType, done)

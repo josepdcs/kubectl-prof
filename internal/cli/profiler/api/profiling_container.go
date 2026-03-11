@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/md5"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -100,7 +101,15 @@ func (p *profilingContainerApi) HandleProfilingContainerLogs(pod *v1.Pod, contai
 func (p *profilingContainerApi) GetRemoteFile(pod *v1.Pod, containerName string, remoteFile result.File, targetPodName string, target *config.TargetConfig) (string, error) {
 	var fileBuff []byte
 
-	if remoteFile.Chunks != nil && len(remoteFile.Chunks) > 0 {
+	if remoteFile.Content != "" {
+		// Agent embedded the compressed file as base64 in the result event.
+		// Decode it directly — no exec websocket needed.
+		var err error
+		fileBuff, err = base64.StdEncoding.DecodeString(remoteFile.Content)
+		if err != nil {
+			return "", errors.Wrap(err, "could not base64-decode embedded file content")
+		}
+	} else if remoteFile.Chunks != nil && len(remoteFile.Chunks) > 0 {
 		chunks, err := retrieveChunks(pod, containerName, remoteFile, p.executor, target)
 		if err != nil {
 			return "", err
@@ -166,25 +175,19 @@ func retrieveChunks(pod *v1.Pod, containerName string, remoteFile result.File, e
 }
 
 func retrieveFileOrRetry(pod *v1.Pod, containerName string, exec podexec.Executor, remoteFile result.File, target *config.TargetConfig) ([]byte, error) {
-	fileBuff := make([]byte, 0, remoteFile.FileSizeInBytes)
 	for i := 0; i <= target.RetrieveFileRetries; i++ {
-		offset := 0
-		n := 0
-		var err error
-		for (remoteFile.FileSizeInBytes - int64(n)) > 0 {
-			var out, errOut *bytes.Buffer
-			_, out, errOut, err = exec.Execute(pod.Namespace, pod.Name, containerName, []string{"sh", "-c", fmt.Sprintf("tail -c+%d %s", offset, remoteFile.FileName)})
-			if err != nil {
-				log.Errorf("could not download profiler result file from pod: %s, error: %v", errOut.String(), err)
-				break
-			}
-			n += out.Len()
-			offset += out.Len() + 1
-			fileBuff = append(fileBuff, out.Bytes()...)
+		var out, errOut *bytes.Buffer
+		// Use base64 encoding so only ASCII text travels over the exec/websocket stream.
+		// Streaming raw binary via exec is unreliable through API proxies (connection resets).
+		_, out, errOut, err := exec.Execute(pod.Namespace, pod.Name, containerName, []string{"sh", "-c", fmt.Sprintf("base64 %s", remoteFile.FileName)})
+		if err != nil {
+			log.Errorf("could not download profiler result file from pod: %s, error: %v", errOut.String(), err)
+			continue
 		}
 
+		fileBuff, err := base64.StdEncoding.DecodeString(strings.TrimSpace(out.String()))
 		if err != nil {
-			fileBuff = make([]byte, 0, remoteFile.FileSizeInBytes)
+			log.Errorf("could not base64-decode profiler result file %s: %v", remoteFile.FileName, err)
 			continue
 		}
 
@@ -196,8 +199,6 @@ func retrieveFileOrRetry(pod *v1.Pod, containerName string, exec podexec.Executo
 			return fileBuff, nil
 		}
 		log.Debugf("Checksum does not match, retrying: %s...", remoteFile.FileName)
-
-		fileBuff = make([]byte, 0, remoteFile.FileSizeInBytes)
 	}
 
 	// if the checksum does not match after the last retry, return an error
@@ -237,25 +238,17 @@ func retrieveChunkOrRetry(chunk api.ChunkData, pod *v1.Pod, containerName string
 
 // retrieveChunk retrieves the chunk of the remote file from the pod's container
 func retrieveChunk(chunk api.ChunkData, pod *v1.Pod, containerName string, exec podexec.Executor) ([]byte, error) {
-	fileBuff := make([]byte, 0, chunk.FileSizeInBytes)
-	offset := 0
-	n := 0
 	log.Debugf("Downloading chunk file %s ...", chunk.File)
-	var err error
-	for (chunk.FileSizeInBytes - int64(n)) > 0 {
-		var out, errOut *bytes.Buffer
-		_, out, errOut, err = exec.Execute(pod.Namespace, pod.Name, containerName, []string{"sh", "-c", fmt.Sprintf("tail -c+%d %s", offset, chunk.File)})
-		if err != nil {
-			log.Errorf("could not download profiler chunk file from pod: %s, error: %v", errOut.String(), err)
-			break
-		}
-		n += out.Len()
-		offset += out.Len() + 1
-		fileBuff = append(fileBuff, out.Bytes()...)
+	var out, errOut *bytes.Buffer
+	_, out, errOut, err := exec.Execute(pod.Namespace, pod.Name, containerName, []string{"sh", "-c", fmt.Sprintf("base64 %s", chunk.File)})
+	if err != nil {
+		log.Errorf("could not download profiler chunk file from pod: %s, error: %v", errOut.String(), err)
+		return nil, errors.Wrap(err, "could not download profiler chunk file")
 	}
 
+	fileBuff, err := base64.StdEncoding.DecodeString(strings.TrimSpace(out.String()))
 	if err != nil {
-		return nil, errors.Wrap(err, "could not download profiler chunk file")
+		return nil, errors.Wrap(err, "could not base64-decode profiler chunk file")
 	}
 
 	return fileBuff, nil

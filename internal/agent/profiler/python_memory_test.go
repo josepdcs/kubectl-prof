@@ -274,6 +274,9 @@ func TestMemrayProfiler_CleanUp(t *testing.T) {
 }
 
 func Test_memrayManager_invoke(t *testing.T) {
+	// Save the real implementation so after() functions can restore it.
+	realHandleReportInMountNs := handleReportInMountNs
+
 	type fields struct {
 		MemrayProfiler *MemrayProfiler
 	}
@@ -295,11 +298,14 @@ func Test_memrayManager_invoke(t *testing.T) {
 				var b bytes.Buffer
 				b.Write([]byte("test"))
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000-1.bin"), b.String())
-				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000-1.html"), b.String())
 
-				commander := executil.NewMockCommander()
-				// two separate calls: attach command then report command — each needs its own exec.Cmd
-				commander.On("Command").Return(exec.Command("ls", common.TmpDir())).Once()
+				// Override handleReportInMountNs to write the result file directly,
+				// avoiding /proc/<pid>/root access which is unavailable in tests.
+				handleReportInMountNs = func(_ executil.Commander, _ *job.ProfilingJob, _, _, resultFileName string) error {
+					return os.WriteFile(resultFileName, []byte("test flamegraph"), 0600)
+				}
+					commander := executil.NewMockCommander()
+				// attach command only — report is handled by the overridden var
 				commander.On("Command").Return(exec.Command("ls", common.TmpDir())).Once()
 				publisher := publish.NewFakePublisher()
 				publisher.On("Do").Return(nil)
@@ -329,6 +335,7 @@ func Test_memrayManager_invoke(t *testing.T) {
 				assert.True(t, fields.MemrayProfiler.MemrayManager.(*memrayManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 1)
 			},
 			after: func() {
+				handleReportInMountNs = realHandleReportInMountNs
 				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000-1.bin"))
 				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000-1.html"))
 			},
@@ -496,11 +503,14 @@ func Test_memrayManager_invoke(t *testing.T) {
 				var b bytes.Buffer
 				b.Write([]byte("test"))
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000-1.bin"), b.String())
-				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000-1.html"), b.String())
+
+				// Override handleReportInMountNs to write the result file directly.
+				handleReportInMountNs = func(_ executil.Commander, _ *job.ProfilingJob, _, _, resultFileName string) error {
+					return os.WriteFile(resultFileName, []byte("test flamegraph"), 0600)
+				}
 
 				commander := executil.NewMockCommander()
-				// two separate calls: attach command then report command — each needs its own exec.Cmd
-				commander.On("Command").Return(exec.Command("ls", common.TmpDir())).Once()
+				// attach command only — report is handled by the overridden var
 				commander.On("Command").Return(exec.Command("ls", common.TmpDir())).Once()
 				publisher := publish.NewFakePublisher()
 				publisher.On("Do").Return(errors.New("fake publisher with error"))
@@ -530,6 +540,7 @@ func Test_memrayManager_invoke(t *testing.T) {
 				assert.True(t, fields.MemrayProfiler.MemrayManager.(*memrayManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 1)
 			},
 			after: func() {
+				handleReportInMountNs = realHandleReportInMountNs
 				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000-1.bin"))
 				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000-1.html"))
 			},
