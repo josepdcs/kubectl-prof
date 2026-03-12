@@ -40,6 +40,14 @@ func TestGet(t *testing.T) {
 			want: &pythonCreator{},
 		},
 		{
+			name: "python with memray creator is instanced",
+			args: args{
+				lang: api.Python,
+				tool: api.Memray,
+			},
+			want: &pythonCreator{},
+		},
+		{
 			name: "ruby creator is instanced",
 			args: args{
 				lang: api.Ruby,

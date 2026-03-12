@@ -46,7 +46,7 @@
 |----------|--------|-----------------|
 | ☕ **Java** (JVM) | ✅ Fully Supported | async-profiler, jcmd |
 | 🐹 **Go** | ✅ Fully Supported | eBPF profiling |
-| 🐍 **Python** | ✅ Fully Supported | py-spy |
+| 🐍 **Python** | ✅ Fully Supported | py-spy, memray |
 | 💎 **Ruby** | ✅ Fully Supported | rbspy |
 | 📗 **Node.js** | ✅ Fully Supported | eBPF profiling, perf |
 | 🦀 **Rust** | ✅ Fully Supported | cargo-flamegraph |
@@ -233,6 +233,21 @@ Generate a [SpeedScope](https://www.speedscope.app/) compatible file:
 
 ```shell
 kubectl prof mypod -t 1m -l python -o speedscope --local-path=/tmp
+```
+
+#### Memory Profiling with Memray
+
+Profile memory allocations using [memray](https://github.com/bloomberg/memray):
+
+```shell
+# Memory flamegraph (HTML)
+kubectl prof mypod -t 1m -l python --tool memray -o flamegraph --local-path=/tmp
+
+# Memory allocation summary (text)
+kubectl prof mypod -t 1m -l python --tool memray -o summary --local-path=/tmp
+
+# Memory allocation tree (text)
+kubectl prof mypod -t 1m -l python --tool memray -o tree --local-path=/tmp
 ```
 
 ---
@@ -571,6 +586,11 @@ make build-docker-agents
 - Thread dumps: `-o threaddump`
 - SpeedScope: `-o speedscope`
 - Raw output: `-o raw`
+
+**[memray](https://github.com/bloomberg/memray)** - Python memory profiler (`--tool memray`)
+- Memory flamegraph (HTML): `-o flamegraph`
+- Allocation summary (text): `-o summary`
+- Allocation tree (text): `-o tree`
 
 #### 🐹 Go
 

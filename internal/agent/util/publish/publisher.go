@@ -2,6 +2,7 @@ package publish
 
 import (
 	"bytes"
+	"encoding/base64"
 	"os"
 	"time"
 
@@ -55,6 +56,14 @@ func (p publisher) Do(compressorType compressor.Type, filePath string, eventType
 		return errors.Wrapf(err, "could not compress file %s", resultFile)
 	}
 
+	// Read the compressed file and embed it as base64 so the CLI can
+	// reconstruct the result without needing an exec websocket connection.
+	compressedBytes, err := os.ReadFile(resultFile)
+	if err != nil {
+		return errors.Wrapf(err, "could not read compressed result file %s", resultFile)
+	}
+	content := base64.StdEncoding.EncodeToString(compressedBytes)
+
 	return log.EventLn(
 		api.Result,
 		api.ResultData{
@@ -64,6 +73,7 @@ func (p publisher) Do(compressorType compressor.Type, filePath string, eventType
 			FileSizeInBytes: fileutils.Size(resultFile),
 			Checksum:        fileutils.Checksum(resultFile),
 			CompressorType:  string(compressorType),
+			Content:         content,
 		},
 	)
 }
@@ -89,7 +99,7 @@ func (p publisher) DoWithNativeGzipAndSplit(file, chunkSize string, eventType ap
 	}
 
 	// split the result file from gzip command with split command
-	cmd = exec.Command("split", "-b", chunkSize, "-e", "--numeric-suffixes", file+".gz", file+".gz.")
+	cmd = exec.Command("split", "-b", chunkSize, "-d", file+".gz", file+".gz.")
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 	err = cmd.Run()
