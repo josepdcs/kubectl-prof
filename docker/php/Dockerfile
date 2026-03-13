@@ -8,15 +8,15 @@ COPY . .
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof/cmd/agent
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /go/bin/agent
 
-FROM debian:bookworm-slim AS phpspybuild
+FROM debian:trixie-slim AS phpspybuild
 RUN apt-get update \
     && apt-get install -y git build-essential \
     && git clone https://github.com/brendangregg/FlameGraph \
-    && git clone --depth 1 --branch v0.5.0 https://github.com/adsr/phpspy \
+    && git clone --depth 1 --branch v0.7.0 https://github.com/adsr/phpspy \
     && cd phpspy \
     && make
 
-FROM bitnami/minideb:bookworm
+FROM bitnami/minideb:trixie
 RUN apt-get update \
     && apt-get install -y procps strace \
     && apt-get clean \
