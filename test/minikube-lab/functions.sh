@@ -86,6 +86,37 @@ function build_docker_image_and_push_to_docker() {
   docker rmi $(docker images --filter "dangling=true" -q --no-trunc) ${fullImageName} || true
 }
 
+# shellcheck disable=SC2046,SC2086
+# Build a stupid-app image using the app's own directory as the Docker build context.
+# This avoids issues with .dockerignore excluding test/ when building from repo root.
+function build_stupid_app_and_push_to_minikube() {
+  local workDir=${1}
+  local project=${2}
+  local image=${3}
+  local fullImageName=${REGISTRY}/${project}/${image}:latest
+
+  echo "Building image: ${fullImageName}. Dockerfile: ${workDir}/Dockerfile"
+  minikube image build -t ${fullImageName} "${workDir}"
+}
+
+# shellcheck disable=SC2046,SC2086
+function build_stupid_app_and_push_to_docker() {
+  local workDir=${1}
+  local user=${2}
+  local image=${3}
+  local fullImageName=docker.io/${user}/${image}:latest
+
+  echo "Building image: ${fullImageName}. Dockerfile: ${workDir}/Dockerfile"
+
+  docker build -t ${fullImageName} "${workDir}"
+
+  echo "Pushing image ${fullImageName} to Docker"
+  docker push ${fullImageName}
+
+  echo "Removing image ${fullImageName} from local registry"
+  docker rmi $(docker images --filter "dangling=true" -q --no-trunc) ${fullImageName} || true
+}
+
 function process_images_dir() {
   local file=${1}
 
@@ -100,6 +131,23 @@ function process_images_dir() {
         image=$(basename "${imageName}")
         project=$(basename "${file}")
         build_docker_image_and_push_to_minikube "${imageName}" "${project}" "${image}"
+      fi
+    done
+  fi
+}
+
+# Like process_images_dir but uses each app's own directory as build context.
+# Required for stupid-app images whose Dockerfiles reference local files
+# that would otherwise be excluded by the root .dockerignore.
+function process_stupid_apps_dir() {
+  local file=${1}
+
+  if [[ -d "${file}" ]]; then
+    for imageName in "${file}"/*; do
+      if [[ -d "${imageName}" ]]; then
+        image=$(basename "${imageName}")
+        project=$(basename "${file}")
+        build_stupid_app_and_push_to_minikube "${imageName}" "${project}" "${image}"
       fi
     done
   fi

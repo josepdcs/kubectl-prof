@@ -310,77 +310,77 @@ minikube-deploy-stupid-apps:
 ## minikube-build-and-push-ruby-stupid-app: Build image of ruby stupid app and load it into minikube
 .PHONY: minikube-build-and-push-ruby-stupid-app
 minikube-build-and-push-ruby-stupid-app:
-	@test/minikube-lab/build_and_push_image.sh "test/stupid-apps/ruby" "stupid-apps" "ruby"
+	@test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/ruby" "stupid-apps" "ruby"
 
 ## minikube-build-and-push-node-stupid-app: Build image of node stupid app and load it into minikube
 .PHONY: minikube-build-and-push-node-stupid-app
 minikube-build-and-push-node-stupid-app:
-	@test/minikube-lab/build_and_push_image.sh "test/stupid-apps/node" "stupid-apps" "node"
+	@test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/node" "stupid-apps" "node"
 
 ## minikube-build-and-push-python-stupid-app: Build image of python stupid app and load it into minikube
 .PHONY: minikube-build-and-push-python-stupid-app
 minikube-build-and-push-python-stupid-app:
-	@test/minikube-lab/build_and_push_image.sh "test/stupid-apps/python" "stupid-apps" "python"
+	@test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/python" "stupid-apps" "python"
 
 ## minikube-build-and-push-jvm-stupid-app: Build image of jvm stupid app and load it into minikube
 .PHONY: minikube-build-and-push-jvm-stupid-app
 minikube-build-and-push-jvm-stupid-app:
-	@test/minikube-lab/build_and_push_image.sh "test/stupid-apps/jvm" "stupid-apps" "jvm"
+	@test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/jvm" "stupid-apps" "jvm"
 
 ## minikube-build-and-push-rust-stupid-app: Build image of rust stupid app and load it into minikube
 .PHONY: minikube-build-and-push-rust-stupid-app
 minikube-build-and-push-rust-stupid-app:
-	@test/minikube-lab/build_and_push_image.sh "test/stupid-apps/rust" "stupid-apps" "rust"
+	@test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/rust" "stupid-apps" "rust"
 
 ## minikube-build-and-push-php-stupid-app: Build image of php stupid app and load it into minikube
 .PHONY: minikube-build-and-push-php-stupid-app
 minikube-build-and-push-php-stupid-app:
-	@test/minikube-lab/build_and_push_image.sh "test/stupid-apps/php" "stupid-apps" "php"
+	@test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/php" "stupid-apps" "php"
 
 ## build-and-push-clang-stupid-app: Build image of clang stupid app and push it to DockerHub
 .PHONY: build-and-push-clang-stupid-app
 build-and-push-clang-stupid-app:
-	REGISTRY=docker.io test/minikube-lab/build_and_push_image.sh "test/stupid-apps/clang" "josepdcs" "clang"
+	REGISTRY=docker.io test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/clang" "josepdcs" "clang"
 
 ## build-and-push-golang-stupid-app: Build image of golang stupid app and push it to DockerHub
 .PHONY: build-and-push-golang-stupid-app
 build-and-push-golang-stupid-app:
-	REGISTRY=docker.io test/minikube-lab/build_and_push_image.sh "test/stupid-apps/golang" "josepdcs" "golang"
+	REGISTRY=docker.io test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/golang" "josepdcs" "golang"
 
 ## build-and-push-jvm-stupid-app: Build image of jvm stupid app and push it to DockerHub
 .PHONY: build-and-push-jvm-stupid-app
 build-and-push-jvm-stupid-app:
-	REGISTRY=docker.io test/minikube-lab/build_and_push_image.sh "test/stupid-apps/jvm" "josepdcs" "jvm"
+	REGISTRY=docker.io test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/jvm" "josepdcs" "jvm"
 
 ## build-and-push-multiprocess-stupid-app: Build image of multiprocess stupid app and push it to DockerHub
 .PHONY: build-and-push-multiprocess-stupid-app
 build-and-push-multiprocess-stupid-app:
-	REGISTRY=docker.io test/minikube-lab/build_and_push_image.sh "test/stupid-apps/multiprocess" "josepdcs" "multiprocess"
+	REGISTRY=docker.io test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/multiprocess" "josepdcs" "multiprocess"
 
 ## build-and-push-node-stupid-app: Build image of node stupid app and push it to DockerHub
 .PHONY: build-and-push-node-stupid-app
 build-and-push-node-stupid-app:
-	REGISTRY=docker.io test/minikube-lab/build_and_push_image.sh "test/stupid-apps/node" "josepdcs" "node"
+	REGISTRY=docker.io test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/node" "josepdcs" "node"
 
 ## build-and-push-python-stupid-app: Build image of python stupid app and push it to DockerHub
 .PHONY: build-and-push-python-stupid-app
 build-and-push-python-stupid-app:
-	REGISTRY=docker.io test/minikube-lab/build_and_push_image.sh "test/stupid-apps/python" "josepdcs" "python"
+	REGISTRY=docker.io test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/python" "josepdcs" "python"
 
 ## build-and-push-ruby-stupid-app: Build image of ruby stupid app and push it to DockerHub
 .PHONY: build-and-push-ruby-stupid-app
 build-and-push-ruby-stupid-app:
-	REGISTRY=docker.io test/minikube-lab/build_and_push_image.sh "test/stupid-apps/ruby" "josepdcs" "ruby"
+	REGISTRY=docker.io test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/ruby" "josepdcs" "ruby"
 
 ## build-and-push-rust-stupid-app: Build image of rust stupid app and push it to DockerHub
 .PHONY: build-and-push-rust-stupid-app
 build-and-push-rust-stupid-app:
-	REGISTRY=docker.io test/minikube-lab/build_and_push_image.sh "test/stupid-apps/rust" "josepdcs" "rust"
+	REGISTRY=docker.io test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/rust" "josepdcs" "rust"
 
 ## build-and-push-php-stupid-app: Build image of php stupid app and push it to DockerHub
 .PHONY: build-and-push-php-stupid-app
 build-and-push-php-stupid-app:
-	REGISTRY=docker.io test/minikube-lab/build_and_push_image.sh "test/stupid-apps/php" "josepdcs" "php"
+	REGISTRY=docker.io test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/php" "josepdcs" "php"
 
 ## build-and-push-stupid-apps: Build images of stupid-apps and push them to DockerHub
 .PHONY: build-and-push-stupid-apps
