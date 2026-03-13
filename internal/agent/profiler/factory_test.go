@@ -57,6 +57,11 @@ func TestGet(t *testing.T) {
 			want: NewNodeDummyProfiler(publish.NewPublisher()),
 		},
 		{
+			name: "should return phpspy profiler",
+			tool: api.Phpspy,
+			want: NewPhpspyProfiler(executil.NewCommander(), publish.NewPublisher()),
+		},
+		{
 			name: "should return mock profiler",
 			tool: api.FakeTool,
 			want: NewMockProfiler(),

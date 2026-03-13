@@ -50,6 +50,11 @@ func TestIsSupportedProfilingTool(t *testing.T) {
 			then:  true,
 		},
 		{
+			name:  "phpspy",
+			given: "phpspy",
+			then:  true,
+		},
+		{
 			name:  "node-dummy",
 			given: "node-dummy",
 			then:  true,
@@ -128,6 +133,14 @@ func TestIsValidProfilingTool(t *testing.T) {
 			given: args{
 				tool:     Rbspy,
 				language: Ruby,
+			},
+			then: true,
+		},
+		{
+			name: "Phpspy + PHP",
+			given: args{
+				tool:     Phpspy,
+				language: PHP,
 			},
 			then: true,
 		},
@@ -332,6 +345,23 @@ func TestGetProfilingTool(t *testing.T) {
 			},
 			then: Rbspy,
 		},
+		// PHP tests
+		{
+			name: "PHP + FlameGraph",
+			given: args{
+				language:   PHP,
+				outputType: FlameGraph,
+			},
+			then: Phpspy,
+		},
+		{
+			name: "PHP + Raw",
+			given: args{
+				language:   PHP,
+				outputType: Raw,
+			},
+			then: Phpspy,
+		},
 		// Node tests
 		{
 			name: "Node + FlameGraph",
@@ -407,6 +437,14 @@ func TestGetProfilingTool(t *testing.T) {
 			then: Rbspy, // default for Ruby
 		},
 		{
+			name: "PHP + Default (FlameGraph)",
+			given: args{
+				language:   PHP,
+				outputType: FlameGraph,
+			},
+			then: Phpspy, // default for PHP
+		},
+		{
 			name: "Rust + Default (FlameGraph)",
 			given: args{
 				language:   Rust,
@@ -478,6 +516,11 @@ func TestGetProfilingToolsByProgrammingLanguage(t *testing.T) {
 			name:     "Ruby",
 			language: Ruby,
 			expected: []ProfilingTool{Rbspy},
+		},
+		{
+			name:     "PHP",
+			language: PHP,
+			expected: []ProfilingTool{Phpspy},
 		},
 		{
 			name:     "Rust",
