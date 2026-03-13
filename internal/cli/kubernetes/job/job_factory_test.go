@@ -47,6 +47,13 @@ func TestGet(t *testing.T) {
 			want: &rubyCreator{},
 		},
 		{
+			name: "php creator is instanced",
+			args: args{
+				lang: api.PHP,
+			},
+			want: &phpCreator{},
+		},
+		{
 			name: "node creator is instanced",
 			args: args{
 				lang: api.Node,

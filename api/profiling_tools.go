@@ -19,12 +19,13 @@ const (
 	Rbspy         ProfilingTool = "rbspy"            // Rbspy is a profiling tool used primarily for Ruby applications to output various performance metrics.
 	NodeDummy     ProfilingTool = "node-dummy"       // NodeDummy is a profiling tool used primarily for Node.js applications to output various performance metrics.
 	CargoFlame    ProfilingTool = "cargo-flamegraph" // CargoFlame is a profiling tool used primarily for Rust applications to output various performance metrics.
+	Phpspy        ProfilingTool = "phpspy"           // Phpspy is a profiling tool used primarily for PHP applications to output various performance metrics.
 	FakeTool      ProfilingTool = "fake"             // FakeTool is a profiling tool used primarily for testing purposes.
 )
 
 var (
 	// profilingTools contains all supported profiling tools.
-	profilingTools = []ProfilingTool{AsyncProfiler, Jcmd, Pyspy, Bpf, Btf, Perf, Rbspy, NodeDummy, CargoFlame}
+	profilingTools = []ProfilingTool{AsyncProfiler, Jcmd, Pyspy, Bpf, Btf, Perf, Rbspy, NodeDummy, CargoFlame, Phpspy}
 )
 
 // AvailableProfilingTools returns the list of all available profiling tools.
@@ -67,6 +68,8 @@ var GetProfilingTool = func(l ProgrammingLanguage, o OutputType) ProfilingTool {
 		case HeapSnapshot, HeapDump:
 			return NodeDummy
 		}
+	case PHP:
+		return Phpspy
 	}
 
 	// return the default according programming language
@@ -84,6 +87,7 @@ var GetProfilingToolsByProgrammingLanguage = map[ProgrammingLanguage][]Profiling
 	ClangPlusPlus: {Bpf, Btf, Perf, CargoFlame},
 	Ruby:          {Rbspy},
 	Rust:          {CargoFlame, Bpf, Btf, Perf},
+	PHP:           {Phpspy},
 	FakeLang:      {FakeTool},
 }
 

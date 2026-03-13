@@ -6,6 +6,6 @@ APPS_DIR="test/stupid-apps"
 
 . $(dirname "$0")/init.sh
 
-process_images_dir "${APPS_DIR}"
+process_stupid_apps_dir "${APPS_DIR}"
 
 show_current_images_in_minikube
