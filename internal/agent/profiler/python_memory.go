@@ -86,6 +86,18 @@ var stageMemrayLib = func(pid string) (func(), error) {
 	}, nil
 }
 
+// rawFileInTargetPath returns the path to the raw file inside the target's mount namespace.
+// Exposed as a package-level var so tests can override it.
+var rawFileInTargetPath = func(pid string, rawFileName string) string {
+	return fmt.Sprintf("/proc/%s/root%s", pid, rawFileName)
+}
+
+// checkRawFileExists verifies the raw file exists. Exposed as a package-level var so tests
+// can override it without requiring /proc filesystem access.
+var checkRawFileExists = func(path string) (os.FileInfo, error) {
+	return os.Stat(path)
+}
+
 // MemrayProfiler profiles Python processes using Memray memory profiler.
 type MemrayProfiler struct {
 	targetPIDs []string
@@ -174,7 +186,7 @@ func (p *memrayManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 
 	// The tracker (--aggregate) writes the raw file to its own /tmp (target's mount namespace).
 	// Clean both locations before running to avoid "file exists" errors from prior runs.
-	rawFileInTarget := fmt.Sprintf("/proc/%s/root%s", pid, rawFileName)
+	rawFileInTarget := rawFileInTargetPath(pid, rawFileName)
 	_ = os.Remove(rawFileName)
 	_ = os.Remove(rawFileInTarget)
 
@@ -210,7 +222,7 @@ func (p *memrayManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 
 	// Verify the tracker actually produced a raw file before attempting report generation.
 	// The tracker may have crashed or the target process may have exited mid-profile.
-	if _, err := os.Stat(rawFileInTarget); err != nil {
+	if _, err := checkRawFileExists(rawFileInTarget); err != nil {
 		log.WarningLogLn(fmt.Sprintf("raw file not found for PID %s at %s after profiling interval (target may have exited): %s", pid, rawFileInTarget, err))
 		return nil, time.Since(start)
 	}
