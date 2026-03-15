@@ -284,7 +284,7 @@ func Test_memrayManager_invoke(t *testing.T) {
 	stubTestHelpers := func() {
 		stageMemrayLib = func(_ string) (func(), error) { return func() {}, nil }
 		rawFileInTargetPath = func(_ string, rawFileName string) string { return rawFileName }
-		checkRawFileExists = func(path string) (os.FileInfo, error) { return os.Stat(path) }
+		checkRawFileExists = func(_ string) (os.FileInfo, error) { return nil, nil }
 	}
 	restoreTestHelpers := func() {
 		handleReportInMountNs = realHandleReportInMountNs
