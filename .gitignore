@@ -1,5 +1,6 @@
 .idea/
 .run/
+.tool-coverage
 bin/
 coverage.out
 # ralphex progress logs
