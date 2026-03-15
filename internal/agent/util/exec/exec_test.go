@@ -25,7 +25,7 @@ func TestExecute(t *testing.T) {
 func TestExecuteWhenError(t *testing.T) {
 	log.SetPrintLogs(true)
 	exitCode, output, err := Execute(Command("ls", "/other"))
-	assert.Greater(t, exitCode, 0)
+	assert.Equal(t, 2, exitCode)
 	assert.NotEmpty(t, output)
 	require.Error(t, err)
 }

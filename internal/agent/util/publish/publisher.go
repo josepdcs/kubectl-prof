@@ -89,7 +89,7 @@ func (p publisher) DoWithNativeGzipAndSplit(file, chunkSize string, eventType ap
 	}
 
 	// split the result file from gzip command with split command
-	cmd = exec.Command("split", "-b", chunkSize, "-d", file+".gz", file+".gz.")
+	cmd = exec.Command("split", "-b", chunkSize, "-e", "--numeric-suffixes", file+".gz", file+".gz.")
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 	err = cmd.Run()
