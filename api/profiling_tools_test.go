@@ -306,7 +306,7 @@ func TestGetProfilingTool(t *testing.T) {
 				language:   Python,
 				outputType: Summary,
 			},
-			then: Memray,
+			then: Pyspy, // Memray requires explicit --tool memray
 		},
 		{
 			name: "Python + Tree",
@@ -314,7 +314,7 @@ func TestGetProfilingTool(t *testing.T) {
 				language:   Python,
 				outputType: Tree,
 			},
-			then: Memray,
+			then: Pyspy, // Memray requires explicit --tool memray
 		},
 		// Go tests
 		{

@@ -52,12 +52,7 @@ var GetProfilingTool = func(l ProgrammingLanguage, o OutputType) ProfilingTool {
 			return AsyncProfiler
 		}
 	case Python:
-		switch o {
-		case Summary, Tree:
-			return Memray
-		default:
-			return Pyspy
-		}
+		return Pyspy
 	case Go:
 		return Bpf
 	case Rust:

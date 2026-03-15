@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/alitto/pond"
@@ -141,6 +142,7 @@ func (p *profilingContainerApi) GetRemoteFile(pod *v1.Pod, containerName string,
 // retrieveChunks retrieves the chunks of the remote file from the pod's container
 func retrieveChunks(pod *v1.Pod, containerName string, remoteFile result.File, exec podexec.Executor, target *config.TargetConfig) ([]string, error) {
 	downloadChunks := make([]string, 0, len(remoteFile.Chunks))
+	var mu sync.Mutex
 
 	pool := pond.New(target.PoolSizeRetrieveChunks, 0, pond.MinWorkers(target.PoolSizeRetrieveChunks))
 	defer pool.StopAndWait()
@@ -154,7 +156,9 @@ func retrieveChunks(pod *v1.Pod, containerName string, remoteFile result.File, e
 		group.Submit(func() error {
 			fileName, err := retrieveChunkOrRetry(chunk, pod, containerName, exec, target, remoteFile.Timestamp)
 			if err == nil {
+				mu.Lock()
 				downloadChunks = append(downloadChunks, fileName)
+				mu.Unlock()
 			}
 			return err
 		})
