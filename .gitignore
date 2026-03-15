@@ -1,6 +1,6 @@
 .idea/
 .run/
-.tool-coverage
+.tool-versions
 bin/
 coverage.out
 # ralphex progress logs
