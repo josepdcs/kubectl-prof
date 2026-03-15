@@ -43,8 +43,8 @@ var memrayCommand = func(commander executil.Commander, job *job.ProfilingJob, pi
 // stageMemrayLib copies memray's _inject.abi3.so from the profiling container into the target
 // container's filesystem at its exact same path so that gdb's dlopen() call (which runs in the
 // target's mount namespace) can find our version of the library.
-// Only _inject.abi3.so is staged; _memray.cpython-312.so is intentionally left as the target's
-// native version so the tracker writes a file in the target's format (read back via nsenter).
+// Only _inject.abi3.so is staged; the target's native _memray.cpython-*.so is intentionally
+// left untouched so the tracker writes a file in the target's format (read back via nsenter).
 // Returns a cleanup function that restores the original file (or removes the staged one).
 var stageMemrayLib = func(pid string) (func(), error) {
 	out, err := exec.Command("python3", "-c",
@@ -86,22 +86,6 @@ var stageMemrayLib = func(pid string) (func(), error) {
 	}, nil
 }
 
-var memrayReportCommand = func(commander executil.Commander, job *job.ProfilingJob, rawFileName string, outputFileName string) *exec.Cmd {
-	switch job.OutputType {
-	case api.FlameGraph:
-		args := []string{"flamegraph", rawFileName, "-o", outputFileName}
-		return commander.Command(memrayLocation, args...)
-	case api.Summary:
-		args := []string{"summary", rawFileName}
-		return commander.Command(memrayLocation, args...)
-	case api.Tree:
-		args := []string{"tree", rawFileName}
-		return commander.Command(memrayLocation, args...)
-	default:
-		return nil
-	}
-}
-
 // MemrayProfiler profiles Python processes using Memray memory profiler.
 type MemrayProfiler struct {
 	targetPIDs []string
@@ -112,7 +96,6 @@ type MemrayProfiler struct {
 // MemrayManager abstracts the inner profiling operations so they can be mocked in tests.
 type MemrayManager interface {
 	invoke(*job.ProfilingJob, string) (error, time.Duration)
-	handleReport(*job.ProfilingJob, string, string) error
 }
 
 type memrayManager struct {
@@ -225,6 +208,13 @@ func (p *memrayManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 	log.DebugLogLn(fmt.Sprintf("tracker injected for PID %s; waiting %v for profiling to complete", pid, job.Interval))
 	time.Sleep(job.Interval)
 
+	// Verify the tracker actually produced a raw file before attempting report generation.
+	// The tracker may have crashed or the target process may have exited mid-profile.
+	if _, err := os.Stat(rawFileInTarget); err != nil {
+		log.WarningLogLn(fmt.Sprintf("raw file not found for PID %s at %s after profiling interval (target may have exited): %s", pid, rawFileInTarget, err))
+		return nil, time.Since(start)
+	}
+
 	// The raw file was written by the target's native memray tracker into the target's /tmp.
 	// Run the report command inside the target's mount namespace so the same memray version
 	// is used for both writing and reading — avoiding format incompatibility errors.
@@ -290,32 +280,6 @@ var handleReportInMountNs = func(commander executil.Commander, job *job.Profilin
 	default:
 		return fmt.Errorf("unsupported output type for memray: %s", job.OutputType)
 	}
-}
-
-func (p *memrayManager) handleReport(job *job.ProfilingJob, rawFileName string, resultFileName string) error {
-	var out bytes.Buffer
-	var stderr bytes.Buffer
-
-	cmd := memrayReportCommand(p.commander, job, rawFileName, resultFileName)
-	if cmd == nil {
-		return fmt.Errorf("unsupported output type for memray: %s", job.OutputType)
-	}
-	cmd.Stdout = &out
-	cmd.Stderr = &stderr
-
-	err := cmd.Run()
-	if err != nil {
-		return errors.Wrapf(err, "could not generate %s report: %s", string(job.OutputType), stderr.String())
-	}
-
-	if job.OutputType != api.FlameGraph {
-		// for summary/tree the report writes to stdout; persist it to the result file
-		if err := os.WriteFile(resultFileName, []byte(out.String()), 0600); err != nil {
-			return errors.Wrapf(err, "could not write %s report to file: %s", string(job.OutputType), resultFileName)
-		}
-	}
-
-	return nil
 }
 
 func (p *MemrayProfiler) CleanUp(*job.ProfilingJob) error {

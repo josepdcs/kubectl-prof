@@ -101,15 +101,7 @@ func (p *profilingContainerApi) HandleProfilingContainerLogs(pod *v1.Pod, contai
 func (p *profilingContainerApi) GetRemoteFile(pod *v1.Pod, containerName string, remoteFile result.File, targetPodName string, target *config.TargetConfig) (string, error) {
 	var fileBuff []byte
 
-	if remoteFile.Content != "" {
-		// Agent embedded the compressed file as base64 in the result event.
-		// Decode it directly — no exec websocket needed.
-		var err error
-		fileBuff, err = base64.StdEncoding.DecodeString(remoteFile.Content)
-		if err != nil {
-			return "", errors.Wrap(err, "could not base64-decode embedded file content")
-		}
-	} else if remoteFile.Chunks != nil && len(remoteFile.Chunks) > 0 {
+	if remoteFile.Chunks != nil && len(remoteFile.Chunks) > 0 {
 		chunks, err := retrieveChunks(pod, containerName, remoteFile, p.executor, target)
 		if err != nil {
 			return "", err

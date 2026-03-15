@@ -12,7 +12,4 @@ type File struct {
 	Checksum        string
 	Chunks          []api.ChunkData
 	Timestamp       time.Time
-	// Content holds the base64-encoded compressed file bytes when the agent
-	// embedded them directly in the result event (no exec download needed).
-	Content string
 }

@@ -29,12 +29,3 @@ func (m *mockMemrayManager) invoke(j *job.ProfilingJob, pid string) (error, time
 	return err, d
 }
 
-func (m *mockMemrayManager) handleReport(j *job.ProfilingJob, rawFileName string, resultFileName string) error {
-	args := m.Called(j, rawFileName, resultFileName)
-	if a := args.Get(0); a != nil {
-		if err, ok := a.(error); ok {
-			return err
-		}
-	}
-	return nil
-}

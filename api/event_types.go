@@ -58,9 +58,6 @@ type ResultData struct {
 	Checksum        string      `json:"checksum,omitempty"`
 	CompressorType  string      `json:"compressor-type,omitempty"`
 	Chunks          []ChunkData `json:"chunks,omitempty"`
-	// Content holds the base64-encoded compressed file bytes so the CLI can
-	// reconstruct the result without an exec websocket connection.
-	Content string `json:"content,omitempty"`
 }
 
 // ChunkData represents a profiling result chunk.

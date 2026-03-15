@@ -244,13 +244,14 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 					},
 				}
 				remoteFileContent := "test"
+				outFake := bytes.NewBufferString(base64.StdEncoding.EncodeToString([]byte(remoteFileContent)))
 				timestamp, _ := time.Parse(time.RFC3339, "2023-02-28T11:44:12.678378359Z")
 				return fields{
 						&profilingContainerApi{
 							connectionInfo: kubernetes.ConnectionInfo{
 								ClientSet: testclient.NewSimpleClientset(),
 							},
-							executor: podexec.NewExecFake(nil, nil, nil),
+							executor: podexec.NewExecFake(outFake, nil, nil),
 						},
 					},
 					args{
@@ -261,7 +262,6 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 							Checksum:        getMD5Hash([]byte(remoteFileContent)),
 							Timestamp:       timestamp,
 							FileSizeInBytes: int64(len(remoteFileContent)),
-							Content:         base64.StdEncoding.EncodeToString([]byte(remoteFileContent)),
 						},
 						target: &config.TargetConfig{
 							LocalPath:  common.TmpDir(),
@@ -586,13 +586,14 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 					},
 				}
 				remoteFileContent := "test"
+				outFake := bytes.NewBufferString(base64.StdEncoding.EncodeToString([]byte(remoteFileContent)))
 				timestamp, _ := time.Parse(time.RFC3339, "2023-02-28T11:44:12.678378359Z")
 				return fields{
 						&profilingContainerApi{
 							connectionInfo: kubernetes.ConnectionInfo{
 								ClientSet: testclient.NewSimpleClientset(),
 							},
-							executor: podexec.NewExecFake(nil, nil, nil),
+							executor: podexec.NewExecFake(outFake, nil, nil),
 						},
 					},
 					args{
@@ -603,7 +604,6 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 							Checksum:        getMD5Hash([]byte(remoteFileContent)),
 							Timestamp:       timestamp,
 							FileSizeInBytes: int64(len(remoteFileContent)),
-							Content:         base64.StdEncoding.EncodeToString([]byte(remoteFileContent)),
 						},
 						target: &config.TargetConfig{
 							LocalPath:  "/tmp",
@@ -648,13 +648,14 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 					},
 				}
 				remoteFileContent := "test"
+				outFake := bytes.NewBufferString(base64.StdEncoding.EncodeToString([]byte(remoteFileContent)))
 				timestamp, _ := time.Parse(time.RFC3339, "2023-02-28T11:44:12.678378359Z")
 				return fields{
 						&profilingContainerApi{
 							connectionInfo: kubernetes.ConnectionInfo{
 								ClientSet: testclient.NewSimpleClientset(),
 							},
-							executor: podexec.NewExecFake(nil, nil, nil),
+							executor: podexec.NewExecFake(outFake, nil, nil),
 						},
 					},
 					args{
@@ -665,7 +666,6 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 							Checksum:        getMD5Hash([]byte(remoteFileContent)),
 							Timestamp:       timestamp,
 							FileSizeInBytes: int64(len(remoteFileContent)),
-							Content:         base64.StdEncoding.EncodeToString([]byte(remoteFileContent)),
 						},
 						target: &config.TargetConfig{
 							LocalPath:  "/tmp",
@@ -710,13 +710,14 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 					},
 				}
 				remoteFileContent := "test"
+				outFake := bytes.NewBufferString(base64.StdEncoding.EncodeToString([]byte(remoteFileContent)))
 				timestamp, _ := time.Parse(time.RFC3339, "2023-02-28T11:44:12.678378359Z")
 				return fields{
 						&profilingContainerApi{
 							connectionInfo: kubernetes.ConnectionInfo{
 								ClientSet: testclient.NewSimpleClientset(),
 							},
-							executor: podexec.NewExecFake(nil, nil, nil),
+							executor: podexec.NewExecFake(outFake, nil, nil),
 						},
 					},
 					args{
@@ -727,7 +728,6 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 							Checksum:        getMD5Hash([]byte(remoteFileContent)),
 							Timestamp:       timestamp,
 							FileSizeInBytes: int64(len(remoteFileContent)),
-							Content:         base64.StdEncoding.EncodeToString([]byte(remoteFileContent)),
 						},
 						target: &config.TargetConfig{
 							LocalPath:  "/other",
