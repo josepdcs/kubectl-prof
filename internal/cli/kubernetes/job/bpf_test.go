@@ -2,6 +2,7 @@ package job
 
 import (
 	"testing"
+	"time"
 
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
@@ -58,7 +59,8 @@ func Test_bpfCreate_create(t *testing.T) {
 				},
 				Privileged: false,
 			},
-			Namespace: "Namespace",
+			Namespace:    "Namespace",
+			CleanupDelay: 5 * time.Second,
 		},
 	}
 	b := &bpfCreator{}
@@ -189,7 +191,8 @@ func Test_bpfCreate_shouldFailWhenUnableGenerateResources(t *testing.T) {
 				},
 				Privileged: false,
 			},
-			Namespace: "Namespace",
+			Namespace:    "Namespace",
+			CleanupDelay: 5 * time.Second,
 		},
 	}
 	b := &bpfCreator{}

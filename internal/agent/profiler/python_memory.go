@@ -181,8 +181,8 @@ func (p *memrayManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 		defer cleanup()
 	}
 
-	// intermediate raw binary file
-	rawFileName := common.GetResultFile(common.TmpDir(), job.Tool, api.Raw, pid, job.Iteration)
+	// intermediate raw binary file (not a user-facing output type, so built directly)
+	rawFileName := filepath.Join(common.TmpDir(), fmt.Sprintf("%smemray-raw-%s-%d.bin", config.ProfilingPrefix, pid, job.Iteration))
 
 	// The tracker (--aggregate) writes the raw file to its own /tmp (target's mount namespace).
 	// Clean both locations before running to avoid "file exists" errors from prior runs.
@@ -217,8 +217,21 @@ func (p *memrayManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 	// memray attach exits immediately after injecting the tracker thread into the target process.
 	// The tracker runs independently inside the target for job.Interval duration and writes the
 	// output file to the target's filesystem. Wait for it to finish before reading the file.
+	// Emit periodic heartbeat events to keep the log stream alive through proxies/load balancers.
 	log.DebugLogLn(fmt.Sprintf("tracker injected for PID %s; waiting %v for profiling to complete", pid, job.Interval))
-	time.Sleep(job.Interval)
+	heartbeatInterval := 30 * time.Second
+	remaining := job.Interval
+	for remaining > 0 {
+		sleep := heartbeatInterval
+		if remaining < sleep {
+			sleep = remaining
+		}
+		time.Sleep(sleep)
+		remaining -= sleep
+		if remaining > 0 {
+			_ = log.EventLn(api.Progress, &api.ProgressData{Time: time.Now(), Stage: api.Profiling})
+		}
+	}
 
 	// Verify the tracker actually produced a raw file before attempting report generation.
 	// The tracker may have crashed or the target process may have exited mid-profile.

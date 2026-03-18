@@ -38,8 +38,6 @@ func GetFileExtension(tool api.ProfilingTool, outputType api.OutputType) string 
 		}
 	case api.Memray:
 		switch outputType {
-		case api.Raw:
-			return ".bin"
 		case api.Summary, api.Tree:
 			return ".txt"
 		default:
