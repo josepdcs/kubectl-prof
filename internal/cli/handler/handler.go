@@ -52,9 +52,12 @@ func (h *EventHandler) Handle(events chan string, done chan bool, resultFile cha
 }
 
 func (h *EventHandler) reportProgress(data *api.ProgressData, done chan bool) {
-	if data.Stage == api.Started {
+	switch data.Stage {
+	case api.Started:
 		h.printer.Print("Profiling ... 🔬\n")
-	} else if data.Stage == api.Ended {
+	case api.Ended:
 		done <- true
+	case api.Profiling:
+		// heartbeat — keeps log stream alive, no output needed
 	}
 }

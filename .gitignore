@@ -1,4 +1,5 @@
 .idea/
 .run/
+.tool-versions
 bin/
 coverage.out

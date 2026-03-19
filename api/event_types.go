@@ -34,8 +34,9 @@ const (
 	Log      EventType = "log"      // Log indicates an event type representing a log message.
 	Error    EventType = "error"    // Error indicates an event type representing an error.
 
-	Started ProgressStage = "started" // Started indicates the start of a profiling job.
-	Ended   ProgressStage = "ended"   // Ended indicates the end of a profiling job.
+	Started   ProgressStage = "started"   // Started indicates the start of a profiling job.
+	Ended     ProgressStage = "ended"     // Ended indicates the end of a profiling job.
+	Profiling ProgressStage = "profiling" // Profiling indicates the profiling is in progress (heartbeat).
 )
 
 // Event represents an event emitted by the profiler.

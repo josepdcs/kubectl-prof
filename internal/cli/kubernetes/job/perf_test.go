@@ -2,6 +2,7 @@ package job
 
 import (
 	"testing"
+	"time"
 
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
@@ -58,7 +59,8 @@ func Test_perfCreate_create(t *testing.T) {
 				},
 				Privileged: false,
 			},
-			Namespace: "Namespace",
+			Namespace:    "Namespace",
+			CleanupDelay: 5 * time.Second,
 		},
 	}
 	b := &perfCreator{}
@@ -179,7 +181,8 @@ func Test_perfCreate_shouldFailWhenUnableGenerateResources(t *testing.T) {
 				},
 				Privileged: false,
 			},
-			Namespace: "Namespace",
+			Namespace:    "Namespace",
+			CleanupDelay: 5 * time.Second,
 		},
 	}
 	b := &perfCreator{}

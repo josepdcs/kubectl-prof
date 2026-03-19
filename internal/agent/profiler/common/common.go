@@ -36,6 +36,14 @@ func GetFileExtension(tool api.ProfilingTool, outputType api.OutputType) string 
 			// api.FlameGraph
 			return ".html"
 		}
+	case api.Memray:
+		switch outputType {
+		case api.Summary, api.Tree:
+			return ".txt"
+		default:
+			// api.FlameGraph
+			return ".html"
+		}
 	case api.Pyspy:
 		switch outputType {
 		case api.SpeedScope:

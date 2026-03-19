@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"time"
 
@@ -25,6 +26,7 @@ import (
 
 const (
 	defaultGracePeriodEnding           = 5 * time.Minute
+	defaultJobCleanupDelay             = 5 * time.Second
 	defaultContainerRuntime            = string(api.Containerd)
 	defaultEvent                       = string(api.Ctimer)
 	defaultLogLevel                    = string(api.InfoLevel)
@@ -220,6 +222,7 @@ func NewProfileCommand(streams genericiooptions.IOStreams) *cobra.Command {
 	cmd.Flags().StringVarP(&target.Pgrep, "pgrep", "p", "", "Name of the target process")
 	cmd.Flags().IntVar(&target.NodeHeapSnapshotSignal, "node-heap-snapshot-signal", 12, "The signal to be sent to the target process to generate a heap snapshot for Node.js applications")
 	cmd.Flags().StringSliceVar(&flags.capabilities, "capabilities", nil, "The capabilities to be added to the agent container. It can be used multiple times to add more than one capability (e.g. --capabilities SYS_ADMIN --capabilities SYS_PTRACE)")
+	cmd.Flags().DurationVar(&job.CleanupDelay, "job-cleanup-delay", defaultJobCleanupDelay, "How long Kubernetes keeps the completed job/pod before deleting it")
 	cmd.Flags().StringSliceVar(&job.TolerationsRaw, "tolerations", nil, "Tolerations for the profiling job pod in the format key=value:effect or key:effect. It can be used multiple times to add more than one toleration (e.g. --tolerations key1=value1:NoSchedule --tolerations key2:NoExecute)")
 	cmd.Flags().StringSliceVar(&target.AsyncProfilerArgs, "async-profiler-args", nil, "Additional arguments to pass to async-profiler. It can be used multiple times to add more than one argument (e.g. --async-profiler-args -t --async-profiler-args --alloc=2m)")
 
@@ -301,6 +304,13 @@ func validateFlags(flags *profilingFlags, target *config.TargetConfig, job *conf
 
 	if err := job.ParseTolerations(); err != nil {
 		return errors.Wrapf(err, "unable to parse tolerations")
+	}
+
+	if job.CleanupDelay < 0 {
+		return errors.New("--job-cleanup-delay must be non-negative")
+	}
+	if job.CleanupDelay.Seconds() > math.MaxInt32 {
+		return errors.Errorf("--job-cleanup-delay must not exceed %v", time.Duration(math.MaxInt32)*time.Second)
 	}
 
 	// Create the local path if given and it does not exist

@@ -47,7 +47,7 @@ func (b *bpfCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (s
 		Spec: batchv1.JobSpec{
 			Parallelism:             int32Ptr(1),
 			Completions:             int32Ptr(1),
-			TTLSecondsAfterFinished: int32Ptr(5),
+			TTLSecondsAfterFinished: int32Ptr(int32(cfg.Job.CleanupDelay.Seconds())),
 			BackoffLimit:            int32Ptr(2),
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: commonMeta,

@@ -2,7 +2,9 @@ package job
 
 import (
 	"testing"
+	"time"
 
+	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
 	"github.com/stretchr/testify/assert"
@@ -58,7 +60,8 @@ func Test_pythonCreate_create(t *testing.T) {
 				},
 				Privileged: false,
 			},
-			Namespace: "Namespace",
+			Namespace:    "Namespace",
+			CleanupDelay: 5 * time.Second,
 		},
 	}
 	b := &pythonCreator{}
@@ -179,7 +182,8 @@ func Test_pythonCreate_shouldFailWhenUnableGenerateResources(t *testing.T) {
 				},
 				Privileged: false,
 			},
-			Namespace: "Namespace",
+			Namespace:    "Namespace",
+			CleanupDelay: 5 * time.Second,
 		},
 	}
 	b := &pythonCreator{}
@@ -190,6 +194,29 @@ func Test_pythonCreate_shouldFailWhenUnableGenerateResources(t *testing.T) {
 	assert.Empty(t, id)
 	assert.Empty(t, job)
 
+}
+
+func Test_pythonCreate_memray_capabilities(t *testing.T) {
+	targetPod := &apiv1.Pod{
+		Spec: apiv1.PodSpec{NodeName: "NodeName"},
+	}
+	cfg := &config.ProfilerConfig{
+		Target: &config.TargetConfig{
+			Image:                "Image",
+			ContainerRuntimePath: "ContainerRuntimePath",
+			ProfilingTool:        api.Memray,
+		},
+		Job: &config.JobConfig{
+			Namespace:    "Namespace",
+			CleanupDelay: 5 * time.Second,
+		},
+	}
+	b := &pythonCreator{}
+	_, job, err := b.Create(targetPod, cfg)
+	require.NoError(t, err)
+	caps := job.Spec.Template.Spec.Containers[0].SecurityContext.Capabilities.Add
+	assert.Contains(t, caps, apiv1.Capability("SYS_PTRACE"))
+	assert.Contains(t, caps, apiv1.Capability("SYS_ADMIN"))
 }
 
 func Test_pythonCreator_getImageName(t *testing.T) {
