@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"time"
 
@@ -303,6 +304,13 @@ func validateFlags(flags *profilingFlags, target *config.TargetConfig, job *conf
 
 	if err := job.ParseTolerations(); err != nil {
 		return errors.Wrapf(err, "unable to parse tolerations")
+	}
+
+	if job.CleanupDelay < 0 {
+		return errors.New("--job-cleanup-delay must be non-negative")
+	}
+	if job.CleanupDelay.Seconds() > math.MaxInt32 {
+		return errors.Errorf("--job-cleanup-delay must not exceed %v", time.Duration(math.MaxInt32)*time.Second)
 	}
 
 	// Create the local path if given and it does not exist

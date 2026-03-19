@@ -263,7 +263,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 							FileSizeInBytes: int64(len(remoteFileContent)),
 						},
 						target: &config.TargetConfig{
-							LocalPath:  "/tmp",
+							LocalPath:  common.TmpDir(),
 							Compressor: compressor.None,
 							PodName:    "pod-name",
 						},
@@ -329,7 +329,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 							FileSizeInBytes: int64(len(remoteFileContent)),
 						},
 						target: &config.TargetConfig{
-							LocalPath:  "/tmp",
+							LocalPath:  common.TmpDir(),
 							Compressor: compressor.None,
 						},
 					}
@@ -343,7 +343,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 			},
 			then: func(t *testing.T, r result, f fields) {
 				require.Error(t, r.err)
-				assert.EqualError(t, r.err, "checksum does not match for file /tmp/flamegraph.svg.gz")
+				assert.EqualError(t, r.err, "checksum does not match for file "+filepath.Join(common.TmpDir(), "flamegraph.svg.gz"))
 			},
 		},
 		{
@@ -391,7 +391,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 							FileSizeInBytes: int64(len(remoteFileContent)),
 						},
 						target: &config.TargetConfig{
-							LocalPath:  "/tmp",
+							LocalPath:  common.TmpDir(),
 							Compressor: compressor.None,
 							ExtraTargetOptions: config.ExtraTargetOptions{
 								RetrieveFileRetries: 3,
@@ -408,7 +408,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 			},
 			then: func(t *testing.T, r result, f fields) {
 				require.Error(t, r.err)
-				assert.EqualError(t, r.err, "checksum does not match for file /tmp/flamegraph.svg.gz")
+				assert.EqualError(t, r.err, "checksum does not match for file "+filepath.Join(common.TmpDir(), "flamegraph.svg.gz"))
 			},
 		},
 		{
@@ -461,7 +461,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 							FileSizeInBytes: int64(len(remoteFileContent)),
 						},
 						target: &config.TargetConfig{
-							LocalPath:  "/tmp",
+							LocalPath:  common.TmpDir(),
 							Compressor: compressor.None,
 							ExtraTargetOptions: config.ExtraTargetOptions{
 								RetrieveFileRetries: 2,
@@ -478,7 +478,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 			},
 			then: func(t *testing.T, r result, f fields) {
 				require.Error(t, r.err)
-				assert.EqualError(t, r.err, "checksum does not match for file /tmp/flamegraph.svg.gz")
+				assert.EqualError(t, r.err, "checksum does not match for file "+filepath.Join(common.TmpDir(), "flamegraph.svg.gz"))
 				// 1 initial try + 2 retries = 3 calls
 				assert.Equal(t, 3, f.ProfilingContainerApi.(*profilingContainerApi).executor.(*mockExecutor).calls)
 			},
@@ -538,7 +538,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 							},
 						},
 						target: &config.TargetConfig{
-							LocalPath:  "/tmp",
+							LocalPath:  common.TmpDir(),
 							Compressor: compressor.None,
 							ExtraTargetOptions: config.ExtraTargetOptions{
 								RetrieveFileRetries: 2,
@@ -555,7 +555,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 			},
 			then: func(t *testing.T, r result, f fields) {
 				require.Error(t, r.err)
-				assert.EqualError(t, r.err, "checksum does not match for chunk file /tmp/flamegraph.svg.gz.00")
+				assert.EqualError(t, r.err, "checksum does not match for chunk file "+filepath.Join(common.TmpDir(), "flamegraph.svg.gz.00"))
 				// 1 initial try + 2 retries = 3 calls
 				assert.Equal(t, 3, f.ProfilingContainerApi.(*profilingContainerApi).executor.(*mockExecutor).calls)
 			},
@@ -605,7 +605,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 							FileSizeInBytes: int64(len(remoteFileContent)),
 						},
 						target: &config.TargetConfig{
-							LocalPath:  "/tmp",
+							LocalPath:  common.TmpDir(),
 							Compressor: "other",
 						},
 					}
@@ -667,7 +667,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 							FileSizeInBytes: int64(len(remoteFileContent)),
 						},
 						target: &config.TargetConfig{
-							LocalPath:  "/tmp",
+							LocalPath:  common.TmpDir(),
 							Compressor: compressor.Gzip,
 						},
 					}
@@ -799,7 +799,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 							},
 						},
 						target: &config.TargetConfig{
-							LocalPath:  "/tmp",
+							LocalPath:  common.TmpDir(),
 							Compressor: compressor.None,
 							PodName:    "pod-name",
 						},
@@ -872,7 +872,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 							},
 						},
 						target: &config.TargetConfig{
-							LocalPath:  "/tmp",
+							LocalPath:  common.TmpDir(),
 							Compressor: compressor.None,
 						},
 					}
@@ -886,7 +886,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 			},
 			then: func(t *testing.T, r result, f fields) {
 				require.Error(t, r.err)
-				assert.EqualError(t, r.err, "checksum does not match for chunk file /tmp/flamegraph.svg.gz.00")
+				assert.EqualError(t, r.err, "checksum does not match for chunk file "+filepath.Join(common.TmpDir(), "flamegraph.svg.gz.00"))
 			},
 		},
 		{
@@ -941,7 +941,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 							},
 						},
 						target: &config.TargetConfig{
-							LocalPath:  "/tmp",
+							LocalPath:  common.TmpDir(),
 							Compressor: compressor.None,
 							ExtraTargetOptions: config.ExtraTargetOptions{
 								RetrieveFileRetries: 3,
@@ -958,7 +958,7 @@ func Test_profilingContainerAdapter_GetRemoteFile(t *testing.T) {
 			},
 			then: func(t *testing.T, r result, f fields) {
 				require.Error(t, r.err)
-				assert.EqualError(t, r.err, "checksum does not match for chunk file /tmp/flamegraph.svg.gz.00")
+				assert.EqualError(t, r.err, "checksum does not match for chunk file "+filepath.Join(common.TmpDir(), "flamegraph.svg.gz.00"))
 			},
 		},
 		{

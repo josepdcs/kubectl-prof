@@ -314,7 +314,7 @@ func Test_memrayManager_invoke(t *testing.T) {
 				stubTestHelpers()
 				var b bytes.Buffer
 				b.Write([]byte("test"))
-				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000-1.bin"), b.String())
+				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"memray-raw-1000-1.bin"), b.String())
 
 				// Override handleReportInMountNs to write the result file directly,
 				// avoiding /proc/<pid>/root access which is unavailable in tests.
@@ -348,12 +348,12 @@ func Test_memrayManager_invoke(t *testing.T) {
 			},
 			then: func(t *testing.T, fields fields, err error) {
 				assert.Nil(t, err)
-				assert.False(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000-1.bin")))
+				assert.False(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"memray-raw-1000-1.bin")))
 				assert.True(t, fields.MemrayProfiler.MemrayManager.(*memrayManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 1)
 			},
 			after: func() {
 				restoreTestHelpers()
-				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000-1.bin"))
+				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"memray-raw-1000-1.bin"))
 				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000-1.html"))
 			},
 		},
@@ -362,7 +362,7 @@ func Test_memrayManager_invoke(t *testing.T) {
 			given: func() (fields, args) {
 				log.SetPrintLogs(true)
 				stubTestHelpers()
-				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000-1.bin"), "test")
+				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"memray-raw-1000-1.bin"), "test")
 
 				// Override handleReportInMountNs to write report file directly.
 				handleReportInMountNs = func(_ executil.Commander, _ *job.ProfilingJob, _, _, resultFileName string) error {
@@ -401,7 +401,7 @@ func Test_memrayManager_invoke(t *testing.T) {
 			},
 			after: func() {
 				restoreTestHelpers()
-				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000-1.bin"))
+				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"memray-raw-1000-1.bin"))
 				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"summary-1000-1.txt"))
 			},
 		},
@@ -410,7 +410,7 @@ func Test_memrayManager_invoke(t *testing.T) {
 			given: func() (fields, args) {
 				log.SetPrintLogs(true)
 				stubTestHelpers()
-				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000-1.bin"), "test")
+				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"memray-raw-1000-1.bin"), "test")
 
 				// Override handleReportInMountNs to write report file directly.
 				handleReportInMountNs = func(_ executil.Commander, _ *job.ProfilingJob, _, _, resultFileName string) error {
@@ -449,7 +449,7 @@ func Test_memrayManager_invoke(t *testing.T) {
 			},
 			after: func() {
 				restoreTestHelpers()
-				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000-1.bin"))
+				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"memray-raw-1000-1.bin"))
 				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"tree-1000-1.txt"))
 			},
 		},
@@ -492,7 +492,7 @@ func Test_memrayManager_invoke(t *testing.T) {
 			given: func() (fields, args) {
 				log.SetPrintLogs(true)
 				stubTestHelpers()
-				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000-1.bin"), "test")
+				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"memray-raw-1000-1.bin"), "test")
 
 				// Override handleReportInMountNs to simulate report failure.
 				handleReportInMountNs = func(_ executil.Commander, _ *job.ProfilingJob, _, _, _ string) error {
@@ -528,7 +528,7 @@ func Test_memrayManager_invoke(t *testing.T) {
 			},
 			after: func() {
 				restoreTestHelpers()
-				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000-1.bin"))
+				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"memray-raw-1000-1.bin"))
 				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000-1.html"))
 			},
 		},
@@ -537,7 +537,7 @@ func Test_memrayManager_invoke(t *testing.T) {
 			given: func() (fields, args) {
 				log.SetPrintLogs(true)
 				stubTestHelpers()
-				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000-1.bin"), "test")
+				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"memray-raw-1000-1.bin"), "test")
 
 				// Override handleReportInMountNs to write the result file directly.
 				handleReportInMountNs = func(_ executil.Commander, _ *job.ProfilingJob, _, _, resultFileName string) error {
@@ -576,7 +576,7 @@ func Test_memrayManager_invoke(t *testing.T) {
 			},
 			after: func() {
 				restoreTestHelpers()
-				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000-1.bin"))
+				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"memray-raw-1000-1.bin"))
 				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000-1.html"))
 			},
 		},

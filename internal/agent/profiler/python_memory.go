@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/agrison/go-commons-lang/stringUtils"
@@ -46,6 +47,22 @@ var memrayCommand = func(commander executil.Commander, job *job.ProfilingJob, pi
 // Only _inject.abi3.so is staged; the target's native _memray.cpython-*.so is intentionally
 // left untouched so the tracker writes a file in the target's format (read back via nsenter).
 // Returns a cleanup function that restores the original file (or removes the staged one).
+//
+// Multiple PIDs from the same container share a mount namespace, so their
+// /proc/<pid>/root/<libSrc> paths all resolve to the same physical file. The staging
+// state is ref-counted by libSrc: the first caller stages the file and saves the original;
+// subsequent callers for the same libSrc increment the counter without re-reading. The
+// last cleanup decrements to zero and performs the actual restore/remove, trying each known
+// PID's /proc path in turn so that a stale path (from a PID that exited mid-profiling) does
+// not prevent restoration.
+var (
+	stageMemrayLibMu        sync.Mutex
+	stageMemrayLibRefs      = map[string]int{}
+	stageMemrayLibOriginals = map[string][]byte{}
+	stageMemrayLibHadOrig   = map[string]bool{}
+	stageMemrayLibPIDs      = map[string][]string{}
+)
+
 var stageMemrayLib = func(pid string) (func(), error) {
 	out, err := exec.Command("python3", "-c",
 		"import memray, pathlib\n"+
@@ -69,19 +86,53 @@ var stageMemrayLib = func(pid string) (func(), error) {
 		return nil, fmt.Errorf("could not read %s: %w", libSrc, err)
 	}
 
-	// Save whatever the target had (if anything) for restoration on cleanup.
-	oldData, _ := os.ReadFile(libDst)
-	hadOld := oldData != nil
-
-	if err := os.WriteFile(libDst, data, 0755); err != nil {
-		return nil, fmt.Errorf("could not stage %s to %s: %w", libSrc, libDst, err)
+	stageMemrayLibMu.Lock()
+	if stageMemrayLibRefs[libSrc] == 0 {
+		// First reference: save original and stage the file.
+		oldData, _ := os.ReadFile(libDst)
+		stageMemrayLibHadOrig[libSrc] = oldData != nil
+		stageMemrayLibOriginals[libSrc] = oldData
+		if err := os.WriteFile(libDst, data, 0755); err != nil {
+			stageMemrayLibMu.Unlock()
+			return nil, fmt.Errorf("could not stage %s to %s: %w", libSrc, libDst, err)
+		}
 	}
+	stageMemrayLibRefs[libSrc]++
+	stageMemrayLibPIDs[libSrc] = append(stageMemrayLibPIDs[libSrc], pid)
+	stageMemrayLibMu.Unlock()
 
 	return func() {
-		if hadOld {
-			_ = os.WriteFile(libDst, oldData, 0755)
-		} else {
-			_ = os.Remove(libDst)
+		stageMemrayLibMu.Lock()
+		defer stageMemrayLibMu.Unlock()
+		stageMemrayLibRefs[libSrc]--
+		if stageMemrayLibRefs[libSrc] == 0 {
+			// Try each known PID's /proc path until one succeeds. The target PID that
+			// registered this cleanup may have exited by now, making its
+			// /proc/<pid>/root/... path stale. All PIDs in the same container share a
+			// mount namespace, so any still-live PID's path reaches the same physical
+			// file. Iterating through the full set avoids a silent failure leaving the
+			// staged library in place.
+			restored := false
+			for _, p := range stageMemrayLibPIDs[libSrc] {
+				dst := fmt.Sprintf("/proc/%s/root%s", p, libSrc)
+				var err error
+				if stageMemrayLibHadOrig[libSrc] {
+					err = os.WriteFile(dst, stageMemrayLibOriginals[libSrc], 0755)
+				} else {
+					err = os.Remove(dst)
+				}
+				if err == nil {
+					restored = true
+					break
+				}
+			}
+			if !restored {
+				log.WarningLogLn(fmt.Sprintf("could not restore memray inject library %s: all PID paths exhausted (library may remain staged)", libSrc))
+			}
+			delete(stageMemrayLibRefs, libSrc)
+			delete(stageMemrayLibOriginals, libSrc)
+			delete(stageMemrayLibHadOrig, libSrc)
+			delete(stageMemrayLibPIDs, libSrc)
 		}
 	}, nil
 }
@@ -199,8 +250,11 @@ func (p *memrayManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 	if err != nil {
 		stderrStr := stderr.String()
 		// The PID may have exited between discovery and attach — skip it rather than
-		// failing the entire profiling run.
-		if strings.Contains(stderrStr, "No such file or directory") || strings.Contains(stderrStr, "No such process") {
+		// failing the entire profiling run. Restrict "No such file or directory" to
+		// errors that reference the PID-specific /proc/<pid>/ path so that unrelated
+		// failures (e.g. missing /app/memray binary) are not silently swallowed.
+		if (strings.Contains(stderrStr, "No such file or directory") && strings.Contains(stderrStr, fmt.Sprintf("/proc/%s/", pid))) ||
+			strings.Contains(stderrStr, "No such process") {
 			log.WarningLogLn(fmt.Sprintf("PID %s no longer exists, skipping: %s", pid, strings.TrimSpace(stderrStr)))
 			return nil, time.Since(start)
 		}

@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/josepdcs/kubectl-prof/api"
@@ -83,15 +84,18 @@ func TestDoWithNativeGzipAndSplit(t *testing.T) {
 		eventType api.OutputType
 	}
 	tests := []struct {
-		name       string
-		beforeEach func()
-		args       args
-		wantErrMsg string
-		afterEach  func()
+		name         string
+		skipNonLinux bool
+		beforeEach   func()
+		args         args
+		wantErrMsg   string
+		afterEach    func()
 	}{
 		{
-			name: "should publish event",
+			name:         "should publish event",
+			skipNonLinux: true,
 			beforeEach: func() {
+				_ = os.Remove(filepath.Join(common.TmpDir(), "flamegraph.svg.gz"))
 				cmd := exec.Command("cp", filepath.Join(testdata.ResultTestDataDir(), "flamegraph.svg"), common.TmpDir())
 				_ = cmd.Run()
 			},
@@ -101,6 +105,7 @@ func TestDoWithNativeGzipAndSplit(t *testing.T) {
 				eventType: api.FlameGraph,
 			},
 			afterEach: func() {
+				_ = os.Remove(filepath.Join(common.TmpDir(), "flamegraph.svg.gz"))
 				file.RemoveAll(common.TmpDir(), "flamegraph.svg.gz.*")
 			},
 		},
@@ -145,7 +150,11 @@ func TestDoWithNativeGzipAndSplit(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipNonLinux && runtime.GOOS != "linux" {
+				t.Skip("requires Linux-specific split command")
+			}
 			if tt.beforeEach != nil {
 				tt.beforeEach()
 			}
