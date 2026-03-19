@@ -342,8 +342,11 @@ var handleReportInMountNs = func(commander executil.Commander, job *job.Profilin
 		if err != nil {
 			return errors.Wrapf(err, "could not read flamegraph output from target namespace at %s", targetOutputInHost)
 		}
+		if err := os.WriteFile(resultFileName, data, 0600); err != nil {
+			return err
+		}
 		_ = os.Remove(targetOutputInHost)
-		return os.WriteFile(resultFileName, data, 0600)
+		return nil
 
 	case api.Summary, api.Tree:
 		args := []string{"--mount=" + mntNs, "--pid=" + pidNs, "--", "python3", "-m", "memray", string(job.OutputType), rawFileName}

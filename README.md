@@ -239,6 +239,8 @@ kubectl prof mypod -t 1m -l python -o speedscope --local-path=/tmp
 
 Profile memory allocations using [memray](https://github.com/bloomberg/memray):
 
+> **Note:** memray uses `nsenter` to enter the target container's namespaces, which requires `SYS_ADMIN` in addition to `SYS_PTRACE`. Both capabilities are included automatically when `--tool memray` is used (no extra flags needed).
+
 ```shell
 # Memory flamegraph (HTML)
 kubectl prof mypod -t 1m -l python --tool memray -o flamegraph --local-path=/tmp
