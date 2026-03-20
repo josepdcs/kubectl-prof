@@ -82,6 +82,17 @@ func GetFileExtension(tool api.ProfilingTool, outputType api.OutputType) string 
 			// api.FlameGraph
 			return ".svg"
 		}
+	case api.DotnetTrace:
+		switch outputType {
+		case api.SpeedScope:
+			return ".json"
+		default:
+			// api.Raw: nettrace format
+			return ".nettrace"
+		}
+	case api.DotnetGcdump:
+		// api.Gcdump
+		return ".gcdump"
 	default:
 		// api.FlameGraph
 		return ".svg"

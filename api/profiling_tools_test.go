@@ -55,6 +55,16 @@ func TestIsSupportedProfilingTool(t *testing.T) {
 			then:  true,
 		},
 		{
+			name:  "dotnet-trace",
+			given: "dotnet-trace",
+			then:  true,
+		},
+		{
+			name:  "dotnet-gcdump",
+			given: "dotnet-gcdump",
+			then:  true,
+		},
+		{
 			name:  "node-dummy",
 			given: "node-dummy",
 			then:  true,
@@ -141,6 +151,22 @@ func TestIsValidProfilingTool(t *testing.T) {
 			given: args{
 				tool:     Phpspy,
 				language: PHP,
+			},
+			then: true,
+		},
+		{
+			name: "DotnetTrace + DotNet",
+			given: args{
+				tool:     DotnetTrace,
+				language: DotNet,
+			},
+			then: true,
+		},
+		{
+			name: "DotnetGcdump + DotNet",
+			given: args{
+				tool:     DotnetGcdump,
+				language: DotNet,
 			},
 			then: true,
 		},
@@ -468,6 +494,31 @@ func TestGetProfilingTool(t *testing.T) {
 			},
 			then: Bpf, // default for ClangPlusPlus
 		},
+		// DotNet tests
+		{
+			name: "DotNet + SpeedScope",
+			given: args{
+				language:   DotNet,
+				outputType: SpeedScope,
+			},
+			then: DotnetTrace,
+		},
+		{
+			name: "DotNet + Raw",
+			given: args{
+				language:   DotNet,
+				outputType: Raw,
+			},
+			then: DotnetTrace,
+		},
+		{
+			name: "DotNet + Gcdump",
+			given: args{
+				language:   DotNet,
+				outputType: Gcdump,
+			},
+			then: DotnetGcdump,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -526,6 +577,11 @@ func TestGetProfilingToolsByProgrammingLanguage(t *testing.T) {
 			name:     "Rust",
 			language: Rust,
 			expected: []ProfilingTool{CargoFlame, Bpf, Btf, Perf},
+		},
+		{
+			name:     "DotNet",
+			language: DotNet,
+			expected: []ProfilingTool{DotnetTrace, DotnetGcdump},
 		},
 	}
 	for _, tt := range tests {

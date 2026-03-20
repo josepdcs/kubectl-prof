@@ -20,12 +20,14 @@ const (
 	NodeDummy     ProfilingTool = "node-dummy"       // NodeDummy is a profiling tool used primarily for Node.js applications to output various performance metrics.
 	CargoFlame    ProfilingTool = "cargo-flamegraph" // CargoFlame is a profiling tool used primarily for Rust applications to output various performance metrics.
 	Phpspy        ProfilingTool = "phpspy"           // Phpspy is a profiling tool used primarily for PHP applications to output various performance metrics.
+	DotnetTrace   ProfilingTool = "dotnet-trace"     // DotnetTrace is a profiling tool for .NET Core/5+ applications to collect CPU and runtime traces.
+	DotnetGcdump  ProfilingTool = "dotnet-gcdump"   // DotnetGcdump is a profiling tool for .NET Core/5+ applications to collect GC heap dumps for memory analysis.
 	FakeTool      ProfilingTool = "fake"             // FakeTool is a profiling tool used primarily for testing purposes.
 )
 
 var (
 	// profilingTools contains all supported profiling tools.
-	profilingTools = []ProfilingTool{AsyncProfiler, Jcmd, Pyspy, Bpf, Btf, Perf, Rbspy, NodeDummy, CargoFlame, Phpspy}
+	profilingTools = []ProfilingTool{AsyncProfiler, Jcmd, Pyspy, Bpf, Btf, Perf, Rbspy, NodeDummy, CargoFlame, Phpspy, DotnetTrace, DotnetGcdump}
 )
 
 // AvailableProfilingTools returns the list of all available profiling tools.
@@ -70,6 +72,13 @@ var GetProfilingTool = func(l ProgrammingLanguage, o OutputType) ProfilingTool {
 		}
 	case PHP:
 		return Phpspy
+	case DotNet:
+		switch o {
+		case Gcdump:
+			return DotnetGcdump
+		default:
+			return DotnetTrace
+		}
 	}
 
 	// return the default according programming language
@@ -88,6 +97,7 @@ var GetProfilingToolsByProgrammingLanguage = map[ProgrammingLanguage][]Profiling
 	Ruby:          {Rbspy},
 	Rust:          {CargoFlame, Bpf, Btf, Perf},
 	PHP:           {Phpspy},
+	DotNet:        {DotnetTrace, DotnetGcdump},
 	FakeLang:      {FakeTool},
 }
 

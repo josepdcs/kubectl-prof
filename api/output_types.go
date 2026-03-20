@@ -25,6 +25,7 @@ const (
 	Summary       OutputType = "summary"         // Summary represents a summary report.
 	SummaryByLine OutputType = "summary-by-line" // SummaryByLine represents a line-by-line summary report.
 	HeapSnapshot  OutputType = "heapsnapshot"    // HeapSnapshot represents a heap snapshot for Node.js applications.
+	Gcdump        OutputType = "gcdump"          // Gcdump represents a GC heap dump for .NET applications captured by dotnet-gcdump.
 )
 
 // GetOutputTypesByProfilingTool maps each ProfilingTool to its supported output types.
@@ -40,6 +41,8 @@ var GetOutputTypesByProfilingTool = map[ProfilingTool][]OutputType{
 	CargoFlame:    {FlameGraph},
 	NodeDummy:     {HeapSnapshot, HeapDump},
 	Phpspy:        {FlameGraph, Raw},
+	DotnetTrace:  {SpeedScope, Raw},
+	DotnetGcdump: {Gcdump},
 	FakeTool:      {FlameGraph},
 }
 
@@ -67,6 +70,7 @@ var (
 		Summary,
 		SummaryByLine,
 		HeapSnapshot,
+		Gcdump,
 	}
 )
 
