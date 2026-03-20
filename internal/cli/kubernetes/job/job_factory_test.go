@@ -54,6 +54,13 @@ func TestGet(t *testing.T) {
 			want: &phpCreator{},
 		},
 		{
+			name: "dotnet creator is instanced",
+			args: args{
+				lang: api.DotNet,
+			},
+			want: &dotnetCreator{},
+		},
+		{
 			name: "node creator is instanced",
 			args: args{
 				lang: api.Node,
