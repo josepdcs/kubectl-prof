@@ -18,7 +18,7 @@ RUN apt-get update \
 
 FROM bitnami/minideb:trixie
 RUN apt-get update \
-    && apt-get install -y procps strace \
+    && apt-get install -y procps strace binutils \
     && apt-get clean \
     && mkdir -p /app/FlameGraph
 COPY --from=phpspybuild /FlameGraph /app/FlameGraph
