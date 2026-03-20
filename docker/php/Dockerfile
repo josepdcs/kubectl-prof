@@ -24,6 +24,7 @@ RUN apt-get update \
 COPY --from=phpspybuild /FlameGraph /app/FlameGraph
 COPY --from=agentbuild /go/bin/agent /app/agent
 COPY --from=phpspybuild /phpspy/phpspy /app/phpspy
+COPY --from=phpspybuild /phpspy/stackcollapse-phpspy.pl /app/stackcollapse-phpspy.pl
 COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/get-ps-command.sh /app/get-ps-command.sh
 RUN chmod +x /app/get-ps-command.sh
 

@@ -35,6 +35,11 @@ func Get(job *job.ProfilingJob) FrameGrapher {
 			WithWidth(job.GetWidthAdditionalArgumentAndDelete()),
 			WithColors("mem"),
 		)
+	case api.PHP:
+		return NewFlameGrapherScript(
+			WithTitle(title),
+			WithWidth(job.GetWidthAdditionalArgumentAndDelete()),
+		)
 	case api.FakeLang:
 		return NewFlameGrapherFake()
 	}

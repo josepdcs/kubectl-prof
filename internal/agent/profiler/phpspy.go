@@ -24,13 +24,18 @@ import (
 )
 
 const (
-	phpSpyLocation         = "/app/phpspy"
-	phpSpyDelayBetweenJobs = 2 * time.Second
+	phpSpyLocation            = "/app/phpspy"
+	phpSpyStackCollapseScript = "/app/stackcollapse-phpspy.pl"
+	phpSpyRawOutputFile       = "/tmp/phpspy-%s-%d.out"
+	phpSpyDelayBetweenJobs    = 2 * time.Second
 )
 
 var phpspyCommand = func(commander executil.Commander, job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-	duration := strconv.Itoa(int(job.Interval.Seconds()))
-	args := []string{"-p", pid, "-T", duration, "-f", "flamegraph", "-o", fileName}
+	args := []string{"-p", pid, "-o", fileName}
+	if job.Interval > 0 {
+		timeLimitMs := strconv.Itoa(int(job.Interval.Milliseconds()))
+		args = append(args, "-i", timeLimitMs)
+	}
 	return commander.Command(phpSpyLocation, args...)
 }
 
@@ -44,6 +49,7 @@ type PhpspyProfiler struct {
 // PhpspyManager defines the interface for phpspy profiling operations.
 type PhpspyManager interface {
 	invoke(job *job.ProfilingJob, pid string) (error, time.Duration)
+	collapsePhpspyOutput(job *job.ProfilingJob, pid string) (error, string)
 	handleFlamegraph(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher, rawFileName string, flameFileName string) error
 }
 
@@ -107,20 +113,20 @@ func (p *PhpspyProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 func (p *phpspyManager) invoke(job *job.ProfilingJob, pid string) (error, time.Duration) {
 	start := time.Now()
 
-	var out bytes.Buffer
 	var stderr bytes.Buffer
 
-	fileName := common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType, pid, job.Iteration)
-	if job.OutputType == api.FlameGraph {
-		fileName = common.GetResultFile(common.TmpDir(), job.Tool, api.Raw, pid, job.Iteration)
-	}
-	cmd := phpspyCommand(p.commander, job, pid, fileName)
-	cmd.Stdout = &out
+	rawOutputFile := fmt.Sprintf(phpSpyRawOutputFile, pid, job.Iteration)
+	cmd := phpspyCommand(p.commander, job, pid, rawOutputFile)
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if err != nil {
-		log.ErrorLogLn(out.String())
+		log.ErrorLogLn(stderr.String())
 		return errors.Wrapf(err, "could not launch profiler: %s", stderr.String()), time.Since(start)
+	}
+
+	err, fileName := p.collapsePhpspyOutput(job, pid)
+	if err != nil {
+		return errors.Wrap(err, "folding phpspy output failed"), time.Since(start)
 	}
 
 	// result file name is composed by the job info and the pid
@@ -132,6 +138,27 @@ func (p *phpspyManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 	}
 
 	return p.publisher.Do(job.Compressor, resultFileName, job.OutputType), time.Since(start)
+}
+
+func (p *phpspyManager) collapsePhpspyOutput(job *job.ProfilingJob, pid string) (error, string) {
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+
+	rawOutputFile := fmt.Sprintf(phpSpyRawOutputFile, pid, job.Iteration)
+	cmd := p.commander.Command(phpSpyStackCollapseScript, rawOutputFile)
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		log.ErrorLogLn(stderr.String())
+		return errors.Wrapf(err, "could not collapse phpspy output: %s", stderr.String()), ""
+	}
+
+	fileName := common.GetResultFile(common.TmpDir(), job.Tool, api.Raw, pid, job.Iteration)
+	file.Write(fileName, out.String())
+
+	return nil, fileName
 }
 
 func (p *phpspyManager) handleFlamegraph(job *job.ProfilingJob, flameGrapher flamegraph.FrameGrapher,
@@ -150,6 +177,7 @@ func (p *phpspyManager) handleFlamegraph(job *job.ProfilingJob, flameGrapher fla
 }
 
 func (p *PhpspyProfiler) CleanUp(*job.ProfilingJob) error {
+	file.RemoveAll(common.TmpDir(), "phpspy")
 	file.RemoveAll(common.TmpDir(), config.ProfilingPrefix)
 
 	return nil
