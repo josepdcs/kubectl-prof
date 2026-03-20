@@ -74,6 +74,14 @@ func GetFileExtension(tool api.ProfilingTool, outputType api.OutputType) string 
 			// api.FlameGraph
 			return ".svg"
 		}
+	case api.Phpspy:
+		switch outputType {
+		case api.Raw:
+			return ".txt"
+		default:
+			// api.FlameGraph
+			return ".svg"
+		}
 	default:
 		// api.FlameGraph
 		return ".svg"

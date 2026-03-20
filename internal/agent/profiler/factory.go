@@ -41,6 +41,8 @@ func Get(tool api.ProfilingTool) Profiler {
 		return NewRustProfiler(executil.NewCommander(), publish.NewPublisher())
 	case api.NodeDummy:
 		return NewNodeDummyProfiler(publish.NewPublisher())
+	case api.Phpspy:
+		return NewPhpspyProfiler(executil.NewCommander(), publish.NewPublisher())
 	default:
 		// util for tests
 		return NewMockProfiler()

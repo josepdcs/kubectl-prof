@@ -12,7 +12,7 @@
 
 ✨ **Key Features:**
 - 🎯 **Zero modification** - Profile running pods without any changes to your deployment
-- 🌐 **Multi-language support** - Java, Go, Python, Ruby, Node.js, Rust, Clang/Clang++
+- 🌐 **Multi-language support** - Java, Go, Python, Ruby, Node.js, Rust, Clang/Clang++, PHP
 - 📊 **Multiple output formats** - FlameGraphs, JFR, SpeedScope, thread dumps, heap dumps, and more
 - ⚡ **Low overhead** - Minimal impact on running applications
 - 🔄 **Continuous profiling** - Support for both discrete and continuous profiling modes
@@ -32,6 +32,7 @@
   - [Ruby Profiling](#-ruby-profiling)
   - [Rust Profiling](#-rust-profiling)
   - [Clang/Clang++ Profiling](#-clangclang-profiling)
+  - [PHP Profiling](#-php-profiling)
   - [Advanced Usage](#-advanced-usage)
 - [How It Works](#-how-it-works)
 - [Building from Source](#-building-from-source)
@@ -51,6 +52,7 @@
 | 📗 **Node.js** | ✅ Fully Supported | eBPF profiling, perf |
 | 🦀 **Rust** | ✅ Fully Supported | cargo-flamegraph |
 | ⚙️ **Clang/Clang++** | ✅ Fully Supported | eBPF profiling, perf |
+| 🐘 **PHP** | ✅ Fully Supported | phpspy |
 
 ### Container Runtimes 🐳
 
@@ -101,6 +103,12 @@ Profile a Rust application with cargo-flamegraph:
 
 ```shell
 kubectl prof my-pod -t 1m -l rust
+```
+
+Profile a PHP application and generate a FlameGraph:
+
+```shell
+kubectl prof my-pod -t 1m -l php
 ```
 
 Profile multiple pods using a label selector:
@@ -327,6 +335,34 @@ kubectl prof mypod -t 1m -l clang -o flamegraph
 ```shell
 kubectl prof mypod -t 1m -l clang++ -o flamegraph
 ```
+
+---
+
+### 🐘 PHP Profiling
+
+Profile a PHP 7+ application using [phpspy](https://github.com/adsr/phpspy), a low-overhead sampling profiler:
+
+#### FlameGraph Generation
+
+```shell
+kubectl prof mypod -t 1m -l php -o flamegraph --local-path=/tmp
+```
+
+#### Raw Output
+
+Generate raw stack-trace data that can be post-processed into a FlameGraph:
+
+```shell
+kubectl prof mypod -t 1m -l php -o raw --local-path=/tmp
+```
+
+**Available output formats:**
+- `flamegraph` - Interactive FlameGraph visualization (SVG format)
+- `raw` - Raw stack traces in folded format
+
+> ⚠️ **Requirements:** The `SYS_PTRACE` capability is required. It is added automatically by `kubectl-prof`.
+
+> 💡 **Tip:** phpspy works with PHP 7+ processes and requires no modifications to your application or PHP configuration.
 
 ---
 
@@ -604,6 +640,16 @@ make build-docker-agents
 - FlameGraphs: `-o flamegraph` (default)
 - SpeedScope: `-o speedscope`
 - Callgrind: `-o callgrind`
+
+#### 🐘 PHP
+
+**[phpspy](https://github.com/adsr/phpspy)** - Low-overhead sampling profiler for PHP 7+
+- FlameGraphs: `-o flamegraph` (default)
+- Raw output: `-o raw`
+
+**Output formats:**
+- `flamegraph` - Interactive FlameGraph visualization (SVG format)
+- `raw` - Raw stack traces in folded format
 
 #### 📗 Node.js
 

@@ -41,6 +41,11 @@ func TestIsSupportedLanguage(t *testing.T) {
 			then:  true,
 		},
 		{
+			name:  "php",
+			given: "php",
+			then:  true,
+		},
+		{
 			name:  "fake",
 			given: "fake",
 			then:  true,
