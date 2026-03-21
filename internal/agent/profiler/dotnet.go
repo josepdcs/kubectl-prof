@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -27,14 +26,15 @@ import (
 
 const (
 	dotnetDelayBetweenJobs = 2 * time.Second
+	dotnetAppDir           = "/app"
 )
 
-var dotnetAppDir = "/app"
-
+// getTargetTmpDir generates the path to the target process's temporary directory using its process ID (pid).
 var getTargetTmpDir = func(pid string) string {
 	return fmt.Sprintf("/proc/%s/root/tmp", pid)
 }
 
+// getInnerPID reads the /proc/<pid>/status file to find the innermost process ID (innerPID) of the target process.
 var getInnerPID = func(pid string) (string, error) {
 	data, err := os.ReadFile(fmt.Sprintf("/proc/%s/status", pid))
 	if err != nil {
@@ -52,6 +52,9 @@ var getInnerPID = func(pid string) (string, error) {
 	return pid, nil
 }
 
+// findDiagnosticSocket finds the diagnostic socket for a given process ID (pid) and its innermost process ID (innerPID).
+// It reads the temporary directory of the target process and looks for a socket file that matches the expected naming pattern.
+// If found, it returns the name of the socket file; otherwise, it returns an empty string.
 var findDiagnosticSocket = func(pid string, innerPID string) string {
 	targetTmpDir := getTargetTmpDir(pid)
 	files, err := os.ReadDir(targetTmpDir)
@@ -67,6 +70,7 @@ var findDiagnosticSocket = func(pid string, innerPID string) string {
 	return ""
 }
 
+// setTmpDir sets the TMPDIR environment variable to the target process's temporary directory.'
 var setTmpDir = func(cmd *exec.Cmd, pid string) error {
 	innerPID, err := getInnerPID(pid)
 	if err != nil {
@@ -94,11 +98,21 @@ var setTmpDir = func(cmd *exec.Cmd, pid string) error {
 	return nil
 }
 
+// formatDotnetDuration converts a time.Duration to the hh:mm:ss format required by dotnet-trace.
+func formatDotnetDuration(d time.Duration) string {
+	totalSeconds := int(d.Seconds())
+	hours := totalSeconds / 3600
+	minutes := (totalSeconds % 3600) / 60
+	seconds := totalSeconds % 60
+	return fmt.Sprintf("%02d:%02d:%02d", hours, minutes, seconds)
+}
+
+// dotnetTraceCommand creates a command to invoke dotnet-trace for CPU profiling.
 var dotnetTraceCommand = func(commander executil.Commander, job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
-	duration := strconv.Itoa(int(job.Interval.Seconds()))
+	duration := formatDotnetDuration(job.Interval)
 	traceLocation := filepath.Join(dotnetAppDir, "dotnet-trace")
 
-	args := []string{"collect", "-p", pid, "--duration", fmt.Sprintf("00:00:%s", duration), "-o", fileName}
+	args := []string{"collect", "-p", pid, "--duration", duration, "-o", fileName}
 	if job.OutputType == api.SpeedScope {
 		args = append(args, "--format", "Speedscope")
 	}
@@ -107,10 +121,11 @@ var dotnetTraceCommand = func(commander executil.Commander, job *job.ProfilingJo
 	return cmd
 }
 
+// dotnetGcdumpCommand creates a command to invoke dotnet-gcdump for memory/GC heap analysis.
 var dotnetGcdumpCommand = func(commander executil.Commander, job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
 	gcdumpLocation := filepath.Join(dotnetAppDir, "dotnet-gcdump")
 
-	args := []string{"collect", "-p", pid, "-o", fileName}
+	args := []string{"collect", "-v", "-p", pid, "-o", fileName}
 	cmd := commander.Command(gcdumpLocation, args...)
 	_ = setTmpDir(cmd, pid)
 	return cmd
@@ -216,8 +231,12 @@ func (p *dotnetManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 		return errors.Wrapf(err, "could not launch profiler: %s", stderr.String()), time.Since(start)
 	}
 
-	log.DebugLogLn(fmt.Sprintf("dotnet-trace output: %s", out.String()))
-	log.DebugLogLn(fmt.Sprintf("dotnet-trace stderr: %s", stderr.String()))
+	// When dotnet-trace converts to Speedscope format it produces a NEW file with the
+	// ".speedscope.json" suffix (e.g. "agent-speedscope-3504-1.json" ->
+	// "agent-speedscope-3504-1.speedscope.json").
+	if job.Tool == api.DotnetTrace && job.OutputType == api.SpeedScope {
+		resultFileName = strings.TrimSuffix(resultFileName, filepath.Ext(resultFileName)) + ".speedscope.json"
+	}
 
 	return p.publisher.Do(job.Compressor, resultFileName, job.OutputType), time.Since(start)
 }

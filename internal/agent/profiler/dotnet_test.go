@@ -269,6 +269,62 @@ func TestDotnetProfiler_CleanUp(t *testing.T) {
 	}
 }
 
+func Test_formatDotnetDuration(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    time.Duration
+		expected string
+	}{
+		{
+			name:     "30 seconds",
+			input:    30 * time.Second,
+			expected: "00:00:30",
+		},
+		{
+			name:     "60 seconds → 1 minute",
+			input:    60 * time.Second,
+			expected: "00:01:00",
+		},
+		{
+			name:     "110 seconds → 1 minute 50 seconds",
+			input:    110 * time.Second,
+			expected: "00:01:50",
+		},
+		{
+			name:     "1 minute 30 seconds",
+			input:    90 * time.Second,
+			expected: "00:01:30",
+		},
+		{
+			name:     "1 hour",
+			input:    3600 * time.Second,
+			expected: "01:00:00",
+		},
+		{
+			name:     "1 hour 1 minute 1 second",
+			input:    3661 * time.Second,
+			expected: "01:01:01",
+		},
+		{
+			name:     "2 hours 30 minutes 15 seconds",
+			input:    (2*3600 + 30*60 + 15) * time.Second,
+			expected: "02:30:15",
+		},
+		{
+			name:     "zero duration",
+			input:    0,
+			expected: "00:00:00",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := formatDotnetDuration(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
 func Test_dotnetManager_invoke(t *testing.T) {
 	type fields struct {
 		DotnetProfiler *DotnetProfiler
