@@ -555,6 +555,38 @@ func Test_dotnetManager_invoke(t *testing.T) {
 			},
 		},
 		{
+			name: "should invoke dotnet-dump",
+			given: func() (fields, args) {
+				commander := executil.NewMockCommander()
+				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
+				publisher := publish.NewFakePublisher()
+				publisher.On("Do").Return(nil)
+
+				return fields{
+						DotnetProfiler: NewDotnetProfiler(commander, publisher),
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
+							OutputType:       api.Dump,
+							Language:         api.DotNet,
+							Tool:             api.DotnetDump,
+							Compressor:       compressor.None,
+							Iteration:        1,
+						},
+						pid: "1000",
+					}
+			},
+			when: func(fields fields, args args) (error, time.Duration) {
+				return fields.DotnetProfiler.invoke(args.job, args.pid)
+			},
+			then: func(t *testing.T, fields fields, err error) {
+				assert.Nil(t, err)
+				assert.True(t, fields.DotnetProfiler.DotnetManager.(*dotnetManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 1)
+			},
+		},
+		{
 			name: "should invoke fail when command fail",
 			given: func() (fields, args) {
 				commander := executil.NewMockCommander()

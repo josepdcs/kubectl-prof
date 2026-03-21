@@ -175,6 +175,20 @@ var dotnetCountersCommand = func(commander executil.Commander, job *job.Profilin
 	return cmd
 }
 
+// dotnetDumpCommand creates a command to invoke dotnet-dump for full memory dump collection.
+// dotnet-dump sends the dump request via the EventPipe diagnostic socket (same as dotnet-trace),
+// streams the dump data back over the socket and writes it locally, so the host PID and setTmpDir
+// are sufficient. Unlike dotnet-gcdump, no per-event PID validation takes place.
+// Note: dotnet-dump collect is a point-in-time capture and does NOT accept a --duration flag.
+var dotnetDumpCommand = func(commander executil.Commander, job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
+	dumpLocation := filepath.Join(dotnetAppDir, "dotnet-dump")
+
+	args := []string{"collect", "-p", pid, "-o", fileName}
+	cmd := commander.Command(dumpLocation, args...)
+	_ = setTmpDir(cmd, pid)
+	return cmd
+}
+
 // DotnetProfiler implements the Profiler interface for .NET Core/5+ applications using
 // dotnet-trace (CPU profiling) and dotnet-gcdump (memory/GC heap analysis).
 type DotnetProfiler struct {
@@ -263,6 +277,8 @@ func (p *dotnetManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 		cmd = dotnetGcdumpCommand(p.commander, job, pid, resultFileName)
 	case api.DotnetCounters:
 		cmd = dotnetCountersCommand(p.commander, job, pid, resultFileName)
+	case api.DotnetDump:
+		cmd = dotnetDumpCommand(p.commander, job, pid, resultFileName)
 	default:
 		// api.DotnetTrace
 		cmd = dotnetTraceCommand(p.commander, job, pid, resultFileName)
@@ -284,12 +300,19 @@ func (p *dotnetManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 		resultFileName = strings.TrimSuffix(resultFileName, filepath.Ext(resultFileName)) + ".speedscope.json"
 	}
 
+	// dotnet-dump collect delegates to createdump, which runs inside the container's mount
+	// namespace. The output path is interpreted from the container's filesystem view, so the
+	// dump lands at /proc/<pid>/root/tmp/<basename> as seen from the host.
+	if job.Tool == api.DotnetDump {
+		resultFileName = filepath.Join(getTargetTmpDir(pid), filepath.Base(resultFileName))
+	}
+
 	return p.publisher.Do(job.Compressor, resultFileName, job.OutputType), time.Since(start)
 }
 
 func (p *DotnetProfiler) CleanUp(*job.ProfilingJob) error {
 	for _, pid := range p.targetPIDs {
-		// Remove host-PID-named sockets created by setTmpDir (dotnet-trace).
+		// Remove host-PID-named sockets created by setTmpDir (dotnet-trace, dotnet-counters, dotnet-dump).
 		matches, _ := filepath.Glob(fmt.Sprintf("/tmp/dotnet-diagnostic-%s-*-socket", pid))
 		for _, m := range matches {
 			_ = os.Remove(m)
@@ -301,6 +324,9 @@ func (p *DotnetProfiler) CleanUp(*job.ProfilingJob) error {
 				_ = os.Remove(m)
 			}
 		}
+		// Remove dump files written by createdump inside the container's mount namespace.
+		// These land in the container's /tmp, accessible from the host at /proc/<pid>/root/tmp/.
+		file.RemoveAll(getTargetTmpDir(pid), config.ProfilingPrefix)
 	}
 	file.RemoveAll(common.TmpDir(), config.ProfilingPrefix)
 

@@ -43,7 +43,7 @@ func Get(tool api.ProfilingTool) Profiler {
 		return NewNodeDummyProfiler(publish.NewPublisher())
 	case api.Phpspy:
 		return NewPhpspyProfiler(executil.NewCommander(), publish.NewPublisher())
-	case api.DotnetTrace, api.DotnetGcdump, api.DotnetCounters:
+	case api.DotnetTrace, api.DotnetGcdump, api.DotnetCounters, api.DotnetDump:
 		return NewDotnetProfiler(executil.NewCommander(), publish.NewPublisher())
 	default:
 		// util for tests

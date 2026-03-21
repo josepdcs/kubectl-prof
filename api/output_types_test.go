@@ -109,6 +109,11 @@ func TestIsSupportedOutputType(t *testing.T) {
 			then:  true,
 		},
 		{
+			name:  "dump",
+			given: "dump",
+			then:  true,
+		},
+		{
 			name:  "not found",
 			given: "raw2",
 			then:  false,
@@ -162,6 +167,14 @@ func TestIsValidOutputType(t *testing.T) {
 			given: args{
 				eventType:     Counters,
 				profilingTool: DotnetCounters,
+			},
+			then: true,
+		},
+		{
+			name: "Dump + DotnetDump",
+			given: args{
+				eventType:     Dump,
+				profilingTool: DotnetDump,
 			},
 			then: true,
 		},
