@@ -98,6 +98,29 @@ var setTmpDir = func(cmd *exec.Cmd, pid string) error {
 	return nil
 }
 
+// setTmpDirForGcdump is like setTmpDir but names the socket symlink after the inner namespace PID.
+// dotnet-gcdump validates that incoming GC events match the PID passed via -p. Inside a container
+// the process reports its inner namespace PID (e.g. 1), so both the -p argument and the socket
+// symlink must use that inner PID instead of the host PID.
+// It returns the resolved inner PID so callers can forward it to the -p argument.
+var setTmpDirForGcdump = func(cmd *exec.Cmd, pid string, innerPID string) error {
+	if innerPID != pid {
+		socketName := findDiagnosticSocket(pid, innerPID)
+		if socketName != "" {
+			innerSocketPath := filepath.Join("/tmp", socketName)
+			targetSocketPath := filepath.Join(getTargetTmpDir(pid), socketName)
+
+			_ = os.Remove(innerSocketPath)
+			if err := os.Symlink(targetSocketPath, innerSocketPath); err != nil {
+				log.ErrorLogLn(fmt.Sprintf("could not create socket symlink: %s", err))
+			}
+		}
+	}
+
+	cmd.Env = append(os.Environ(), "TMPDIR=/tmp")
+	return nil
+}
+
 // formatDotnetDuration converts a time.Duration to the hh:mm:ss format required by dotnet-trace.
 func formatDotnetDuration(d time.Duration) string {
 	totalSeconds := int(d.Seconds())
@@ -122,12 +145,20 @@ var dotnetTraceCommand = func(commander executil.Commander, job *job.ProfilingJo
 }
 
 // dotnetGcdumpCommand creates a command to invoke dotnet-gcdump for memory/GC heap analysis.
+// dotnet-gcdump validates that incoming GC events match the PID passed via -p. When running
+// inside a container the process reports its inner namespace PID, so we must resolve it and
+// pass it as the -p argument (and expose the socket under that name via setTmpDirForGcdump).
 var dotnetGcdumpCommand = func(commander executil.Commander, job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
 	gcdumpLocation := filepath.Join(dotnetAppDir, "dotnet-gcdump")
 
-	args := []string{"collect", "-v", "-p", pid, "-o", fileName}
+	innerPID, err := getInnerPID(pid)
+	if err != nil {
+		innerPID = pid
+	}
+
+	args := []string{"collect", "-v", "-p", innerPID, "-o", fileName}
 	cmd := commander.Command(gcdumpLocation, args...)
-	_ = setTmpDir(cmd, pid)
+	_ = setTmpDirForGcdump(cmd, pid, innerPID)
 	return cmd
 }
 
@@ -243,9 +274,17 @@ func (p *dotnetManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 
 func (p *DotnetProfiler) CleanUp(*job.ProfilingJob) error {
 	for _, pid := range p.targetPIDs {
+		// Remove host-PID-named sockets created by setTmpDir (dotnet-trace).
 		matches, _ := filepath.Glob(fmt.Sprintf("/tmp/dotnet-diagnostic-%s-*-socket", pid))
 		for _, m := range matches {
 			_ = os.Remove(m)
+		}
+		// Remove inner-PID-named sockets created by setTmpDirForGcdump (dotnet-gcdump).
+		if innerPID, err := getInnerPID(pid); err == nil && innerPID != pid {
+			innerMatches, _ := filepath.Glob(fmt.Sprintf("/tmp/dotnet-diagnostic-%s-*-socket", innerPID))
+			for _, m := range innerMatches {
+				_ = os.Remove(m)
+			}
 		}
 	}
 	file.RemoveAll(common.TmpDir(), config.ProfilingPrefix)

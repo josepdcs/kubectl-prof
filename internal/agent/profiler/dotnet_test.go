@@ -1,6 +1,7 @@
 package profiler
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -321,6 +322,88 @@ func Test_formatDotnetDuration(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := formatDotnetDuration(tt.input)
 			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func Test_setTmpDirForGcdump(t *testing.T) {
+	tests := []struct {
+		name      string
+		given     func(t *testing.T) (pid, innerPID string, cleanup func())
+		then      func(t *testing.T, cmd *exec.Cmd, pid, innerPID string)
+		afterEach func()
+	}{
+		{
+			name: "should only set TMPDIR when pid equals innerPID (no container namespace)",
+			given: func(t *testing.T) (string, string, func()) {
+				return "1000", "1000", func() {}
+			},
+			then: func(t *testing.T, cmd *exec.Cmd, pid, innerPID string) {
+				require.NotEmpty(t, cmd.Env)
+				assert.Contains(t, cmd.Env, "TMPDIR=/tmp")
+				// no symlink should have been created
+				matches, _ := filepath.Glob("/tmp/dotnet-diagnostic-1000-*-socket")
+				assert.Empty(t, matches)
+			},
+		},
+		{
+			name: "should create innerPID-named symlink and set TMPDIR when running inside a container",
+			given: func(t *testing.T) (string, string, func()) {
+				// Prepare a fake target tmp dir with a socket file
+				targetTmpDir := t.TempDir()
+				socketName := "dotnet-diagnostic-1-99999-socket"
+				socketPath := filepath.Join(targetTmpDir, socketName)
+				_, err := os.Create(socketPath)
+				require.NoError(t, err)
+
+				origGetTargetTmpDir := getTargetTmpDir
+				origFindDiagnosticSocket := findDiagnosticSocket
+
+				getTargetTmpDir = func(p string) string { return targetTmpDir }
+				findDiagnosticSocket = func(p, inner string) string { return socketName }
+
+				cleanup := func() {
+					getTargetTmpDir = origGetTargetTmpDir
+					findDiagnosticSocket = origFindDiagnosticSocket
+					_ = os.Remove(filepath.Join("/tmp", socketName))
+				}
+				return "3504", "1", cleanup
+			},
+			then: func(t *testing.T, cmd *exec.Cmd, pid, innerPID string) {
+				assert.Contains(t, cmd.Env, "TMPDIR=/tmp")
+				// symlink must be named after the innerPID, not the host PID
+				symlink := "/tmp/dotnet-diagnostic-1-99999-socket"
+				assert.True(t, file.Exists(symlink), "expected symlink %s to exist", symlink)
+				hostSymlink := fmt.Sprintf("/tmp/dotnet-diagnostic-%s-99999-socket", pid)
+				assert.False(t, file.Exists(hostSymlink), "host-PID symlink %s must NOT exist", hostSymlink)
+			},
+		},
+		{
+			name: "should only set TMPDIR when socket is not found",
+			given: func(t *testing.T) (string, string, func()) {
+				origFindDiagnosticSocket := findDiagnosticSocket
+				findDiagnosticSocket = func(p, inner string) string { return "" }
+				cleanup := func() { findDiagnosticSocket = origFindDiagnosticSocket }
+				return "3504", "1", cleanup
+			},
+			then: func(t *testing.T, cmd *exec.Cmd, pid, innerPID string) {
+				assert.Contains(t, cmd.Env, "TMPDIR=/tmp")
+				matches, _ := filepath.Glob("/tmp/dotnet-diagnostic-1-*-socket")
+				assert.Empty(t, matches)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pid, innerPID, cleanup := tt.given(t)
+			defer cleanup()
+
+			cmd := &exec.Cmd{}
+			err := setTmpDirForGcdump(cmd, pid, innerPID)
+
+			assert.NoError(t, err)
+			tt.then(t, cmd, pid, innerPID)
 		})
 	}
 }
