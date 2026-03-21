@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/agrison/go-commons-lang/stringUtils"
@@ -23,23 +26,78 @@ import (
 )
 
 const (
-	dotnetTraceLocation       = "/app/dotnet-trace"
-	dotnetGcdumpLocation      = "/app/dotnet-gcdump"
-	dotnetDelayBetweenJobs    = 2 * time.Second
+	dotnetDelayBetweenJobs = 2 * time.Second
 )
+
+var dotnetAppDir = "/app"
+
+var dotnetTmpDirSymlink = "/tmp/k-prof-dotnet"
+
+var getTargetTmpDir = func(pid string) string {
+	return fmt.Sprintf("/proc/%s/root/tmp", pid)
+}
+
+var getInnerPID = func(pid string) (string, error) {
+	data, err := os.ReadFile(fmt.Sprintf("/proc/%s/status", pid))
+	if err != nil {
+		return "", err
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		if strings.HasPrefix(line, "NSpid:") {
+			fields := strings.Fields(line)
+			if len(fields) > 1 {
+				// The last field is the PID in the innermost namespace
+				return fields[len(fields)-1], nil
+			}
+		}
+	}
+	return pid, nil
+}
+
+var setTmpDir = func(cmd *exec.Cmd, pid string) error {
+	targetTmpDir := getTargetTmpDir(pid)
+	_ = os.Remove(dotnetTmpDirSymlink)
+	err := os.Symlink(targetTmpDir, dotnetTmpDirSymlink)
+	if err != nil {
+		log.ErrorLogLn(fmt.Sprintf("could not create symlink: %s", err))
+		// fallback to the long path if symlink creation fails
+		cmd.Env = append(os.Environ(), fmt.Sprintf("TMPDIR=%s", targetTmpDir))
+		return nil
+	}
+	cmd.Env = append(os.Environ(), fmt.Sprintf("TMPDIR=%s", dotnetTmpDirSymlink))
+	return nil
+}
 
 var dotnetTraceCommand = func(commander executil.Commander, job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
 	duration := strconv.Itoa(int(job.Interval.Seconds()))
-	args := []string{"collect", "-p", pid, "--duration", fmt.Sprintf("00:00:%s", duration), "-o", fileName}
+	traceLocation := filepath.Join(dotnetAppDir, "dotnet-trace")
+	innerPID, err := getInnerPID(pid)
+	if err != nil {
+		log.WarningLogLn(fmt.Sprintf("could not get inner PID for %s: %s", pid, err))
+		innerPID = pid
+	}
+
+	args := []string{"-t", pid, "-p", "--", traceLocation, "collect", "-p", innerPID, "--duration", fmt.Sprintf("00:00:%s", duration), "-o", fileName}
 	if job.OutputType == api.SpeedScope {
 		args = append(args, "--format", "Speedscope")
 	}
-	return commander.Command(dotnetTraceLocation, args...)
+	cmd := commander.Command("nsenter", args...)
+	_ = setTmpDir(cmd, pid)
+	return cmd
 }
 
-var dotnetGcdumpCommand = func(commander executil.Commander, pid string, fileName string) *exec.Cmd {
-	args := []string{"collect", "-p", pid, "-o", fileName}
-	return commander.Command(dotnetGcdumpLocation, args...)
+var dotnetGcdumpCommand = func(commander executil.Commander, job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
+	gcdumpLocation := filepath.Join(dotnetAppDir, "dotnet-gcdump")
+	innerPID, err := getInnerPID(pid)
+	if err != nil {
+		log.WarningLogLn(fmt.Sprintf("could not get inner PID for %s: %s", pid, err))
+		innerPID = pid
+	}
+
+	args := []string{"-t", pid, "-p", "--", gcdumpLocation, "collect", "-p", innerPID, "-o", fileName}
+	cmd := commander.Command("nsenter", args...)
+	_ = setTmpDir(cmd, pid)
+	return cmd
 }
 
 // DotnetProfiler implements the Profiler interface for .NET Core/5+ applications using
@@ -74,14 +132,18 @@ func NewDotnetProfiler(commander executil.Commander, publisher publish.Publisher
 func (p *DotnetProfiler) SetUp(job *job.ProfilingJob) error {
 	if stringUtils.IsNotBlank(job.PID) {
 		p.targetPIDs = []string{job.PID}
-		return nil
+	} else {
+		pids, err := util.GetCandidatePIDs(job)
+		if err != nil {
+			return err
+		}
+		log.DebugLogLn(fmt.Sprintf("The PIDs to be profiled: %s", pids))
+		p.targetPIDs = pids
 	}
-	pids, err := util.GetCandidatePIDs(job)
-	if err != nil {
-		return err
+
+	for _, pid := range p.targetPIDs {
+		_ = pid
 	}
-	log.DebugLogLn(fmt.Sprintf("The PIDs to be profiled: %s", pids))
-	p.targetPIDs = pids
 
 	return nil
 }
@@ -123,7 +185,7 @@ func (p *dotnetManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 	var cmd *exec.Cmd
 	switch job.Tool {
 	case api.DotnetGcdump:
-		cmd = dotnetGcdumpCommand(p.commander, pid, resultFileName)
+		cmd = dotnetGcdumpCommand(p.commander, job, pid, resultFileName)
 	default:
 		// api.DotnetTrace
 		cmd = dotnetTraceCommand(p.commander, job, pid, resultFileName)
@@ -141,6 +203,7 @@ func (p *dotnetManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 }
 
 func (p *DotnetProfiler) CleanUp(*job.ProfilingJob) error {
+	_ = os.Remove(dotnetTmpDirSymlink)
 	file.RemoveAll(common.TmpDir(), config.ProfilingPrefix)
 
 	return nil

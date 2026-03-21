@@ -19,8 +19,7 @@ RUN apt-get update \
     && apt-get clean \
     && mkdir -p /app
 COPY --from=agentbuild /go/bin/agent /app/agent
-COPY --from=dotnettools /dotnet-tools/dotnet-trace /app/dotnet-trace
-COPY --from=dotnettools /dotnet-tools/dotnet-gcdump /app/dotnet-gcdump
+COPY --from=dotnettools /dotnet-tools/ /app/
 COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/get-ps-command.sh /app/get-ps-command.sh
 RUN chmod +x /app/get-ps-command.sh
 
