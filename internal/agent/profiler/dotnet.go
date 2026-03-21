@@ -162,6 +162,19 @@ var dotnetGcdumpCommand = func(commander executil.Commander, job *job.ProfilingJ
 	return cmd
 }
 
+// dotnetCountersCommand creates a command to invoke dotnet-counters for performance counter collection.
+// It uses the same socket strategy as dotnet-trace (symlink named after the host PID via setTmpDir)
+// because dotnet-counters connects via EventPipe without validating individual event PIDs.
+var dotnetCountersCommand = func(commander executil.Commander, job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
+	duration := formatDotnetDuration(job.Interval)
+	countersLocation := filepath.Join(dotnetAppDir, "dotnet-counters")
+
+	args := []string{"collect", "-p", pid, "--duration", duration, "-o", fileName, "--format", "json"}
+	cmd := commander.Command(countersLocation, args...)
+	_ = setTmpDir(cmd, pid)
+	return cmd
+}
+
 // DotnetProfiler implements the Profiler interface for .NET Core/5+ applications using
 // dotnet-trace (CPU profiling) and dotnet-gcdump (memory/GC heap analysis).
 type DotnetProfiler struct {
@@ -248,6 +261,8 @@ func (p *dotnetManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 	switch job.Tool {
 	case api.DotnetGcdump:
 		cmd = dotnetGcdumpCommand(p.commander, job, pid, resultFileName)
+	case api.DotnetCounters:
+		cmd = dotnetCountersCommand(p.commander, job, pid, resultFileName)
 	default:
 		// api.DotnetTrace
 		cmd = dotnetTraceCommand(p.commander, job, pid, resultFileName)

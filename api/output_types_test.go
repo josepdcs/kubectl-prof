@@ -99,6 +99,16 @@ func TestIsSupportedOutputType(t *testing.T) {
 			then:  true,
 		},
 		{
+			name:  "gcdump",
+			given: "gcdump",
+			then:  true,
+		},
+		{
+			name:  "counters",
+			given: "counters",
+			then:  true,
+		},
+		{
 			name:  "not found",
 			given: "raw2",
 			then:  false,
@@ -135,6 +145,30 @@ func TestIsValidOutputType(t *testing.T) {
 			name: "Not valid",
 			given: args{
 				eventType:     FlameGraph,
+				profilingTool: Jcmd,
+			},
+			then: false,
+		},
+		{
+			name: "Gcdump + DotnetGcdump",
+			given: args{
+				eventType:     Gcdump,
+				profilingTool: DotnetGcdump,
+			},
+			then: true,
+		},
+		{
+			name: "Counters + DotnetCounters",
+			given: args{
+				eventType:     Counters,
+				profilingTool: DotnetCounters,
+			},
+			then: true,
+		},
+		{
+			name: "Not valid",
+			given: args{
+				eventType:     Gcdump,
 				profilingTool: Jcmd,
 			},
 			then: false,

@@ -65,6 +65,11 @@ func TestIsSupportedProfilingTool(t *testing.T) {
 			then:  true,
 		},
 		{
+			name:  "dotnet-counters",
+			given: "dotnet-counters",
+			then:  true,
+		},
+		{
 			name:  "node-dummy",
 			given: "node-dummy",
 			then:  true,
@@ -166,6 +171,14 @@ func TestIsValidProfilingTool(t *testing.T) {
 			name: "DotnetGcdump + DotNet",
 			given: args{
 				tool:     DotnetGcdump,
+				language: DotNet,
+			},
+			then: true,
+		},
+		{
+			name: "DotnetCounters + DotNet",
+			given: args{
+				tool:     DotnetCounters,
 				language: DotNet,
 			},
 			then: true,
@@ -519,6 +532,14 @@ func TestGetProfilingTool(t *testing.T) {
 			},
 			then: DotnetGcdump,
 		},
+		{
+			name: "DotNet + Counters",
+			given: args{
+				language:   DotNet,
+				outputType: Counters,
+			},
+			then: DotnetCounters,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -581,7 +602,7 @@ func TestGetProfilingToolsByProgrammingLanguage(t *testing.T) {
 		{
 			name:     "DotNet",
 			language: DotNet,
-			expected: []ProfilingTool{DotnetTrace, DotnetGcdump},
+			expected: []ProfilingTool{DotnetTrace, DotnetGcdump, DotnetCounters},
 		},
 	}
 	for _, tt := range tests {

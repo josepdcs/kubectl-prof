@@ -93,6 +93,9 @@ func GetFileExtension(tool api.ProfilingTool, outputType api.OutputType) string 
 	case api.DotnetGcdump:
 		// api.Gcdump
 		return ".gcdump"
+	case api.DotnetCounters:
+		// api.Counters: JSON metrics file
+		return ".json"
 	default:
 		// api.FlameGraph
 		return ".svg"

@@ -22,12 +22,13 @@ const (
 	Phpspy        ProfilingTool = "phpspy"           // Phpspy is a profiling tool used primarily for PHP applications to output various performance metrics.
 	DotnetTrace   ProfilingTool = "dotnet-trace"     // DotnetTrace is a profiling tool for .NET Core/5+ applications to collect CPU and runtime traces.
 	DotnetGcdump  ProfilingTool = "dotnet-gcdump"   // DotnetGcdump is a profiling tool for .NET Core/5+ applications to collect GC heap dumps for memory analysis.
+	DotnetCounters ProfilingTool = "dotnet-counters" // DotnetCounters is a profiling tool for .NET Core/5+ applications to collect performance counter metrics.
 	FakeTool      ProfilingTool = "fake"             // FakeTool is a profiling tool used primarily for testing purposes.
 )
 
 var (
 	// profilingTools contains all supported profiling tools.
-	profilingTools = []ProfilingTool{AsyncProfiler, Jcmd, Pyspy, Bpf, Btf, Perf, Rbspy, NodeDummy, CargoFlame, Phpspy, DotnetTrace, DotnetGcdump}
+	profilingTools = []ProfilingTool{AsyncProfiler, Jcmd, Pyspy, Bpf, Btf, Perf, Rbspy, NodeDummy, CargoFlame, Phpspy, DotnetTrace, DotnetGcdump, DotnetCounters}
 )
 
 // AvailableProfilingTools returns the list of all available profiling tools.
@@ -76,6 +77,8 @@ var GetProfilingTool = func(l ProgrammingLanguage, o OutputType) ProfilingTool {
 		switch o {
 		case Gcdump:
 			return DotnetGcdump
+		case Counters:
+			return DotnetCounters
 		default:
 			return DotnetTrace
 		}
@@ -97,7 +100,7 @@ var GetProfilingToolsByProgrammingLanguage = map[ProgrammingLanguage][]Profiling
 	Ruby:          {Rbspy},
 	Rust:          {CargoFlame, Bpf, Btf, Perf},
 	PHP:           {Phpspy},
-	DotNet:        {DotnetTrace, DotnetGcdump},
+	DotNet:        {DotnetTrace, DotnetGcdump, DotnetCounters},
 	FakeLang:      {FakeTool},
 }
 
