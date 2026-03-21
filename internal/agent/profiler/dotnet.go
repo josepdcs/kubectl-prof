@@ -31,8 +31,6 @@ const (
 
 var dotnetAppDir = "/app"
 
-var dotnetTmpDirSymlink = "/tmp/k-prof-dotnet"
-
 var getTargetTmpDir = func(pid string) string {
 	return fmt.Sprintf("/proc/%s/root/tmp", pid)
 }
@@ -54,48 +52,66 @@ var getInnerPID = func(pid string) (string, error) {
 	return pid, nil
 }
 
-var setTmpDir = func(cmd *exec.Cmd, pid string) error {
+var findDiagnosticSocket = func(pid string, innerPID string) string {
 	targetTmpDir := getTargetTmpDir(pid)
-	_ = os.Remove(dotnetTmpDirSymlink)
-	err := os.Symlink(targetTmpDir, dotnetTmpDirSymlink)
+	files, err := os.ReadDir(targetTmpDir)
 	if err != nil {
-		log.ErrorLogLn(fmt.Sprintf("could not create symlink: %s", err))
-		// fallback to the long path if symlink creation fails
-		cmd.Env = append(os.Environ(), fmt.Sprintf("TMPDIR=%s", targetTmpDir))
-		return nil
+		return ""
 	}
-	cmd.Env = append(os.Environ(), fmt.Sprintf("TMPDIR=%s", dotnetTmpDirSymlink))
+	prefix := fmt.Sprintf("dotnet-diagnostic-%s-", innerPID)
+	for _, f := range files {
+		if strings.HasPrefix(f.Name(), prefix) && strings.HasSuffix(f.Name(), "-socket") {
+			return f.Name()
+		}
+	}
+	return ""
+}
+
+var setTmpDir = func(cmd *exec.Cmd, pid string) error {
+	innerPID, err := getInnerPID(pid)
+	if err != nil {
+		innerPID = pid
+	}
+
+	if innerPID != pid {
+		socketName := findDiagnosticSocket(pid, innerPID)
+		if socketName != "" {
+			// Extract the key from the socket name
+			key := strings.TrimPrefix(socketName, fmt.Sprintf("dotnet-diagnostic-%s-", innerPID))
+			hostSocketName := fmt.Sprintf("dotnet-diagnostic-%s-%s", pid, key)
+			hostSocketPath := filepath.Join("/tmp", hostSocketName)
+			targetSocketPath := filepath.Join(getTargetTmpDir(pid), socketName)
+
+			_ = os.Remove(hostSocketPath)
+			err := os.Symlink(targetSocketPath, hostSocketPath)
+			if err != nil {
+				log.ErrorLogLn(fmt.Sprintf("could not create socket symlink: %s", err))
+			}
+		}
+	}
+
+	cmd.Env = append(os.Environ(), "TMPDIR=/tmp")
 	return nil
 }
 
 var dotnetTraceCommand = func(commander executil.Commander, job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
 	duration := strconv.Itoa(int(job.Interval.Seconds()))
 	traceLocation := filepath.Join(dotnetAppDir, "dotnet-trace")
-	innerPID, err := getInnerPID(pid)
-	if err != nil {
-		log.WarningLogLn(fmt.Sprintf("could not get inner PID for %s: %s", pid, err))
-		innerPID = pid
-	}
 
-	args := []string{"-t", pid, "-p", "--", traceLocation, "collect", "-p", innerPID, "--duration", fmt.Sprintf("00:00:%s", duration), "-o", fileName}
+	args := []string{"collect", "-p", pid, "--duration", fmt.Sprintf("00:00:%s", duration), "-o", fileName}
 	if job.OutputType == api.SpeedScope {
 		args = append(args, "--format", "Speedscope")
 	}
-	cmd := commander.Command("nsenter", args...)
+	cmd := commander.Command(traceLocation, args...)
 	_ = setTmpDir(cmd, pid)
 	return cmd
 }
 
 var dotnetGcdumpCommand = func(commander executil.Commander, job *job.ProfilingJob, pid string, fileName string) *exec.Cmd {
 	gcdumpLocation := filepath.Join(dotnetAppDir, "dotnet-gcdump")
-	innerPID, err := getInnerPID(pid)
-	if err != nil {
-		log.WarningLogLn(fmt.Sprintf("could not get inner PID for %s: %s", pid, err))
-		innerPID = pid
-	}
 
-	args := []string{"-t", pid, "-p", "--", gcdumpLocation, "collect", "-p", innerPID, "-o", fileName}
-	cmd := commander.Command("nsenter", args...)
+	args := []string{"collect", "-p", pid, "-o", fileName}
+	cmd := commander.Command(gcdumpLocation, args...)
 	_ = setTmpDir(cmd, pid)
 	return cmd
 }
@@ -196,14 +212,23 @@ func (p *dotnetManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 	err := cmd.Run()
 	if err != nil {
 		log.ErrorLogLn(out.String())
+		log.ErrorLogLn(stderr.String())
 		return errors.Wrapf(err, "could not launch profiler: %s", stderr.String()), time.Since(start)
 	}
+
+	log.DebugLogLn(fmt.Sprintf("dotnet-trace output: %s", out.String()))
+	log.DebugLogLn(fmt.Sprintf("dotnet-trace stderr: %s", stderr.String()))
 
 	return p.publisher.Do(job.Compressor, resultFileName, job.OutputType), time.Since(start)
 }
 
 func (p *DotnetProfiler) CleanUp(*job.ProfilingJob) error {
-	_ = os.Remove(dotnetTmpDirSymlink)
+	for _, pid := range p.targetPIDs {
+		matches, _ := filepath.Glob(fmt.Sprintf("/tmp/dotnet-diagnostic-%s-*-socket", pid))
+		for _, m := range matches {
+			_ = os.Remove(m)
+		}
+	}
 	file.RemoveAll(common.TmpDir(), config.ProfilingPrefix)
 
 	return nil
