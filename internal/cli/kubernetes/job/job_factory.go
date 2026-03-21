@@ -55,6 +55,8 @@ func Get(lang api.ProgrammingLanguage, tool api.ProfilingTool) (Creator, error) 
 		return &rubyCreator{}, nil
 	case api.PHP:
 		return &phpCreator{}, nil
+	case api.DotNet:
+		return &dotnetCreator{}, nil
 	case api.FakeLang:
 		return &fakeCreator{}, nil
 	}

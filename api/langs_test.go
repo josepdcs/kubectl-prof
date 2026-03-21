@@ -46,6 +46,11 @@ func TestIsSupportedLanguage(t *testing.T) {
 			then:  true,
 		},
 		{
+			name:  "dotnet",
+			given: "dotnet",
+			then:  true,
+		},
+		{
 			name:  "fake",
 			given: "fake",
 			then:  true,

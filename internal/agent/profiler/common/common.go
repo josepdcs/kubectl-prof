@@ -58,7 +58,7 @@ func GetFileExtension(tool api.ProfilingTool, outputType api.OutputType) string 
 			// api.FlameGraph
 			return ".svg"
 		}
-	case api.Bpf, api.Btf, api.Perf:
+	case api.Bpf, api.Btf, api.Perf, api.Phpspy:
 		switch outputType {
 		case api.Raw:
 			return ".txt"
@@ -74,14 +74,23 @@ func GetFileExtension(tool api.ProfilingTool, outputType api.OutputType) string 
 			// api.FlameGraph
 			return ".svg"
 		}
-	case api.Phpspy:
+	case api.DotnetTrace:
 		switch outputType {
-		case api.Raw:
-			return ".txt"
+		case api.SpeedScope:
+			return ".json"
 		default:
-			// api.FlameGraph
-			return ".svg"
+			// api.Raw: nettrace format
+			return ".nettrace"
 		}
+	case api.DotnetGcdump:
+		// api.Gcdump
+		return ".gcdump"
+	case api.DotnetCounters:
+		// api.Counters: JSON metrics file
+		return ".json"
+	case api.DotnetDump:
+		// api.Dump: full memory dump
+		return ".dmp"
 	default:
 		// api.FlameGraph
 		return ".svg"

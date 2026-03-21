@@ -2,3 +2,5 @@
 .run/
 bin/
 coverage.out
+test/stupid-apps/dotnet/obj/
+test/stupid-apps/dotnet/bin/
