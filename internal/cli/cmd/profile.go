@@ -170,58 +170,58 @@ func NewProfileCommand(streams genericiooptions.IOStreams) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVar(&showVersion, "version", false, "Print version info")
+	cmd.Flags().BoolVar(&showVersion, "version", false, "Print version and build information")
 
-	cmd.Flags().StringVar(&target.LabelSelector, "selector", "", "Selector (label query) to filter on, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2). Matching objects must satisfy all of the specified label constraints.")
-	cmd.Flags().IntVar(&target.PoolSizeLaunchProfilingJobs, "pool-size-profiling-jobs", defaultPoolSizeLaunchProfilingJobs, "The pool size of goroutines for launching profiling jobs when the '--selector' flag is used (default \"No limit: all matching pods will be profiled simultaneously\")")
+	cmd.Flags().StringVar(&target.LabelSelector, "selector", "", "Label selector to target multiple pods simultaneously. Supports '=', '==', and '!=' operators (e.g. app=my-app,env=prod). All label constraints must be satisfied.")
+	cmd.Flags().IntVar(&target.PoolSizeLaunchProfilingJobs, "pool-size-profiling-jobs", defaultPoolSizeLaunchProfilingJobs, "Maximum number of pods to profile in parallel when using '--selector'. Set to 0 for no limit (all matching pods profiled simultaneously)")
 	cmd.Flags().StringVarP(&flags.runtime, "runtime", "r", defaultContainerRuntime,
-		fmt.Sprintf("The container runtime used for kubernetes, choose one of %v", api.AvailableContainerRuntimes()))
+		fmt.Sprintf("Container runtime used by the Kubernetes cluster. Choose one of: %v", api.AvailableContainerRuntimes()))
 	cmd.Flags().StringVar(&flags.runtimePath, "runtime-path", api.GetContainerRuntimeRootPath[api.ContainerRuntime(defaultContainerRuntime)],
-		"Use a different container runtime install path according to the runtime used")
+		"Root path of the container runtime installation. Override when the runtime is installed in a non-default location")
 
-	cmd.Flags().DurationVarP(&target.Duration, "time", "t", 0, "Max scan Duration")
+	cmd.Flags().DurationVarP(&target.Duration, "time", "t", 0, "Total profiling duration (e.g. 30s, 5m, 1h). The agent stops after this period")
 	// if interval is not given, duration is set as default
-	cmd.Flags().DurationVar(&target.Interval, "interval", target.Duration, "Max scan Interval")
-	cmd.Flags().StringVar(&target.LocalPath, "local-path", "", "Optional local path location to store the result files. Default is current directory")
-	cmd.Flags().BoolVar(&target.Alpine, "alpine", false, "TargetConfig image is based on Alpine")
-	cmd.Flags().BoolVar(&target.DryRun, "dry-run", false, "Simulate profiling")
-	cmd.Flags().StringVar(&target.Image, "image", "", "Manually choose agent docker image")
-	cmd.Flags().StringVar(&target.Namespace, "target-namespace", "", "namespace of target pod if different from job namespace")
+	cmd.Flags().DurationVar(&target.Interval, "interval", target.Duration, "Profiling interval for continuous/iterative mode (e.g. 30s, 1m). When equal to --time a single capture is taken (discrete mode); when shorter, multiple captures are taken repeatedly until --time elapses")
+	cmd.Flags().StringVar(&target.LocalPath, "local-path", "", "Local directory where result files are saved. Defaults to the current working directory")
+	cmd.Flags().BoolVar(&target.Alpine, "alpine", false, "Use the Alpine-based variant of the agent image. Set this flag when the target container runs on a musl/Alpine base")
+	cmd.Flags().BoolVar(&target.DryRun, "dry-run", false, "Simulate the profiling workflow without actually running the agent. Useful for validating flags and generated manifests")
+	cmd.Flags().StringVar(&target.Image, "image", "", "Override the agent Docker image (e.g. my-registry/kubectl-prof-agent:latest). By default the image matching the current CLI version is used")
+	cmd.Flags().StringVar(&target.Namespace, "target-namespace", "", "Kubernetes namespace of the target pod, if different from the namespace where the profiling job is created")
 
 	cmd.Flags().StringVarP(&flags.lang, "lang", "l", "",
-		fmt.Sprintf("Programming language of the target application, choose one of %v", api.AvailableLanguages()))
+		fmt.Sprintf("Programming language of the target application. Choose one of: %v", api.AvailableLanguages()))
 	cmd.Flags().StringVarP(&flags.event, "event", "e", defaultEvent,
-		fmt.Sprintf("Profiling event, choose one of %v", api.AvailableEvents()))
+		fmt.Sprintf("Profiling event to capture. Choose one of: %v", api.AvailableEvents()))
 
-	cmd.Flags().StringVar(&job.RequestConfig.CPU, "cpu-requests", "", "CPU requests of the started profiling container")
-	cmd.Flags().StringVar(&job.RequestConfig.Memory, "mem-requests", "", "Memory requests of the started profiling container")
-	cmd.Flags().StringVar(&job.LimitConfig.CPU, "cpu-limits", "", "CPU limits of the started profiling container")
-	cmd.Flags().StringVar(&job.LimitConfig.Memory, "mem-limits", "", "Memory limits of the started profiling container")
-	cmd.Flags().StringVar(&target.ImagePullSecret, "image-pull-secret", "", "imagePullSecret for agent docker image")
-	cmd.Flags().StringVar(&target.ServiceAccountName, "service-account", "", "serviceAccountName to be used for profiling container")
+	cmd.Flags().StringVar(&job.RequestConfig.CPU, "cpu-requests", "", "CPU resource request for the agent container (e.g. 100m, 1). Defaults to no request")
+	cmd.Flags().StringVar(&job.RequestConfig.Memory, "mem-requests", "", "Memory resource request for the agent container (e.g. 128Mi, 1Gi). Defaults to no request")
+	cmd.Flags().StringVar(&job.LimitConfig.CPU, "cpu-limits", "", "CPU resource limit for the agent container (e.g. 200m, 2). Defaults to no limit")
+	cmd.Flags().StringVar(&job.LimitConfig.Memory, "mem-limits", "", "Memory resource limit for the agent container (e.g. 256Mi, 2Gi). Defaults to no limit")
+	cmd.Flags().StringVar(&target.ImagePullSecret, "image-pull-secret", "", "Name of the Kubernetes Secret of type kubernetes.io/dockerconfigjson used to pull the agent image from a private registry")
+	cmd.Flags().StringVar(&target.ServiceAccountName, "service-account", "", "Name of the Kubernetes ServiceAccount to assign to the profiling agent pod")
 
-	cmd.Flags().BoolVar(&flags.privileged, "privileged", true, "Run agent container in privileged mode")
+	cmd.Flags().BoolVar(&flags.privileged, "privileged", true, "Run the agent container in privileged mode. Required by most profiling tools (perf, bpf, async-profiler, etc.)")
 	cmd.Flags().StringVar(&flags.logLevel, "log-level", defaultLogLevel,
-		fmt.Sprintf("Log level, choose one of %v", api.AvailableLogLevels()))
+		fmt.Sprintf("Log verbosity level of the agent. Choose one of: %v", api.AvailableLogLevels()))
 	/*cmd.Flags().StringVarP(&compressorType, "compressor", "c", defaultCompressor,
 	fmt.Sprintf("Compressor for compressing generated profiling result, choose one of %v", compressor.AvailableCompressors()))*/
-	cmd.Flags().StringVar(&flags.profilingTool, "tool", "", fmt.Sprintf("Profiling tool, choose one accorfing language %v", api.AvailableProfilingToolsString()))
+	cmd.Flags().StringVar(&flags.profilingTool, "tool", "", fmt.Sprintf("Profiling tool to use. A default tool is selected automatically based on --lang and --output when omitted. Available tools: %v", api.AvailableProfilingToolsString()))
 	cmd.Flags().StringVarP(&flags.outputType, "output", "o", defaultOutputType,
-		fmt.Sprintf("Output type, choose one accorting tool %v", api.AvailableOutputTypesString()))
-	cmd.Flags().BoolVar(&target.PrintAgentLogs, "print-agent-logs", false, "Print agent logs in the standard output")
-	cmd.Flags().BoolVar(&target.PrintLogs, "print-logs", true, "Force agent to print the log messages type to its standard output")
-	cmd.Flags().DurationVar(&target.GracePeriodEnding, "grace-period-ending", defaultGracePeriodEnding, "The grace period to spend before to end the agent")
-	cmd.Flags().StringVar(&flags.imagePullPolicy, "image-pull-policy", defaultImagePullPolicy, fmt.Sprintf("Image pull policy, choose one of %v", imagePullPolicies))
-	cmd.Flags().StringVar(&target.ContainerName, "target-container-name", "", "The target container name to be profiled")
-	cmd.Flags().StringVar(&target.OutputSplitInChunkSize, "output-split-size", defaultOutputSplitSize, "The output file (memory dumps: heapdump, heapsnapshot, gcdump, dump) will be split into chunks of a specified size, following the valid format for the split command (e.g. 50M, 1G, etc.)")
-	cmd.Flags().IntVar(&target.PoolSizeRetrieveChunks, "pool-size-retrieve-chunks", defaultPoolSizeRetrieveChunks, "The pool size of goroutines used to retrieve chunks of the obtained heap dump (or snapshot, for Node.js) from the agent")
-	cmd.Flags().IntVar(&target.RetrieveFileRetries, "retrieve-file-retries", defaultRetrieveFileRetries, "The number of retries to retrieve a file from the remote container")
-	cmd.Flags().StringVar(&target.PID, "pid", "", "The PID of target process if it is known")
-	cmd.Flags().StringVarP(&target.Pgrep, "pgrep", "p", "", "Name of the target process")
-	cmd.Flags().IntVar(&target.NodeHeapSnapshotSignal, "node-heap-snapshot-signal", 12, "The signal to be sent to the target process to generate a heap snapshot for Node.js applications")
-	cmd.Flags().StringSliceVar(&flags.capabilities, "capabilities", nil, "The capabilities to be added to the agent container. It can be used multiple times to add more than one capability (e.g. --capabilities SYS_ADMIN --capabilities SYS_PTRACE)")
-	cmd.Flags().StringSliceVar(&job.TolerationsRaw, "tolerations", nil, "Tolerations for the profiling job pod in the format key=value:effect or key:effect. It can be used multiple times to add more than one toleration (e.g. --tolerations key1=value1:NoSchedule --tolerations key2:NoExecute)")
-	cmd.Flags().StringSliceVar(&target.AsyncProfilerArgs, "async-profiler-args", nil, "Additional arguments to pass to async-profiler. It can be used multiple times to add more than one argument (e.g. --async-profiler-args -t --async-profiler-args --alloc=2m)")
+		fmt.Sprintf("Output format for the profiling result. A default is selected automatically based on --tool when omitted. Available types: %v", api.AvailableOutputTypesString()))
+	cmd.Flags().BoolVar(&target.PrintAgentLogs, "print-agent-logs", false, "Stream agent container logs to the local standard output while profiling is in progress")
+	cmd.Flags().BoolVar(&target.PrintLogs, "print-logs", true, "Instruct the agent to forward its internal log messages to its standard output (visible via kubectl logs)")
+	cmd.Flags().DurationVar(&target.GracePeriodEnding, "grace-period-ending", defaultGracePeriodEnding, "Time the CLI waits for the agent to finish and upload results before forcibly terminating the profiling job (e.g. 1m, 5m)")
+	cmd.Flags().StringVar(&flags.imagePullPolicy, "image-pull-policy", defaultImagePullPolicy, fmt.Sprintf("Image pull policy for the agent container. Choose one of: %v", imagePullPolicies))
+	cmd.Flags().StringVar(&target.ContainerName, "target-container-name", "", "Name of the specific container to profile inside the target pod. Required when the pod has more than one container")
+	cmd.Flags().StringVar(&target.OutputSplitInChunkSize, "output-split-size", defaultOutputSplitSize, "Split large memory output files (heapdump, heapsnapshot, gcdump, dump) into chunks of this size for transfer. Uses the same format as the Unix split command (e.g. 50M, 200M, 1G)")
+	cmd.Flags().IntVar(&target.PoolSizeRetrieveChunks, "pool-size-retrieve-chunks", defaultPoolSizeRetrieveChunks, "Number of parallel goroutines used to download result file chunks from the agent. Applies to chunked memory outputs (heapdump, heapsnapshot, gcdump, dump)")
+	cmd.Flags().IntVar(&target.RetrieveFileRetries, "retrieve-file-retries", defaultRetrieveFileRetries, "Number of times the CLI retries downloading a result file or chunk from the agent container before failing")
+	cmd.Flags().StringVar(&target.PID, "pid", "", "PID of the target process inside the container. Use when the container runs multiple processes and the main process is not PID 1")
+	cmd.Flags().StringVarP(&target.Pgrep, "pgrep", "p", "", "Filter the target process by name using pgrep. Use when the PID is not known but the process name is (e.g. java, python, dotnet)")
+	cmd.Flags().IntVar(&target.NodeHeapSnapshotSignal, "node-heap-snapshot-signal", 12, "OS signal number sent to the Node.js process to trigger a heap snapshot (default: 12 = SIGUSR2). Use 10 for SIGUSR1")
+	cmd.Flags().StringSliceVar(&flags.capabilities, "capabilities", nil, "Linux capabilities to add to the agent container (e.g. --capabilities SYS_ADMIN --capabilities SYS_PTRACE). May be required when --privileged is false")
+	cmd.Flags().StringSliceVar(&job.TolerationsRaw, "tolerations", nil, "Tolerations for the profiling job pod, in the format key=value:effect or key:effect (e.g. --tolerations node-role=infra:NoSchedule --tolerations dedicated:NoExecute)")
+	cmd.Flags().StringSliceVar(&target.AsyncProfilerArgs, "async-profiler-args", nil, "Extra arguments forwarded directly to async-profiler (e.g. --async-profiler-args --alloc=2m --async-profiler-args --lock=1ms). See async-profiler docs for available options")
 
 	options.configFlags.AddFlags(cmd.Flags())
 
