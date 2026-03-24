@@ -145,8 +145,8 @@ func runApp() error {
 				Required: false,
 			},
 			&cli.StringFlag{
-				Name:     profile.HeapDumpSplitInChunkSize,
-				Usage:    "size of the chunks used to split the heap dump",
+				Name:     profile.OutputSplitInChunkSize,
+				Usage:    "size of the chunks used to split the output file",
 				Required: false,
 			},
 			&cli.StringFlag{
@@ -207,7 +207,7 @@ func toArgs(c *cli.Context) map[string]interface{} {
 		profile.Filename:                   c.String(profile.Filename),
 		profile.PrintLogs:                  c.Bool(profile.PrintLogs),
 		profile.GracePeriodForEnding:       c.String(profile.GracePeriodForEnding),
-		profile.HeapDumpSplitInChunkSize:   c.String(profile.HeapDumpSplitInChunkSize),
+		profile.OutputSplitInChunkSize:   c.String(profile.OutputSplitInChunkSize),
 		profile.Pid:                        c.String(profile.Pid),
 		profile.Pgrep:                      c.String(profile.Pgrep),
 		profile.NodeHeapSnapshotSignal:     c.Int(profile.NodeHeapSnapshotSignal),

@@ -495,7 +495,7 @@ func Test_dotnetManager_invoke(t *testing.T) {
 				commander := executil.NewMockCommander()
 				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
-				publisher.On("Do").Return(nil)
+				publisher.On("DoWithNativeGzipAndSplit").Return(nil)
 
 				return fields{
 						DotnetProfiler: NewDotnetProfiler(commander, publisher),
@@ -518,7 +518,7 @@ func Test_dotnetManager_invoke(t *testing.T) {
 			},
 			then: func(t *testing.T, fields fields, err error) {
 				assert.Nil(t, err)
-				assert.True(t, fields.DotnetProfiler.DotnetManager.(*dotnetManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 1)
+				assert.True(t, fields.DotnetProfiler.DotnetManager.(*dotnetManager).publisher.(*publish.Fake).On("DoWithNativeGzipAndSplit").InvokedTimes() == 1)
 			},
 		},
 		{
@@ -560,7 +560,7 @@ func Test_dotnetManager_invoke(t *testing.T) {
 				commander := executil.NewMockCommander()
 				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
-				publisher.On("Do").Return(nil)
+				publisher.On("DoWithNativeGzipAndSplit").Return(nil)
 
 				return fields{
 						DotnetProfiler: NewDotnetProfiler(commander, publisher),
@@ -583,7 +583,7 @@ func Test_dotnetManager_invoke(t *testing.T) {
 			},
 			then: func(t *testing.T, fields fields, err error) {
 				assert.Nil(t, err)
-				assert.True(t, fields.DotnetProfiler.DotnetManager.(*dotnetManager).publisher.(*publish.Fake).On("Do").InvokedTimes() == 1)
+				assert.True(t, fields.DotnetProfiler.DotnetManager.(*dotnetManager).publisher.(*publish.Fake).On("DoWithNativeGzipAndSplit").InvokedTimes() == 1)
 			},
 		},
 		{

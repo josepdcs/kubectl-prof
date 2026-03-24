@@ -62,9 +62,9 @@ func TestProfilingJob_ToMap(t *testing.T) {
 		Compressor:               "Compressor",
 		Tool:                     "Tool",
 		OutputType:               "OutputType",
-		FileName:                 "FileName",
-		HeapDumpSplitInChunkSize: "100M",
-		NodeHeapSnapshotSignal:   10,
+		FileName:              "FileName",
+		OutputSplitInChunkSize: "100M",
+		NodeHeapSnapshotSignal: 10,
 		PID:                      "PID",
 		Pgrep:                    "PGREP",
 		AdditionalArguments: map[string]string{
@@ -91,7 +91,7 @@ func TestProfilingJob_ToMap(t *testing.T) {
 	assert.Equal(t, "Tool", out["Tool"])
 	assert.Equal(t, "OutputType", out["OutputType"])
 	assert.Equal(t, "FileName", out["FileName"])
-	assert.Equal(t, "100M", out["HeapDumpSplitInChunkSize"])
+	assert.Equal(t, "100M", out["OutputSplitInChunkSize"])
 	assert.Equal(t, "PID", out["PID"])
 	assert.Equal(t, "PGREP", out["Pgrep"])
 	assert.Equal(t, map[string]interface{}{

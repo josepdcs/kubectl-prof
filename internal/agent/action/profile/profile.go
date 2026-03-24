@@ -31,7 +31,7 @@ const (
 	Filename                          = "filename"
 	PrintLogs                         = "print-logs"
 	GracePeriodForEnding              = "grace-period-ending"
-	HeapDumpSplitInChunkSize          = "heap-dump-split-in-chunk-size"
+	OutputSplitInChunkSize          = "output-split-in-chunk-size"
 	Pid                               = "pid"
 	Pgrep                             = "pgrep"
 	NodeHeapSnapshotSignal            = "node-heap-snapshot-signal"
@@ -41,7 +41,7 @@ const (
 	defaultContainerRuntime         = api.Containerd
 	defaultCompressor               = compressor.Gzip
 	defaultEventType                = api.Ctimer
-	defaultHeapDumpSplitInChunkSize = "50M"
+	defaultOutputSplitInChunkSize = "50M"
 )
 
 func NewAction(args map[string]interface{}) (profiler.Profiler, *job.ProfilingJob, error) {
@@ -163,8 +163,8 @@ func getProfilingJob(args map[string]interface{}) (*job.ProfilingJob, error) {
 	// validate output type
 	validateOutputType(args[OutputType].(string), j)
 
-	// set heap dump split in chunk size
-	setHeapDumpSplitChunkSize(args, j)
+	// set output split in chunk size
+	setOutputSplitChunkSize(args, j)
 
 	// set pid if exists
 	setPid(args, j)
@@ -183,11 +183,12 @@ func getProfilingJob(args map[string]interface{}) (*job.ProfilingJob, error) {
 	return j, nil
 }
 
-func setHeapDumpSplitChunkSize(args map[string]interface{}, j *job.ProfilingJob) {
-	if j.OutputType == api.HeapDump || j.OutputType == api.HeapSnapshot {
-		j.HeapDumpSplitInChunkSize = defaultHeapDumpSplitInChunkSize
-		if args[HeapDumpSplitInChunkSize] != nil && stringUtils.IsNotBlank(args[HeapDumpSplitInChunkSize].(string)) {
-			j.HeapDumpSplitInChunkSize = args[HeapDumpSplitInChunkSize].(string)
+func setOutputSplitChunkSize(args map[string]interface{}, j *job.ProfilingJob) {
+	if j.OutputType == api.HeapDump || j.OutputType == api.HeapSnapshot ||
+		j.OutputType == api.Gcdump || j.OutputType == api.Dump {
+		j.OutputSplitInChunkSize = defaultOutputSplitInChunkSize
+		if args[OutputSplitInChunkSize] != nil && stringUtils.IsNotBlank(args[OutputSplitInChunkSize].(string)) {
+			j.OutputSplitInChunkSize = args[OutputSplitInChunkSize].(string)
 		}
 	}
 }

@@ -307,6 +307,9 @@ func (p *dotnetManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 		resultFileName = filepath.Join(getTargetTmpDir(pid), filepath.Base(resultFileName))
 	}
 
+	if job.OutputType == api.Gcdump || job.OutputType == api.Dump {
+		return p.publisher.DoWithNativeGzipAndSplit(resultFileName, job.OutputSplitInChunkSize, job.OutputType), time.Since(start)
+	}
 	return p.publisher.Do(job.Compressor, resultFileName, job.OutputType), time.Since(start)
 }
 

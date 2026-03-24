@@ -173,6 +173,18 @@ Generate a heap dump in hprof format:
 kubectl prof mypod -l java -o heapdump --tool jcmd
 ```
 
+Heap dumps can be large files. Use `--output-split-size` to split the result into smaller chunks for easier transfer (default: `50M`):
+
+```shell
+# Split into 100 MB chunks
+kubectl prof mypod -l java -o heapdump --tool jcmd --output-split-size=100M
+
+# Split into 1 GB chunks
+kubectl prof mypod -l java -o heapdump --tool jcmd --output-split-size=1G
+```
+
+> 💡 **Tip:** The value follows the format accepted by the `split` Unix command (e.g. `50M`, `200M`, `1G`).
+
 #### Heap Histogram
 
 Generate a heap histogram:
@@ -281,6 +293,12 @@ If using `SIGUSR1`:
 
 ```shell
 kubectl prof mypod -l node -o heapsnapshot --node-heap-snapshot-signal=10
+```
+
+Heap snapshots can grow large for memory-heavy applications. Use `--output-split-size` to split the result into smaller chunks (default: `50M`):
+
+```shell
+kubectl prof mypod -l node -o heapsnapshot --output-split-size=200M
 ```
 
 > 📚 **Learn more:** [Node.js Heap Snapshots](https://nodejs.org/en/learn/diagnostics/memory/using-heap-snapshot)
@@ -420,6 +438,12 @@ kubectl prof mypod -t 30s -l dotnet --tool dotnet-trace -o speedscope
 kubectl prof mypod -l dotnet --tool dotnet-gcdump -o gcdump --local-path=/tmp
 ```
 
+For large heaps, use `--output-split-size` to split the result into smaller chunks (default: `50M`):
+
+```shell
+kubectl prof mypod -l dotnet --tool dotnet-gcdump -o gcdump --output-split-size=200M --local-path=/tmp
+```
+
 > 💡 **Tip:** `dotnet-gcdump` is the recommended starting point for memory analysis. Use `dotnet-dump` only when you need native frames or a complete memory picture.
 
 The output is a `.gcdump` file that can be opened with:
@@ -478,6 +502,12 @@ jq '.events[] | {name: .name, value: .value}' ./agent-counters-<pid>-1.json
 
 ```shell
 kubectl prof mypod -l dotnet --tool dotnet-dump -o dump --local-path=/tmp
+```
+
+Full memory dumps can be very large (several GB for production processes). Use `--output-split-size` to split the result into smaller chunks for easier transfer (default: `50M`):
+
+```shell
+kubectl prof mypod -l dotnet --tool dotnet-dump -o dump --output-split-size=500M --local-path=/tmp
 ```
 
 The output is a `.dmp` file (ELF core dump format on Linux) that can be analysed with:

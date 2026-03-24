@@ -32,7 +32,7 @@ const (
 	defaultOutputType                  = string(api.FlameGraph)
 	defaultImagePullPolicy             = string(apiv1.PullIfNotPresent)
 	defaultPoolSizeLaunchProfilingJobs = 0
-	defaultHeapDumpSplitSize           = "50M"
+	defaultOutputSplitSize             = "50M"
 	defaultPoolSizeRetrieveChunks      = 5
 	defaultRetrieveFileRetries         = 3
 	longDescription                    = `Profiling on existing applications with low-overhead.
@@ -213,7 +213,7 @@ func NewProfileCommand(streams genericiooptions.IOStreams) *cobra.Command {
 	cmd.Flags().DurationVar(&target.GracePeriodEnding, "grace-period-ending", defaultGracePeriodEnding, "The grace period to spend before to end the agent")
 	cmd.Flags().StringVar(&flags.imagePullPolicy, "image-pull-policy", defaultImagePullPolicy, fmt.Sprintf("Image pull policy, choose one of %v", imagePullPolicies))
 	cmd.Flags().StringVar(&target.ContainerName, "target-container-name", "", "The target container name to be profiled")
-	cmd.Flags().StringVar(&target.HeapDumpSplitInChunkSize, "heap-dump-split-size", defaultHeapDumpSplitSize, "The heap dump (or snapshot, for Node.js) will be split into chunks of a specified size, following the valid format for the split command (e.g. 50M, 1G, etc.)")
+	cmd.Flags().StringVar(&target.OutputSplitInChunkSize, "output-split-size", defaultOutputSplitSize, "The output file (memory dumps: heapdump, heapsnapshot, gcdump, dump) will be split into chunks of a specified size, following the valid format for the split command (e.g. 50M, 1G, etc.)")
 	cmd.Flags().IntVar(&target.PoolSizeRetrieveChunks, "pool-size-retrieve-chunks", defaultPoolSizeRetrieveChunks, "The pool size of goroutines used to retrieve chunks of the obtained heap dump (or snapshot, for Node.js) from the agent")
 	cmd.Flags().IntVar(&target.RetrieveFileRetries, "retrieve-file-retries", defaultRetrieveFileRetries, "The number of retries to retrieve a file from the remote container")
 	cmd.Flags().StringVar(&target.PID, "pid", "", "The PID of target process if it is known")
