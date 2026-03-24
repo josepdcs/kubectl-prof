@@ -12,8 +12,8 @@
 
 ✨ **Key Features:**
 - 🎯 **Zero modification** - Profile running pods without any changes to your deployment
-- 🌐 **Multi-language support** - Java, Go, Python, Ruby, Node.js, Rust, Clang/Clang++, PHP
-- 📊 **Multiple output formats** - FlameGraphs, JFR, SpeedScope, thread dumps, heap dumps, and more
+- 🌐 **Multi-language support** - Java, Go, Python, Ruby, Node.js, Rust, Clang/Clang++, PHP, **.NET**
+- 📊 **Multiple output formats** - FlameGraphs, JFR, SpeedScope, thread dumps, heap dumps, GC dumps, memory dumps, and more
 - ⚡ **Low overhead** - Minimal impact on running applications
 - 🔄 **Continuous profiling** - Support for both discrete and continuous profiling modes
 
@@ -33,6 +33,7 @@
   - [Rust Profiling](#-rust-profiling)
   - [Clang/Clang++ Profiling](#-clangclang-profiling)
   - [PHP Profiling](#-php-profiling)
+  - [.NET Profiling](#-net-profiling)
   - [Advanced Usage](#-advanced-usage)
 - [How It Works](#-how-it-works)
 - [Building from Source](#-building-from-source)
@@ -53,6 +54,7 @@
 | 🦀 **Rust** | ✅ Fully Supported | cargo-flamegraph |
 | ⚙️ **Clang/Clang++** | ✅ Fully Supported | eBPF profiling, perf |
 | 🐘 **PHP** | ✅ Fully Supported | phpspy |
+| 🟣 **.NET** (Core/5+) | ✅ Fully Supported | dotnet-trace, dotnet-gcdump, dotnet-counters, dotnet-dump |
 
 ### Container Runtimes 🐳
 
@@ -171,6 +173,18 @@ Generate a heap dump in hprof format:
 kubectl prof mypod -l java -o heapdump --tool jcmd
 ```
 
+Heap dumps can be large files. Use `--output-split-size` to split the result into smaller chunks for easier transfer (default: `50M`):
+
+```shell
+# Split into 100 MB chunks
+kubectl prof mypod -l java -o heapdump --tool jcmd --output-split-size=100M
+
+# Split into 1 GB chunks
+kubectl prof mypod -l java -o heapdump --tool jcmd --output-split-size=1G
+```
+
+> 💡 **Tip:** The value follows the format accepted by the `split` Unix command (e.g. `50M`, `200M`, `1G`).
+
 #### Heap Histogram
 
 Generate a heap histogram:
@@ -281,6 +295,12 @@ If using `SIGUSR1`:
 kubectl prof mypod -l node -o heapsnapshot --node-heap-snapshot-signal=10
 ```
 
+Heap snapshots can grow large for memory-heavy applications. Use `--output-split-size` to split the result into smaller chunks (default: `50M`):
+
+```shell
+kubectl prof mypod -l node -o heapsnapshot --output-split-size=200M
+```
+
 > 📚 **Learn more:** [Node.js Heap Snapshots](https://nodejs.org/en/learn/diagnostics/memory/using-heap-snapshot)
 
 ---
@@ -363,6 +383,177 @@ kubectl prof mypod -t 1m -l php -o raw --local-path=/tmp
 > ⚠️ **Requirements:** The `SYS_PTRACE` capability is required. It is added automatically by `kubectl-prof`.
 
 > 💡 **Tip:** phpspy works with PHP 7+ processes and requires no modifications to your application or PHP configuration.
+
+---
+
+### 🟣 .NET Profiling
+
+`kubectl-prof` supports four specialised tools from the [.NET diagnostics suite](https://github.com/dotnet/diagnostics/blob/main/documentation) for profiling **.NET Core / .NET 5+** applications running in Kubernetes.
+
+> ⚠️ **Requirements:** The target container must be running a .NET Core / .NET 5+ application with the .NET diagnostic socket enabled (default behaviour).
+
+---
+
+#### 🔥 CPU Traces — `dotnet-trace`
+
+[`dotnet-trace`](https://learn.microsoft.com/dotnet/core/diagnostics/dotnet-trace) captures CPU samples and runtime events through the EventPipe mechanism. It is the default tool for .NET when no `--tool` flag is specified.
+
+**SpeedScope format (default):**
+
+```shell
+kubectl prof mypod -t 30s -l dotnet -o speedscope --local-path=/tmp
+```
+
+The output is a `.speedscope.json` file that can be loaded directly at **[speedscope.app](https://www.speedscope.app/)** for interactive flame-graph analysis.
+
+**Raw nettrace format:**
+
+```shell
+kubectl prof mypod -t 1m -l dotnet -o raw --local-path=/tmp
+```
+
+The output is a `.nettrace` binary file that can be opened with:
+- [PerfView](https://github.com/microsoft/perfview) on Windows
+- [Visual Studio](https://visualstudio.microsoft.com/) on Windows
+- [`dotnet-trace convert`](https://learn.microsoft.com/dotnet/core/diagnostics/dotnet-trace#dotnet-trace-convert) CLI to convert it to other formats
+
+**Using `--tool` flag explicitly:**
+
+```shell
+kubectl prof mypod -t 30s -l dotnet --tool dotnet-trace -o speedscope
+```
+
+| Flag | Output file | Visualiser |
+|------|-------------|------------|
+| `-o speedscope` | `.speedscope.json` | [speedscope.app](https://www.speedscope.app/) |
+| `-o raw` | `.nettrace` | PerfView, Visual Studio, `dotnet-trace convert` |
+
+---
+
+#### 🗑️ GC Heap Dump — `dotnet-gcdump`
+
+[`dotnet-gcdump`](https://learn.microsoft.com/dotnet/core/diagnostics/dotnet-gcdump) captures a snapshot of the managed (GC) heap. It is a lightweight alternative to a full memory dump — only managed objects are captured, so the file is much smaller than a `.dmp`.
+
+```shell
+kubectl prof mypod -l dotnet --tool dotnet-gcdump -o gcdump --local-path=/tmp
+```
+
+For large heaps, use `--output-split-size` to split the result into smaller chunks (default: `50M`):
+
+```shell
+kubectl prof mypod -l dotnet --tool dotnet-gcdump -o gcdump --output-split-size=200M --local-path=/tmp
+```
+
+> 💡 **Tip:** `dotnet-gcdump` is the recommended starting point for memory analysis. Use `dotnet-dump` only when you need native frames or a complete memory picture.
+
+The output is a `.gcdump` file that can be opened with:
+- [Visual Studio](https://visualstudio.microsoft.com/) — Heap Snapshot view
+- [PerfView](https://github.com/microsoft/perfview) — GCDump viewer
+- [dotnet-gcdump report](https://learn.microsoft.com/dotnet/core/diagnostics/dotnet-gcdump#dotnet-gcdump-report) CLI for a quick text summary
+
+**Quick CLI report from the dump file:**
+
+```shell
+dotnet-gcdump report ./agent-gcdump-<pid>-1.gcdump
+```
+
+---
+
+#### 📊 Performance Counters — `dotnet-counters`
+
+[`dotnet-counters`](https://learn.microsoft.com/dotnet/core/diagnostics/dotnet-counters) collects runtime and application performance metrics (CPU usage, GC collections, exception rates, thread-pool queue length, etc.) over a configurable duration and writes them to a JSON file.
+
+```shell
+kubectl prof mypod -t 30s -l dotnet --tool dotnet-counters -o counters --local-path=/tmp
+```
+
+The output is a `.json` file structured as a time series of counter values. It can be:
+- **Inspected directly** — plain JSON, human-readable
+- **Visualised with [PerfView](https://github.com/microsoft/perfview)** — open the JSON report
+- **Post-processed** with any standard JSON tooling (`jq`, Python, etc.)
+
+**Example: print a quick summary with `jq`:**
+
+```shell
+jq '.events[] | {name: .name, value: .value}' ./agent-counters-<pid>-1.json
+```
+
+**Counters captured by default** (from the `dotnet-common` + `dotnet-sampled-thread-time` profiles):
+
+| Counter | Description |
+|---------|-------------|
+| `cpu-usage` | Total CPU usage (%) |
+| `working-set` | Working set memory (MB) |
+| `gc-heap-size` | GC heap size (MB) |
+| `gen-0-gc-count` | Gen 0 GC collections / interval |
+| `gen-1-gc-count` | Gen 1 GC collections / interval |
+| `gen-2-gc-count` | Gen 2 GC collections / interval |
+| `exception-count` | Exceptions thrown / interval |
+| `threadpool-queue-length` | Thread-pool work-item queue length |
+| `active-timer-count` | Active `System.Threading.Timer` instances |
+
+---
+
+#### 💾 Full Memory Dump — `dotnet-dump`
+
+[`dotnet-dump`](https://learn.microsoft.com/dotnet/core/diagnostics/dotnet-dump) captures a **point-in-time full memory dump** (`.dmp`) of the process, including both managed and native frames. This is the most comprehensive diagnostic artefact — use it for crash analysis, deadlock investigation, or when `dotnet-gcdump` does not capture enough context.
+
+> ⚠️ **Note:** `dotnet-dump` does **not** accept a `--duration` flag — it captures the dump immediately when invoked. The `-t` flag is ignored for this tool.
+
+```shell
+kubectl prof mypod -l dotnet --tool dotnet-dump -o dump --local-path=/tmp
+```
+
+Full memory dumps can be very large (several GB for production processes). Use `--output-split-size` to split the result into smaller chunks for easier transfer (default: `50M`):
+
+```shell
+kubectl prof mypod -l dotnet --tool dotnet-dump -o dump --output-split-size=500M --local-path=/tmp
+```
+
+The output is a `.dmp` file (ELF core dump format on Linux) that can be analysed with:
+
+- **[`dotnet-dump analyze`](https://learn.microsoft.com/dotnet/core/diagnostics/dotnet-dump#analyze-a-dump)** — cross-platform interactive SOS shell:
+  ```shell
+  dotnet-dump analyze ./agent-dump-<pid>-1.dmp
+  ```
+  Useful SOS commands inside the session:
+  ```
+  > clrstack          # managed call stacks for all threads
+  > dumpheap -stat    # managed heap statistics
+  > gcroot <address>  # find GC roots for an object
+  > threads           # list all threads
+  > pe                # print last exception on each thread
+  ```
+
+- **[Visual Studio](https://visualstudio.microsoft.com/)** on Windows — open the `.dmp` file for mixed managed/native debugging
+- **[WinDbg](https://learn.microsoft.com/windows-hardware/drivers/debugger/debugger-download-tools)** with the [SOS extension](https://learn.microsoft.com/dotnet/core/diagnostics/sos-debugging-extension) on Windows
+- **[LLDB](https://lldb.llvm.org/)** with the SOS plugin on Linux/macOS:
+  ```shell
+  lldb --core ./agent-dump-<pid>-1.dmp
+  ```
+
+---
+
+#### 🗂️ .NET Tools Summary
+
+| Tool flag | `-o` / Output type | Output file | Default? | Visualiser / Tool |
+|---|---|---|---|---|
+| `dotnet-trace` (default) | `speedscope` | `.speedscope.json` | ✅ | [speedscope.app](https://www.speedscope.app/) |
+| `dotnet-trace` | `raw` | `.nettrace` | | PerfView, Visual Studio, `dotnet-trace convert` |
+| `dotnet-gcdump` | `gcdump` | `.gcdump` | | Visual Studio, PerfView, `dotnet-gcdump report` |
+| `dotnet-counters` | `counters` | `.json` | | PerfView, `jq`, Python |
+| `dotnet-dump` | `dump` | `.dmp` | | `dotnet-dump analyze`, Visual Studio, WinDbg, LLDB |
+
+---
+
+#### 🔗 Further Reading
+
+- [.NET diagnostics documentation](https://github.com/dotnet/diagnostics/blob/main/documentation)
+- [`dotnet-trace` reference](https://learn.microsoft.com/dotnet/core/diagnostics/dotnet-trace)
+- [`dotnet-gcdump` reference](https://learn.microsoft.com/dotnet/core/diagnostics/dotnet-gcdump)
+- [`dotnet-counters` reference](https://learn.microsoft.com/dotnet/core/diagnostics/dotnet-counters)
+- [`dotnet-dump` reference](https://learn.microsoft.com/dotnet/core/diagnostics/dotnet-dump)
+- [Well-known counters in .NET](https://learn.microsoft.com/dotnet/core/diagnostics/available-counters)
 
 ---
 
@@ -650,6 +841,28 @@ make build-docker-agents
 **Output formats:**
 - `flamegraph` - Interactive FlameGraph visualization (SVG format)
 - `raw` - Raw stack traces in folded format
+
+#### 🟣 .NET (Core / .NET 5+)
+
+Four tools from the [.NET diagnostics suite](https://github.com/dotnet/diagnostics/blob/main/documentation) are available, each targeting a different diagnostic scenario:
+
+**[dotnet-trace](https://learn.microsoft.com/dotnet/core/diagnostics/dotnet-trace)** — CPU and runtime event tracing (default tool for .NET)
+- SpeedScope: `--tool dotnet-trace -o speedscope` (default) → `.speedscope.json`
+- Raw nettrace: `--tool dotnet-trace -o raw` → `.nettrace`
+- Uses EventPipe; zero JVM-agent overhead
+
+**[dotnet-gcdump](https://learn.microsoft.com/dotnet/core/diagnostics/dotnet-gcdump)** — Lightweight GC heap snapshot
+- GC heap dump: `--tool dotnet-gcdump -o gcdump` → `.gcdump`
+- Captures managed objects only; much smaller than a full dump
+
+**[dotnet-counters](https://learn.microsoft.com/dotnet/core/diagnostics/dotnet-counters)** — Real-time performance counter collection
+- Counters: `--tool dotnet-counters -o counters` → `.json`
+- Captures CPU, GC, thread-pool, exception rate and other runtime metrics
+
+**[dotnet-dump](https://learn.microsoft.com/dotnet/core/diagnostics/dotnet-dump)** — Full process memory dump
+- Full dump: `--tool dotnet-dump -o dump` → `.dmp`
+- Point-in-time; includes both managed and native frames
+- Analysable with `dotnet-dump analyze`, Visual Studio, WinDbg, LLDB+SOS
 
 #### 📗 Node.js
 

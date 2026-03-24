@@ -76,7 +76,7 @@ type JcmdManager interface {
 	invoke(*job.ProfilingJob, string) (error, time.Duration)
 	handleProfilingResult(job *job.ProfilingJob, fileName string, out bytes.Buffer, targetPID string) error
 	handleJcmdRecording(targetPID string, iteration int, outputType string)
-	publishResult(compressor compressor.Type, fileName string, outputType api.OutputType, heapDumpSplitInChunkSize string) error
+	publishResult(compressor compressor.Type, fileName string, outputType api.OutputType, outputSplitInChunkSize string) error
 	cleanUp(*job.ProfilingJob, string)
 }
 
@@ -190,7 +190,7 @@ func (j *jcmdManager) invoke(job *job.ProfilingJob, pid string) (error, time.Dur
 		return err, time.Since(start)
 	}
 
-	return j.publishResult(job.Compressor, resultFileName, job.OutputType, job.HeapDumpSplitInChunkSize), time.Since(start)
+	return j.publishResult(job.Compressor, resultFileName, job.OutputType, job.OutputSplitInChunkSize), time.Since(start)
 }
 
 func (j *jcmdManager) handleProfilingResult(job *job.ProfilingJob, fileName string, out bytes.Buffer, pid string) error {
@@ -256,9 +256,9 @@ func printErrorIfStopped(outputTxt string) {
 	}
 }
 
-func (j *jcmdManager) publishResult(c compressor.Type, fileName string, outputType api.OutputType, heapDumpSplitInChunkSize string) error {
+func (j *jcmdManager) publishResult(c compressor.Type, fileName string, outputType api.OutputType, outputSplitInChunkSize string) error {
 	if outputType == api.HeapDump {
-		return j.publisher.DoWithNativeGzipAndSplit(fileName, heapDumpSplitInChunkSize, outputType)
+		return j.publisher.DoWithNativeGzipAndSplit(fileName, outputSplitInChunkSize, outputType)
 	}
 	return j.publisher.Do(c, fileName, outputType)
 }

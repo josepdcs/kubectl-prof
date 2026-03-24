@@ -40,7 +40,7 @@ type ExtraTargetOptions struct {
 	PrintLogs                   bool
 	PrintAgentLogs              bool
 	GracePeriodEnding           time.Duration
-	HeapDumpSplitInChunkSize    string
+	OutputSplitInChunkSize      string
 	PoolSizeRetrieveChunks      int
 	RetrieveFileRetries         int
 	PID                         string

@@ -56,12 +56,12 @@ func TestNewAction(t *testing.T) {
 				CompressorType:             "",
 				TargetContainerRuntime:     "crio",
 				TargetContainerRuntimePath: "/my/path",
-				HeapDumpSplitInChunkSize:   "50M",
+				OutputSplitInChunkSize:     "50M",
 			},
 			assert: func(t *testing.T, p profiler.Profiler, job *job.ProfilingJob) {
 				assert.IsType(t, &jvm.JcmdProfiler{}, p)
 				assert.Equal(t, api.HeapDump, job.OutputType)
-				assert.Equal(t, "50M", job.HeapDumpSplitInChunkSize)
+				assert.Equal(t, "50M", job.OutputSplitInChunkSize)
 			},
 		},
 		{
@@ -81,13 +81,13 @@ func TestNewAction(t *testing.T) {
 				CompressorType:             "",
 				TargetContainerRuntime:     "crio",
 				TargetContainerRuntimePath: "/my/path",
-				HeapDumpSplitInChunkSize:   "50M",
+				OutputSplitInChunkSize:     "50M",
 				NodeHeapSnapshotSignal:     12,
 			},
 			assert: func(t *testing.T, p profiler.Profiler, job *job.ProfilingJob) {
 				assert.IsType(t, &profiler.NodeDummyProfiler{}, p)
 				assert.Equal(t, api.HeapSnapshot, job.OutputType)
-				assert.Equal(t, "50M", job.HeapDumpSplitInChunkSize)
+				assert.Equal(t, "50M", job.OutputSplitInChunkSize)
 				assert.Equal(t, 12, job.NodeHeapSnapshotSignal)
 			},
 		},

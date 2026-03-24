@@ -76,8 +76,8 @@ func (m *mockJcmdManager) handleJcmdRecording(targetPID string, iteration int, o
     _ = m.Called(targetPID, iteration, outputType)
 }
 
-func (m *mockJcmdManager) publishResult(c compressor.Type, fileName string, outputType api.OutputType, heapDumpSplitInChunkSize string) error {
-    args := m.Called(c, fileName, outputType, heapDumpSplitInChunkSize)
+func (m *mockJcmdManager) publishResult(c compressor.Type, fileName string, outputType api.OutputType, outputSplitInChunkSize string) error {
+    args := m.Called(c, fileName, outputType, outputSplitInChunkSize)
     if a := args.Get(0); a != nil {
         if err, ok := a.(error); ok {
             return err
