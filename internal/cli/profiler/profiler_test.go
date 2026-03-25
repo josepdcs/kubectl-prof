@@ -27,7 +27,7 @@ func TestJobProfiler_Profile(t *testing.T) {
 			name: "should fail when when no target is provided",
 			given: func() (fields, args) {
 				return fields{
-						Profiler: NewJobProfiler(
+						Profiler: New(
 							fake.NewPodApi().WithReturnsEmpty(),
 							fake.NewProfilingJobApi(),
 							fake.NewProfilingContainerApi(),
@@ -56,7 +56,7 @@ func TestJobProfiler_Profile(t *testing.T) {
 			name: "should profile one pod",
 			given: func() (fields, args) {
 				return fields{
-						Profiler: NewJobProfiler(
+						Profiler: New(
 							fake.NewPodApi(),
 							fake.NewProfilingJobApi(),
 							fake.NewProfilingContainerApi(),
@@ -85,7 +85,7 @@ func TestJobProfiler_Profile(t *testing.T) {
 			name: "should profile a bunch of pods",
 			given: func() (fields, args) {
 				return fields{
-						Profiler: NewJobProfiler(
+						Profiler: New(
 							fake.NewPodApi(),
 							fake.NewProfilingJobApi(),
 							fake.NewProfilingContainerApi(),
@@ -115,7 +115,7 @@ func TestJobProfiler_Profile(t *testing.T) {
 			name: "should skip when dry run",
 			given: func() (fields, args) {
 				return fields{
-						Profiler: NewJobProfiler(
+						Profiler: New(
 							fake.NewPodApi(),
 							fake.NewProfilingJobApi(),
 							fake.NewProfilingContainerApi(),
@@ -144,7 +144,7 @@ func TestJobProfiler_Profile(t *testing.T) {
 			name: "should fail when get pod fail",
 			given: func() (fields, args) {
 				return fields{
-						Profiler: NewJobProfiler(
+						Profiler: New(
 							fake.NewPodApi().WithReturnsError(),
 							fake.NewProfilingJobApi(),
 							fake.NewProfilingContainerApi(),
@@ -174,7 +174,7 @@ func TestJobProfiler_Profile(t *testing.T) {
 			name: "should fail when get an invalid pod",
 			given: func() (fields, args) {
 				return fields{
-						Profiler: NewJobProfiler(
+						Profiler: New(
 							fake.NewPodApi().WithReturnsEmpty(),
 							fake.NewProfilingJobApi(),
 							fake.NewProfilingContainerApi(),
@@ -204,7 +204,7 @@ func TestJobProfiler_Profile(t *testing.T) {
 			name: "should fail when get bunch of pods fail",
 			given: func() (fields, args) {
 				return fields{
-						Profiler: NewJobProfiler(
+						Profiler: New(
 							fake.NewPodApi().WithReturnsError(),
 							fake.NewProfilingJobApi(),
 							fake.NewProfilingContainerApi(),
@@ -234,7 +234,7 @@ func TestJobProfiler_Profile(t *testing.T) {
 			name: "should fail when get bunch of pods returns empty",
 			given: func() (fields, args) {
 				return fields{
-						Profiler: NewJobProfiler(
+						Profiler: New(
 							fake.NewPodApi().WithReturnsEmpty(),
 							fake.NewProfilingJobApi(),
 							fake.NewProfilingContainerApi(),
@@ -264,7 +264,7 @@ func TestJobProfiler_Profile(t *testing.T) {
 			name: "should fail when create profiling job fail",
 			given: func() (fields, args) {
 				return fields{
-						Profiler: NewJobProfiler(
+						Profiler: New(
 							fake.NewPodApi(),
 							fake.NewProfilingJobApi().WithCreateProfilingJobReturnsError(),
 							fake.NewProfilingContainerApi(),
@@ -294,7 +294,7 @@ func TestJobProfiler_Profile(t *testing.T) {
 			name: "should fail when get profiling pod fail",
 			given: func() (fields, args) {
 				return fields{
-						Profiler: NewJobProfiler(
+						Profiler: New(
 							fake.NewPodApi(),
 							fake.NewProfilingJobApi().WithGetProfilingPodReturnsError(),
 							fake.NewProfilingContainerApi(),
@@ -324,7 +324,7 @@ func TestJobProfiler_Profile(t *testing.T) {
 			name: "should fail when handle profiling container logs fail",
 			given: func() (fields, args) {
 				return fields{
-						Profiler: NewJobProfiler(
+						Profiler: New(
 							fake.NewPodApi(),
 							fake.NewProfilingJobApi(),
 							fake.NewProfilingContainerApi().WithHandleProfilingContainerLogsReturnsError(),
@@ -354,7 +354,7 @@ func TestJobProfiler_Profile(t *testing.T) {
 			name: "should terminate when get remote file fail",
 			given: func() (fields, args) {
 				return fields{
-						Profiler: NewJobProfiler(
+						Profiler: New(
 							fake.NewPodApi(),
 							fake.NewProfilingJobApi(),
 							fake.NewProfilingContainerApi().WithGetRemoteFileReturnsError(),
