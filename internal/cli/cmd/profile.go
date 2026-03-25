@@ -5,7 +5,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/agrison/go-commons-lang/stringUtils"
 	"github.com/josepdcs/kubectl-prof/internal/cli"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
@@ -13,7 +12,6 @@ import (
 	apiprof "github.com/josepdcs/kubectl-prof/internal/cli/profiler/api"
 	"github.com/josepdcs/kubectl-prof/internal/cli/version"
 	"github.com/josepdcs/kubectl-prof/pkg/util/compressor"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/cli-runtime/pkg/genericiooptions"
@@ -60,6 +58,7 @@ These commands help you identify application performance issues.
 `
 )
 
+// imagePullPolicies defines a list of container image pull policies supported by the Kubernetes API.
 var imagePullPolicies = []apiv1.PullPolicy{apiv1.PullNever, apiv1.PullAlways, apiv1.PullIfNotPresent}
 
 // Profiler defines the profile method.
@@ -67,11 +66,13 @@ type Profiler interface {
 	Profile(cfg *config.ProfilerConfig) error
 }
 
+// ProfileOptions holds configuration flags and IO streams for profile-related commands.
 type ProfileOptions struct {
 	configFlags *genericclioptions.ConfigFlags
 	genericiooptions.IOStreams
 }
 
+// NewProfileOptions initializes and returns a new instance of ProfileOptions with the provided IOStreams.
 func NewProfileOptions(streams genericiooptions.IOStreams) *ProfileOptions {
 	return &ProfileOptions{
 		configFlags: genericclioptions.NewConfigFlags(false),
@@ -79,6 +80,7 @@ func NewProfileOptions(streams genericiooptions.IOStreams) *ProfileOptions {
 	}
 }
 
+// profilingFlags represents configurable options for profiling operations, such as runtime, language, output type, and more.
 type profilingFlags struct {
 	runtime         string
 	runtimePath     string
@@ -93,7 +95,22 @@ type profilingFlags struct {
 	capabilities    []string
 }
 
-func NewProfileCommand(streams genericiooptions.IOStreams) *cobra.Command {
+// profilingContext contains the necessary context to execute the profiling command.
+type profilingContext struct {
+	cmd         *cobra.Command
+	args        []string
+	streams     genericiooptions.IOStreams
+	target      *config.TargetConfig
+	job         *config.JobConfig
+	flags       *profilingFlags
+	showVersion bool
+	options     *ProfileOptions
+}
+
+// NewProfile returns a new cobra.Command for the "prof" subcommand.
+// This command allows users to profile running applications in a Kubernetes cluster.
+// It supports multiple output types such as flamegraphs, JFRs, thread dumps, and heap dumps.
+func NewProfile(streams genericiooptions.IOStreams) *cobra.Command {
 	var (
 		target      config.TargetConfig
 		job         config.JobConfig
@@ -113,64 +130,86 @@ func NewProfileCommand(streams genericiooptions.IOStreams) *cobra.Command {
 			c.SetErr(streams.ErrOut)
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			if showVersion {
-				_, _ = fmt.Fprintln(streams.Out, version.String())
-				return
+			ctx := &profilingContext{
+				cmd:         cmd,
+				args:        args,
+				streams:     streams,
+				target:      &target,
+				job:         &job,
+				flags:       &flags,
+				showVersion: showVersion,
+				options:     options,
 			}
-
-			if len(args) == 0 && target.LabelSelector == "" {
-				_ = cmd.Help()
-				return
-			}
-
-			if err := validateFlags(&flags, &target, &job); err != nil {
-				_, _ = fmt.Fprintln(streams.Out, err)
-				os.Exit(1)
-			}
-
-			// set log level
-			level, _ := log.ParseLevel(flags.logLevel)
-			log.SetLevel(level)
-
-			if target.LabelSelector == "" {
-				target.PodName = args[0]
-				if len(args) > 1 {
-					target.ContainerName = args[1]
-				}
-			}
-
-			// Prepare profiler
-			cfg, err := getProfilerConfig(target, job, flags.logLevel, flags.privileged, flags.capabilities)
-			if err != nil {
-				log.Fatalf("Failed configure profiler: %v\n", err)
-			}
-
-			connectionInfo, err := kubernetes.Connect(options.configFlags)
-			if err != nil {
-				log.Fatalf("Failed connecting to kubernetes cluster: %v\n", err)
-			}
-
-			if cfg.Target.Namespace == "" {
-				cfg.Target.Namespace = connectionInfo.Namespace
-			}
-
-			cfg.Job.Namespace = connectionInfo.Namespace
-			err = profiler.NewJobProfiler(
-				apiprof.NewPodApi(connectionInfo),
-				apiprof.NewProfilingJobApi(connectionInfo),
-				apiprof.NewProfilingContainerApi(connectionInfo),
-			).Profile(cfg)
-
-			if err != nil {
-				printer := cli.NewPrinter(cfg.Target.DryRun)
-				printer.Print("Profiling failed ... ")
-				printer.PrintError()
-				printer.Print("😥 " + err.Error())
-			}
+			runProfile(ctx)
 		},
 	}
 
-	cmd.Flags().BoolVar(&showVersion, "version", false, "Print version and build information")
+	setProfileFlags(cmd, &target, &job, &flags, &showVersion, options)
+
+	return cmd
+}
+
+// runProfile executes the profiling logic when the "prof" command is invoked.
+func runProfile(ctx *profilingContext) {
+	if ctx.showVersion {
+		_, _ = fmt.Fprintln(ctx.streams.Out, version.String())
+		return
+	}
+
+	if len(ctx.args) == 0 && ctx.target.LabelSelector == "" {
+		_ = ctx.cmd.Help()
+		return
+	}
+
+	if err := validateFlags(ctx.flags, ctx.target, ctx.job); err != nil {
+		_, _ = fmt.Fprintln(ctx.streams.Out, err)
+		os.Exit(1)
+	}
+
+	// set log level
+	level, _ := log.ParseLevel(ctx.flags.logLevel)
+	log.SetLevel(level)
+
+	if ctx.target.LabelSelector == "" {
+		ctx.target.PodName = ctx.args[0]
+		if len(ctx.args) > 1 {
+			ctx.target.ContainerName = ctx.args[1]
+		}
+	}
+
+	// Prepare profiler
+	cfg, err := getProfilerConfig(*ctx.target, *ctx.job, ctx.flags.logLevel, ctx.flags.privileged, ctx.flags.capabilities)
+	if err != nil {
+		log.Fatalf("Failed configure profiler: %v\n", err)
+	}
+
+	connectionInfo, err := kubernetes.Connect(ctx.options.configFlags)
+	if err != nil {
+		log.Fatalf("Failed connecting to kubernetes cluster: %v\n", err)
+	}
+
+	if cfg.Target.Namespace == "" {
+		cfg.Target.Namespace = connectionInfo.Namespace
+	}
+
+	cfg.Job.Namespace = connectionInfo.Namespace
+	err = profiler.New(
+		apiprof.NewPodApi(connectionInfo),
+		apiprof.NewProfilingJobApi(connectionInfo),
+		apiprof.NewProfilingContainerApi(connectionInfo),
+	).Profile(cfg)
+
+	if err != nil {
+		printer := cli.NewPrinter(cfg.Target.DryRun)
+		printer.Print("Profiling failed ... ")
+		printer.PrintError()
+		printer.Print("😥 " + err.Error())
+	}
+}
+
+// setProfileFlags defines and binds all CLI flags for the "prof" command.
+func setProfileFlags(cmd *cobra.Command, target *config.TargetConfig, job *config.JobConfig, flags *profilingFlags, showVersion *bool, options *ProfileOptions) {
+	cmd.Flags().BoolVar(showVersion, "version", false, "Print version and build information")
 
 	cmd.Flags().StringVar(&target.LabelSelector, "selector", "", "Label selector to target multiple pods simultaneously. Supports '=', '==', and '!=' operators (e.g. app=my-app,env=prod). All label constraints must be satisfied.")
 	cmd.Flags().IntVar(&target.PoolSizeLaunchProfilingJobs, "pool-size-profiling-jobs", defaultPoolSizeLaunchProfilingJobs, "Maximum number of pods to profile in parallel when using '--selector'. Set to 0 for no limit (all matching pods profiled simultaneously)")
@@ -224,10 +263,10 @@ func NewProfileCommand(streams genericiooptions.IOStreams) *cobra.Command {
 	cmd.Flags().StringSliceVar(&target.AsyncProfilerArgs, "async-profiler-args", nil, "Extra arguments forwarded directly to async-profiler (e.g. --async-profiler-args --alloc=2m --async-profiler-args --lock=1ms). See async-profiler docs for available options")
 
 	options.configFlags.AddFlags(cmd.Flags())
-
-	return cmd
 }
 
+// getProfilerConfig creates a config.ProfilerConfig based on the provided target and job configurations,
+// log level, privileged status, and Linux capabilities.
 func getProfilerConfig(target config.TargetConfig, job config.JobConfig, logLevel string, privileged bool, capabilities []string) (*config.ProfilerConfig, error) {
 	job.Privileged = privileged
 	job.Capabilities = make([]apiv1.Capability, len(capabilities))
@@ -235,167 +274,4 @@ func getProfilerConfig(target config.TargetConfig, job config.JobConfig, logLeve
 		job.Capabilities[i] = apiv1.Capability(capability)
 	}
 	return config.NewProfilerConfig(&target, config.WithJob(&job), config.WithLogLevel(api.LogLevel(logLevel)))
-}
-
-func validateFlags(flags *profilingFlags, target *config.TargetConfig, job *config.JobConfig) error {
-	var err error
-
-	err = validateLang(flags.lang)
-	if err != nil {
-		return err
-	}
-
-	flags.runtime, err = validateRuntime(flags.runtime, target)
-	if err != nil {
-		return err
-	}
-
-	if stringUtils.IsNotBlank(flags.event) && !api.IsSupportedEvent(flags.event) {
-		return errors.Errorf("unsupported event, choose one of %s", api.AvailableEvents())
-	}
-	if stringUtils.IsBlank(flags.event) {
-		flags.event = defaultEvent
-	}
-
-	if stringUtils.IsNotBlank(flags.logLevel) && !api.IsSupportedLogLevel(flags.logLevel) {
-		return errors.Errorf("unsupported log level, choose one of %s", api.AvailableLogLevels())
-	}
-	if stringUtils.IsBlank(flags.logLevel) {
-		flags.logLevel = defaultLogLevel
-	}
-
-	/*if stringUtils.IsNotBlank(compressorType) && !compressor.IsSupportedCompressor(compressorType) {
-		return errors.Errorf("unsupported compressor, choose one of %s", compressor.AvailableCompressors())
-	}*/
-	if stringUtils.IsBlank(flags.compressorType) {
-		flags.compressorType = defaultCompressor
-	}
-
-	if stringUtils.IsNotBlank(flags.imagePullPolicy) && !isSupportedImagePullPolicy(flags.imagePullPolicy) {
-		return errors.Errorf("unsupported image pull policy, choose one of %s", imagePullPolicies)
-	}
-	if stringUtils.IsBlank(flags.imagePullPolicy) {
-		flags.imagePullPolicy = defaultImagePullPolicy
-	}
-
-	target.ImagePullPolicy = apiv1.PullPolicy(flags.imagePullPolicy)
-	target.Language = api.ProgrammingLanguage(flags.lang)
-	target.ContainerRuntime = api.ContainerRuntime(flags.runtime)
-	target.ContainerRuntimePath = api.GetContainerRuntimeRootPath[target.ContainerRuntime]
-	if flags.runtimePath != api.GetContainerRuntimeRootPath[api.ContainerRuntime(defaultContainerRuntime)] {
-		target.ContainerRuntimePath = flags.runtimePath
-	}
-	target.Event = api.ProfilingEvent(flags.event)
-	target.Compressor = compressor.Type(flags.compressorType)
-
-	validateProfilingTool(flags.profilingTool, flags.outputType, target)
-	validateOutputType(flags.outputType, target)
-
-	if _, err := job.RequestConfig.ParseResources(); err != nil {
-		return errors.Wrapf(err, "unable to parse resource requests")
-	}
-
-	if _, err := job.LimitConfig.ParseResources(); err != nil {
-		return errors.Wrapf(err, "unable to parse resource limits")
-	}
-
-	if err := job.ParseTolerations(); err != nil {
-		return errors.Wrapf(err, "unable to parse tolerations")
-	}
-
-	// Create the local path if given and it does not exist
-	if !stringUtils.IsBlank(target.LocalPath) {
-		err = os.MkdirAll(target.LocalPath, 0755)
-		if err != nil {
-			return errors.Wrap(err, "could not create local path")
-		}
-	}
-
-	return validatePid(target.PID)
-}
-
-func validatePid(pid string) error {
-	if !stringUtils.IsNumeric(pid) {
-		return errors.New("pid must be numeric")
-	}
-	return nil
-}
-
-func validateRuntime(runtime string, target *config.TargetConfig) (string, error) {
-	if stringUtils.IsNotBlank(runtime) && !api.IsSupportedContainerRuntime(runtime) {
-		return "", errors.Errorf("unsupported container runtime, choose one of %s", api.AvailableContainerRuntimes())
-	}
-	if stringUtils.IsBlank(runtime) {
-		runtime = defaultContainerRuntime
-		target.ContainerRuntimePath = api.GetContainerRuntimeRootPath[api.ContainerRuntime(defaultContainerRuntime)]
-	}
-	return runtime, nil
-}
-
-func validateLang(lang string) error {
-	if lang == "" {
-		return errors.Errorf("use -l flag to select one of the supported languages %s", api.AvailableLanguages())
-	}
-
-	if !api.IsSupportedLanguage(lang) {
-		return errors.Errorf("unsupported language, choose one of %s", api.AvailableLanguages())
-	}
-	return nil
-}
-
-func validateProfilingTool(profilingTool string, outputType string, target *config.TargetConfig) {
-	if stringUtils.IsBlank(profilingTool) {
-		target.ProfilingTool = api.GetProfilingTool(target.Language, api.OutputType(outputType))
-		fmt.Printf("Default profiling tool %s will be used ... 🧐\n", target.ProfilingTool)
-		return
-	}
-
-	defaultTool := api.GetProfilingToolsByProgrammingLanguage[target.Language][0]
-	if !api.IsSupportedProfilingTool(profilingTool) {
-		fmt.Printf("Unsupported profiling tool %s, default %s will be used ... 🧐\n", profilingTool, defaultTool)
-		target.ProfilingTool = defaultTool
-		return
-	}
-
-	if !api.IsValidProfilingTool(api.ProfilingTool(profilingTool), target.Language) {
-		fmt.Printf("Unsupported profiling tool %s for language %s, default %s will be used ... 🧐\n",
-			profilingTool, target.Language, defaultTool)
-		target.ProfilingTool = defaultTool
-		return
-	}
-
-	target.ProfilingTool = api.ProfilingTool(profilingTool)
-}
-
-func validateOutputType(outputType string, target *config.TargetConfig) {
-	defaultOutputType := api.GetOutputTypesByProfilingTool[target.ProfilingTool][0]
-	if outputType == "" {
-		fmt.Printf("Default output type %s will be used ... 🧐\n", defaultOutputType)
-		target.OutputType = defaultOutputType
-		return
-	}
-
-	if !api.IsSupportedOutputType(outputType) {
-		fmt.Printf("Unsupported output type %s, default %s will be used ... ✔\n", outputType, defaultOutputType)
-		target.OutputType = defaultOutputType
-		return
-	}
-
-	if !api.IsValidOutputType(api.OutputType(outputType), target.ProfilingTool) {
-		fmt.Printf("Unsupported output type %s for profiling tool %s, default %s will be used ... ✔\n",
-			outputType, target.ProfilingTool, defaultOutputType)
-		target.OutputType = defaultOutputType
-		return
-	}
-
-	target.OutputType = api.OutputType(outputType)
-}
-
-func isSupportedImagePullPolicy(imagePullPolicy string) bool {
-	for _, current := range imagePullPolicies {
-		if apiv1.PullPolicy(imagePullPolicy) == current {
-			return true
-		}
-	}
-	return false
 }

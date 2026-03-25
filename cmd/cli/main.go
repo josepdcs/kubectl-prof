@@ -38,6 +38,5 @@ func main() {
 		ErrOut: os.Stderr,
 	}
 
-	profileCmd := cmd.NewProfileCommand(streams)
-	cobra.CheckErr(profileCmd.Execute())
+	cobra.CheckErr(cmd.NewProfile(streams).Execute())
 }

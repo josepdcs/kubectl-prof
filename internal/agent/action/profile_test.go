@@ -1,4 +1,4 @@
-package profile
+package action
 
 import (
 	"testing"
@@ -10,16 +10,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewAction(t *testing.T) {
+func TestNewProfile(t *testing.T) {
 	tests := []struct {
 		name    string
-		args    map[string]interface{}
+		args    map[string]any
 		wantErr bool
 		assert  func(t *testing.T, p profiler.Profiler, job *job.ProfilingJob)
 	}{
 		{
 			name: "New action",
-			args: map[string]interface{}{
+			args: map[string]any{
 				PrintLogs:                  true,
 				Duration:                   "60s",
 				Interval:                   "5s",
@@ -40,8 +40,8 @@ func TestNewAction(t *testing.T) {
 			},
 		},
 		{
-			name: "New action jvm heap dump",
-			args: map[string]interface{}{
+			name: "New profilejvm heap dump",
+			args: map[string]any{
 				PrintLogs:                  true,
 				Duration:                   "60s",
 				Interval:                   "5s",
@@ -65,8 +65,8 @@ func TestNewAction(t *testing.T) {
 			},
 		},
 		{
-			name: "New action node heap snapshot",
-			args: map[string]interface{}{
+			name: "New profilenode heap snapshot",
+			args: map[string]any{
 				PrintLogs:                  true,
 				Duration:                   "60s",
 				Interval:                   "5s",
@@ -92,8 +92,8 @@ func TestNewAction(t *testing.T) {
 			},
 		},
 		{
-			name: "New action empty duration",
-			args: map[string]interface{}{
+			name: "New profileempty duration",
+			args: map[string]any{
 				PrintLogs:                  true,
 				Duration:                   "",
 				Interval:                   "",
@@ -114,8 +114,8 @@ func TestNewAction(t *testing.T) {
 			},
 		},
 		{
-			name: "New action fail when wrong duration",
-			args: map[string]interface{}{
+			name: "New profilefail when wrong duration",
+			args: map[string]any{
 				PrintLogs:                  true,
 				Duration:                   "duration_wrong",
 				Interval:                   "5s",
@@ -137,8 +137,8 @@ func TestNewAction(t *testing.T) {
 			},
 		},
 		{
-			name: "New action fail when unsupported container runtime",
-			args: map[string]interface{}{
+			name: "New profilefail when unsupported container runtime",
+			args: map[string]any{
 				PrintLogs:                  true,
 				Duration:                   "60s",
 				Interval:                   "5s",
@@ -160,8 +160,8 @@ func TestNewAction(t *testing.T) {
 			},
 		},
 		{
-			name: "New action fail when unsupported language",
-			args: map[string]interface{}{
+			name: "New profilefail when unsupported language",
+			args: map[string]any{
 				PrintLogs:                  true,
 				Duration:                   "60s",
 				Interval:                   "5s",
@@ -183,8 +183,8 @@ func TestNewAction(t *testing.T) {
 			},
 		},
 		{
-			name: "New action fail when unsupported event",
-			args: map[string]interface{}{
+			name: "New profilefail when unsupported event",
+			args: map[string]any{
 				PrintLogs:                  true,
 				Duration:                   "60s",
 				Interval:                   "5s",
@@ -206,8 +206,8 @@ func TestNewAction(t *testing.T) {
 			},
 		},
 		{
-			name: "New action fail when unsupported compressor",
-			args: map[string]interface{}{
+			name: "New profilefail when unsupported compressor",
+			args: map[string]any{
 				PrintLogs:                  true,
 				Duration:                   "60s",
 				Interval:                   "5s",
@@ -237,7 +237,7 @@ func TestNewAction(t *testing.T) {
 			var err error
 
 			// When
-			p, j, err = NewAction(tt.args)
+			p, j, err = NewProfile(tt.args)
 
 			// Then
 			if err != nil && !tt.wantErr {
@@ -251,13 +251,13 @@ func TestNewAction(t *testing.T) {
 func TestRun(t *testing.T) {
 	tests := []struct {
 		name    string
-		args    map[string]interface{}
+		args    map[string]any
 		wantErr bool
 		verify  func(mock profiler.Profiler) bool
 	}{
 		{
 			name: "Run action",
-			args: map[string]interface{}{
+			args: map[string]any{
 				PrintLogs:                  true,
 				Duration:                   "60s",
 				Interval:                   "60s",
@@ -280,7 +280,7 @@ func TestRun(t *testing.T) {
 		},
 		{
 			name: "Run action with window smaller than duration",
-			args: map[string]interface{}{
+			args: map[string]any{
 				PrintLogs:                  true,
 				Duration:                   "2s",
 				Interval:                   "1s",
@@ -303,7 +303,7 @@ func TestRun(t *testing.T) {
 		},
 		{
 			name: "Run action fail when setup profiler fail",
-			args: map[string]interface{}{
+			args: map[string]any{
 				PrintLogs:                  true,
 				Duration:                   "60s",
 				Interval:                   "60s",
@@ -327,7 +327,7 @@ func TestRun(t *testing.T) {
 		},
 		{
 			name: "Run action fail when invoke profiler fail",
-			args: map[string]interface{}{
+			args: map[string]any{
 				PrintLogs:                  true,
 				Duration:                   "60s",
 				Interval:                   "60s",
@@ -358,7 +358,7 @@ func TestRun(t *testing.T) {
 			var err error
 
 			// When
-			p, profilingJob, err = NewAction(tt.args)
+			p, profilingJob, err = NewProfile(tt.args)
 			err = Run(p, profilingJob)
 
 			// Then
@@ -368,258 +368,6 @@ func TestRun(t *testing.T) {
 			if tt.verify != nil && !tt.verify(p) {
 				t.Errorf("Error verifying behaviour: %s", tt.name)
 			}
-		})
-	}
-}
-
-func Test_validateProfilingTool(t *testing.T) {
-	type args struct {
-		profilingTool string
-		outputType    string
-		job           *job.ProfilingJob
-	}
-	tests := []struct {
-		name   string
-		args   args
-		assert func(t *testing.T, job *job.ProfilingJob)
-	}{
-		{
-			name: "Get default tool",
-			args: args{
-				profilingTool: "",
-				outputType:    "jfr",
-				job: &job.ProfilingJob{
-					Language: api.Java,
-				},
-			},
-			assert: func(t *testing.T, job *job.ProfilingJob) {
-				assert.Equal(t, api.Jcmd, job.Tool)
-			},
-		},
-		{
-			name: "Get default tool when not supported given tool",
-			args: args{
-				profilingTool: "other",
-				job: &job.ProfilingJob{
-					Language: api.Java,
-				},
-			},
-			assert: func(t *testing.T, job *job.ProfilingJob) {
-				assert.Equal(t, api.Jcmd, job.Tool)
-			},
-		},
-		{
-			name: "Get default tool when not valid given tool",
-			args: args{
-				profilingTool: string(api.Bpf),
-				job: &job.ProfilingJob{
-					Language: api.Java,
-				},
-			},
-			assert: func(t *testing.T, job *job.ProfilingJob) {
-				assert.Equal(t, api.Jcmd, job.Tool)
-			},
-		},
-		{
-			name: "Get tool",
-			args: args{
-				profilingTool: string(api.Jcmd),
-				job: &job.ProfilingJob{
-					Language: api.Java,
-				},
-			},
-			assert: func(t *testing.T, job *job.ProfilingJob) {
-				assert.Equal(t, api.Jcmd, job.Tool)
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Given & When
-			validateProfilingTool(tt.args.profilingTool, tt.args.outputType, tt.args.job)
-
-			// Then
-			tt.assert(t, tt.args.job)
-		})
-	}
-}
-
-func Test_validateOutputType(t *testing.T) {
-	type args struct {
-		outputType string
-		job        *job.ProfilingJob
-	}
-	tests := []struct {
-		name   string
-		args   args
-		assert func(t *testing.T, job *job.ProfilingJob)
-	}{
-		{
-			name: "Get default output type",
-			args: args{
-				outputType: "",
-				job: &job.ProfilingJob{
-					Tool: api.Jcmd,
-				},
-			},
-			assert: func(t *testing.T, job *job.ProfilingJob) {
-				assert.Equal(t, api.Jfr, job.OutputType)
-			},
-		},
-		{
-			name: "Get default output type when not supported output given",
-			args: args{
-				outputType: "other",
-				job: &job.ProfilingJob{
-					Tool: api.Jcmd,
-				},
-			},
-			assert: func(t *testing.T, job *job.ProfilingJob) {
-				assert.Equal(t, api.Jfr, job.OutputType)
-			},
-		},
-		{
-			name: "Get default output type when not valid output given",
-			args: args{
-				outputType: string(api.Jfr),
-				job: &job.ProfilingJob{
-					Tool: api.Bpf,
-				},
-			},
-			assert: func(t *testing.T, job *job.ProfilingJob) {
-				assert.Equal(t, api.FlameGraph, job.OutputType)
-			},
-		},
-		{
-			name: "Get output type",
-			args: args{
-				outputType: string(api.Jfr),
-				job: &job.ProfilingJob{
-					Tool: api.Jcmd,
-				},
-			},
-			assert: func(t *testing.T, job *job.ProfilingJob) {
-				assert.Equal(t, api.Jfr, job.OutputType)
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Given & When
-			validateOutputType(tt.args.outputType, tt.args.job)
-
-			// Then
-			tt.assert(t, tt.args.job)
-		})
-	}
-}
-
-func Test_setAsyncProfilerArgs(t *testing.T) {
-	type args struct {
-		args map[string]interface{}
-		job  *job.ProfilingJob
-	}
-	tests := []struct {
-		name   string
-		args   args
-		assert func(t *testing.T, job *job.ProfilingJob)
-	}{
-		{
-			name: "should set single async-profiler argument",
-			args: args{
-				args: map[string]interface{}{
-					AsyncProfilerArg: []string{"-t"},
-				},
-				job: &job.ProfilingJob{},
-			},
-			assert: func(t *testing.T, job *job.ProfilingJob) {
-				assert.NotNil(t, job.AdditionalArguments)
-				assert.Equal(t, "-t", job.AdditionalArguments["async-profiler-arg-0"])
-				assert.Equal(t, 1, len(job.AdditionalArguments))
-			},
-		},
-		{
-			name: "should set multiple async-profiler arguments in order",
-			args: args{
-				args: map[string]interface{}{
-					AsyncProfilerArg: []string{"-t", "--alloc=2m", "--lock=10ms"},
-				},
-				job: &job.ProfilingJob{},
-			},
-			assert: func(t *testing.T, job *job.ProfilingJob) {
-				assert.NotNil(t, job.AdditionalArguments)
-				assert.Equal(t, "-t", job.AdditionalArguments["async-profiler-arg-0"])
-				assert.Equal(t, "--alloc=2m", job.AdditionalArguments["async-profiler-arg-1"])
-				assert.Equal(t, "--lock=10ms", job.AdditionalArguments["async-profiler-arg-2"])
-				assert.Equal(t, 3, len(job.AdditionalArguments))
-			},
-		},
-		{
-			name: "should not set anything when args is nil",
-			args: args{
-				args: map[string]interface{}{
-					AsyncProfilerArg: nil,
-				},
-				job: &job.ProfilingJob{},
-			},
-			assert: func(t *testing.T, job *job.ProfilingJob) {
-				assert.Nil(t, job.AdditionalArguments)
-			},
-		},
-		{
-			name: "should not set anything when args is empty slice",
-			args: args{
-				args: map[string]interface{}{
-					AsyncProfilerArg: []string{},
-				},
-				job: &job.ProfilingJob{},
-			},
-			assert: func(t *testing.T, job *job.ProfilingJob) {
-				assert.Nil(t, job.AdditionalArguments)
-			},
-		},
-		{
-			name: "should not override existing additional arguments",
-			args: args{
-				args: map[string]interface{}{
-					AsyncProfilerArg: []string{"-t"},
-				},
-				job: &job.ProfilingJob{
-					AdditionalArguments: map[string]string{
-						"existing-key": "existing-value",
-					},
-				},
-			},
-			assert: func(t *testing.T, job *job.ProfilingJob) {
-				assert.NotNil(t, job.AdditionalArguments)
-				assert.Equal(t, "-t", job.AdditionalArguments["async-profiler-arg-0"])
-				assert.Equal(t, "existing-value", job.AdditionalArguments["existing-key"])
-				assert.Equal(t, 2, len(job.AdditionalArguments))
-			},
-		},
-		{
-			name: "should handle arguments with special characters",
-			args: args{
-				args: map[string]interface{}{
-					AsyncProfilerArg: []string{"--cstack=fp", "--begin=MyClass::myMethod"},
-				},
-				job: &job.ProfilingJob{},
-			},
-			assert: func(t *testing.T, job *job.ProfilingJob) {
-				assert.NotNil(t, job.AdditionalArguments)
-				assert.Equal(t, "--cstack=fp", job.AdditionalArguments["async-profiler-arg-0"])
-				assert.Equal(t, "--begin=MyClass::myMethod", job.AdditionalArguments["async-profiler-arg-1"])
-				assert.Equal(t, 2, len(job.AdditionalArguments))
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Given & When
-			setAsyncProfilerArgs(tt.args.args, tt.args.job)
-
-			// Then
-			tt.assert(t, tt.args.job)
 		})
 	}
 }
