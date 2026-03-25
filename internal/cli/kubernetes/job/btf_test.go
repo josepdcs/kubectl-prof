@@ -2,7 +2,6 @@ package job
 
 import (
 	"testing"
-	"time"
 
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
@@ -60,7 +59,6 @@ func Test_btfCreate_create(t *testing.T) {
 				Privileged: false,
 			},
 			Namespace:    "Namespace",
-			CleanupDelay: 5 * time.Second,
 		},
 	}
 	b := &btfCreator{}
@@ -174,14 +172,14 @@ func Test_btfCreator_getImageName(t *testing.T) {
 		want string
 	}{
 		{
-			name: "Get image name from TargetConfig",
+			name: "NewCreator image name from TargetConfig",
 			args: &config.TargetConfig{
 				Image: "my-custom-image",
 			},
 			want: "my-custom-image",
 		},
 		{
-			name: "Get default image",
+			name: "NewCreator default image",
 			args: &config.TargetConfig{},
 			want: "josepdcs/kubectl-prof:-btf", // Empty version when not set by goreleaser
 		},

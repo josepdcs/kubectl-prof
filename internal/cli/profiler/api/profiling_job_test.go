@@ -125,7 +125,7 @@ func Test_profilingJobAdapter_CreateProfilingJob(t *testing.T) {
 				require.Error(t, r.err)
 				assert.Equal(t, "", r.jobId)
 				assert.Empty(t, r.profilingJob)
-				assert.EqualError(t, r.err, "unable to get the job type: got language without job creator")
+				assert.EqualError(t, r.err, "unable to create the job creator: got language without job creator")
 			},
 		},
 		{

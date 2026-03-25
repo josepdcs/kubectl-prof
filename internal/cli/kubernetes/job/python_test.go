@@ -2,7 +2,6 @@ package job
 
 import (
 	"testing"
-	"time"
 
 	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
@@ -61,7 +60,6 @@ func Test_pythonCreate_create(t *testing.T) {
 				Privileged: false,
 			},
 			Namespace:    "Namespace",
-			CleanupDelay: 5 * time.Second,
 		},
 	}
 	b := &pythonCreator{}
@@ -183,7 +181,6 @@ func Test_pythonCreate_shouldFailWhenUnableGenerateResources(t *testing.T) {
 				Privileged: false,
 			},
 			Namespace:    "Namespace",
-			CleanupDelay: 5 * time.Second,
 		},
 	}
 	b := &pythonCreator{}
@@ -208,7 +205,6 @@ func Test_pythonCreate_memray_capabilities(t *testing.T) {
 		},
 		Job: &config.JobConfig{
 			Namespace:    "Namespace",
-			CleanupDelay: 5 * time.Second,
 		},
 	}
 	b := &pythonCreator{}
@@ -229,7 +225,7 @@ func Test_pythonCreator_getImageName(t *testing.T) {
 		want string
 	}{
 		{
-			name: "Get image name from TargetConfig",
+			name: "NewCreator image name from TargetConfig",
 			args: args{
 				cfg: &config.TargetConfig{
 					Image: "Image",
@@ -238,7 +234,7 @@ func Test_pythonCreator_getImageName(t *testing.T) {
 			want: "Image",
 		},
 		{
-			name: "Get default image",
+			name: "NewCreator default image",
 			args: args{
 				cfg: &config.TargetConfig{
 					Image: "",

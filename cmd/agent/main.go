@@ -19,7 +19,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/josepdcs/kubectl-prof/internal/agent/action/profile"
+	"github.com/josepdcs/kubectl-prof/internal/agent/action"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler"
 	"github.com/josepdcs/kubectl-prof/pkg/util/log"
@@ -70,119 +70,124 @@ func runApp() error {
 		Description: "An agent with capability for profiling containers inside pods",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:     profile.JobId,
+				Name:     action.JobId,
 				Usage:    "job ID",
 				Required: false,
 			},
 			&cli.StringFlag{
-				Name:     profile.TargetContainerRuntime,
+				Name:     action.TargetContainerRuntime,
 				Usage:    "target container runtime (crio, containerd)",
 				Required: false,
 			},
 			&cli.StringFlag{
-				Name:     profile.TargetContainerRuntimePath,
+				Name:     action.TargetContainerRuntimePath,
 				Usage:    "target container runtime path",
 				Required: false,
 			},
 			&cli.StringFlag{
-				Name:     profile.TargetPodUID,
+				Name:     action.TargetPodUID,
 				Usage:    "target pod UID",
 				Required: false,
 			},
 			&cli.StringFlag{
-				Name:     profile.TargetContainerID,
+				Name:     action.TargetContainerID,
 				Usage:    "target container ID",
 				Required: true,
 			},
 			&cli.StringFlag{
-				Name:     profile.Duration,
+				Name:     action.Duration,
 				Usage:    "profiling session duration",
 				Required: false,
 			},
 			&cli.StringFlag{
-				Name:     profile.Interval,
+				Name:     action.Interval,
 				Usage:    "profiling interval",
 				Required: false,
 			},
 			&cli.StringFlag{
-				Name:     profile.Lang,
+				Name:     action.Lang,
 				Usage:    "programming language",
 				Required: true,
 			},
 			&cli.StringFlag{
-				Name:     profile.EventType,
+				Name:     action.EventType,
 				Usage:    "profiling event type",
 				Required: false,
 			},
 			&cli.StringFlag{
-				Name:     profile.CompressorType,
+				Name:     action.CompressorType,
 				Usage:    "compressor algorithm type",
 				Required: false,
 			},
 			&cli.StringFlag{
-				Name:     profile.ProfilingTool,
+				Name:     action.ProfilingTool,
 				Usage:    "tool for profiling or debugging",
 				Required: false,
 			},
 			&cli.StringFlag{
-				Name:     profile.OutputType,
+				Name:     action.OutputType,
 				Usage:    "output type",
 				Required: true,
 			},
 			&cli.StringFlag{
-				Name:     profile.Filename,
+				Name:     action.Filename,
 				Usage:    "result file name",
 				Required: false,
 			},
 			&cli.BoolFlag{
-				Name:     profile.PrintLogs,
+				Name:     action.PrintLogs,
 				Usage:    "print logs",
 				Required: false,
 			},
 			&cli.StringFlag{
-				Name:     profile.GracePeriodForEnding,
+				Name:     action.GracePeriodForEnding,
 				Usage:    "grace period for agent ending",
 				Required: false,
 			},
 			&cli.StringFlag{
-				Name:     profile.HeapDumpSplitInChunkSize,
-				Usage:    "size of the chunks used to split the heap dump",
+				Name:     action.OutputSplitInChunkSize,
+				Usage:    "size of the chunks used to split the output file",
 				Required: false,
 			},
 			&cli.StringFlag{
-				Name:     profile.Pid,
+				Name:     action.Pid,
 				Usage:    "the PID of the target process to be profiled",
 				Required: false,
 			},
 			&cli.StringFlag{
-				Name:     profile.Pgrep,
+				Name:     action.Pgrep,
 				Usage:    "the name of the process to be profiled",
 				Required: false,
 			},
 			&cli.IntFlag{
-				Name:     profile.NodeHeapSnapshotSignal,
+				Name:     action.NodeHeapSnapshotSignal,
 				Usage:    "the signal to be sent to the target process to trigger a heap snapshot",
 				Required: false,
 			},
 			&cli.StringSliceFlag{
-				Name:     profile.AsyncProfilerArg,
+				Name:     action.AsyncProfilerArg,
 				Usage:    "additional arguments to pass to async-profiler",
+				Required: false,
+			},
+			&cli.StringFlag{
+				Name:     action.HeartbeatInterval,
+				Usage:    "interval between heartbeat progress events during profiling (e.g. 30s, 1m)",
 				Required: false,
 			},
 		},
 		Action: func(c *cli.Context) error {
-			period, errParse := time.ParseDuration(c.String(profile.GracePeriodForEnding))
+			period, errParse := time.ParseDuration(c.String(action.GracePeriodForEnding))
 			if errParse == nil {
 				gracePeriod = period
 			}
 
 			var err error
-			p, profilingJob, err = profile.NewAction(toArgs(c))
+			p, profilingJob, err = action.NewProfile(toArgs(c))
 			if err != nil {
 				return err
 			}
 
-			return profile.Run(p, profilingJob)
+			return action.Run(p, profilingJob)
 		},
 	}
 
@@ -192,26 +197,27 @@ func runApp() error {
 func toArgs(c *cli.Context) map[string]interface{} {
 
 	return map[string]interface{}{
-		profile.JobId:                      c.String(profile.JobId),
-		profile.TargetContainerRuntime:     c.String(profile.TargetContainerRuntime),
-		profile.TargetContainerRuntimePath: c.String(profile.TargetContainerRuntimePath),
-		profile.TargetPodUID:               c.String(profile.TargetPodUID),
-		profile.TargetContainerID:          c.String(profile.TargetContainerID),
-		profile.Duration:                   c.String(profile.Duration),
-		profile.Interval:                   c.String(profile.Interval),
-		profile.Lang:                       c.String(profile.Lang),
-		profile.EventType:                  c.String(profile.EventType),
-		profile.CompressorType:             c.String(profile.CompressorType),
-		profile.ProfilingTool:              c.String(profile.ProfilingTool),
-		profile.OutputType:                 c.String(profile.OutputType),
-		profile.Filename:                   c.String(profile.Filename),
-		profile.PrintLogs:                  c.Bool(profile.PrintLogs),
-		profile.GracePeriodForEnding:       c.String(profile.GracePeriodForEnding),
-		profile.HeapDumpSplitInChunkSize:   c.String(profile.HeapDumpSplitInChunkSize),
-		profile.Pid:                        c.String(profile.Pid),
-		profile.Pgrep:                      c.String(profile.Pgrep),
-		profile.NodeHeapSnapshotSignal:     c.Int(profile.NodeHeapSnapshotSignal),
-		profile.AsyncProfilerArg:           c.StringSlice(profile.AsyncProfilerArg),
+		action.JobId:                      c.String(action.JobId),
+		action.TargetContainerRuntime:     c.String(action.TargetContainerRuntime),
+		action.TargetContainerRuntimePath: c.String(action.TargetContainerRuntimePath),
+		action.TargetPodUID:               c.String(action.TargetPodUID),
+		action.TargetContainerID:          c.String(action.TargetContainerID),
+		action.Duration:                   c.String(action.Duration),
+		action.Interval:                   c.String(action.Interval),
+		action.Lang:                       c.String(action.Lang),
+		action.EventType:                  c.String(action.EventType),
+		action.CompressorType:             c.String(action.CompressorType),
+		action.ProfilingTool:              c.String(action.ProfilingTool),
+		action.OutputType:                 c.String(action.OutputType),
+		action.Filename:                   c.String(action.Filename),
+		action.PrintLogs:                  c.Bool(action.PrintLogs),
+		action.GracePeriodForEnding:       c.String(action.GracePeriodForEnding),
+		action.OutputSplitInChunkSize:     c.String(action.OutputSplitInChunkSize),
+		action.Pid:                        c.String(action.Pid),
+		action.Pgrep:                      c.String(action.Pgrep),
+		action.NodeHeapSnapshotSignal:     c.Int(action.NodeHeapSnapshotSignal),
+		action.AsyncProfilerArg:           c.StringSlice(action.AsyncProfilerArg),
+		action.HeartbeatInterval:          c.String(action.HeartbeatInterval),
 	}
 }
 

@@ -22,8 +22,8 @@ type Profiler struct {
 	profilingContainerApi api.ProfilingContainerApi
 }
 
-// NewJobProfiler returns a new Profiler
-func NewJobProfiler(podApi api.PodApi, profilingJobApi api.ProfilingJobApi,
+// New returns a new Profiler
+func New(podApi api.PodApi, profilingJobApi api.ProfilingJobApi,
 	profilingContainerApi api.ProfilingContainerApi) *Profiler {
 	return &Profiler{
 		podApi:                podApi,

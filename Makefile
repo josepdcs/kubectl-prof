@@ -1,4 +1,4 @@
-VERSION ?= v1.12.0-dev
+VERSION ?= v2.0.0-dev
 CLI_NAME ?= kubectl-prof
 CLI_DIR ?= ./cmd/cli/
 AGENT_NAME ?= agent
@@ -24,6 +24,10 @@ DOCKER_RUST_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-rust
 DOCKERFILE_RUST ?= ./docker/rust/Dockerfile
 DOCKER_DUMMY_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-dummy
 DOCKERFILE_DUMMY ?= ./docker/dummy/Dockerfile
+DOCKER_PHP_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-php
+DOCKERFILE_PHP ?= ./docker/php/Dockerfile
+DOCKER_DOTNET_IMAGE ?= $(DOCKER_BASE_IMAGE):$(VERSION)-dotnet
+DOCKERFILE_DOTNET ?= ./docker/dotnet/Dockerfile
 DOCKER_TARGET_PLATFORM ?= linux/amd64,linux/arm64
 DOCKER_BUILD_ADDITIONAL_ARGS ?=
 DOCKER_BUILD_PUSH_ARG =
@@ -32,7 +36,7 @@ M = $(shell printf "\033[34;1m▶\033[0m")
 
 ## all: Build the kubectl-prof plugin and push all docker images
 .PHONY: all
-all: build-cli push-docker-jvm push-docker-jvm-alpine push-docker-bpf push-docker-btf push-docker-perf push-docker-python push-docker-ruby push-docker-rust
+all: build-cli push-docker-jvm push-docker-jvm-alpine push-docker-bpf push-docker-btf push-docker-perf push-docker-python push-docker-ruby push-docker-rust push-docker-php push-docker-dotnet
 
 ## build: Build the kubectl-prof plugin and the agent binary
 .PHONY: build
@@ -40,7 +44,7 @@ build: build-cli build-agent
 
 ## build-docker-agents: Build the docker images
 .PHONY: build-docker-agents
-build-docker-agents: build-docker-bpf build-docker-btf build-docker-jvm build-docker-jvm-alpine build-docker-perf build-docker-python build-docker-ruby build-docker-rust
+build-docker-agents: build-docker-bpf build-docker-btf build-docker-jvm build-docker-jvm-alpine build-docker-perf build-docker-python build-docker-ruby build-docker-rust build-docker-php build-docker-dotnet
 
 ## install-deps: install dependencies if needed
 .PHONY: install-deps
@@ -174,9 +178,31 @@ build-docker-dummy: quemu-multi
 push-docker-dummy: DOCKER_BUILD_PUSH_ARG = --push
 push-docker-dummy: build-docker-dummy
 
+## build-docker-php: Build the PHP docker image
+.PHONY: build-docker-php
+build-docker-php: quemu-multi
+	$(info $(M) building PHP docker image...)
+	docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} ${DOCKER_BUILD_PUSH_ARG} --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_PHP_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_PHP) .
+
+## push-docker-php: Build and push the PHP docker image
+.PHONY: push-docker-php
+push-docker-php: DOCKER_BUILD_PUSH_ARG = --push
+push-docker-php: build-docker-php
+
+## build-docker-dotnet: Build the DOTNET docker image
+.PHONY: build-docker-dotnet
+build-docker-dotnet: quemu-multi
+	$(info $(M) building DOTNET docker image...)
+	@docker buildx build ${DOCKER_BUILD_ADDITIONAL_ARGS} ${DOCKER_BUILD_PUSH_ARG} --platform=${DOCKER_TARGET_PLATFORM} -t ${DOCKER_DOTNET_IMAGE} --label git-commit=$(shell git rev-parse HEAD) -f $(DOCKERFILE_DOTNET) .
+
+## push-docker-dotnet: Build and push the DOTNET docker image
+.PHONY: push-docker-dotnet
+push-docker-dotnet: DOCKER_BUILD_PUSH_ARG = --push
+push-docker-dotnet: build-docker-dotnet
+
 ## push-docker-all: Build and push all docker images
 .PHONY: push-docker-all
-push-docker-all: push-docker-jvm push-docker-jvm-alpine push-docker-bpf push-docker-perf push-docker-python push-docker-ruby push-docker-rust push-docker-dummy
+push-docker-all: push-docker-jvm push-docker-jvm-alpine push-docker-bpf push-docker-perf push-docker-python push-docker-ruby push-docker-rust push-docker-dummy push-docker-php push-docker-dotnet
 
 ## test: Run unit tests
 .PHONY: test
@@ -284,6 +310,16 @@ minikube-build-and-push-ruby-agent:
 minikube-build-and-push-rust-agent:
 	@test/minikube-lab/build_and_push_image.sh "docker/rust" "docker" "rust"
 
+## minikube-build-and-push-php-agent: Build image of php agent and load it into minikube
+.PHONY: minikube-build-and-push-php-agent
+minikube-build-and-push-php-agent:
+	@test/minikube-lab/build_and_push_image.sh "docker/php" "docker" "php"
+
+## minikube-build-and-push-dotnet-agent: Build image of dotnet agent and load it into minikube
+.PHONY: minikube-build-and-push-dotnet-agent
+minikube-build-and-push-dotnet-agent:
+	@test/minikube-lab/build_and_push_image.sh "docker/dotnet" "docker" "dotnet"
+
 ## minikube-deploy-stupid-apps: Deploy stupid apps into minikube
 .PHONY: minikube-deploy-stupid-apps
 minikube-deploy-stupid-apps:
@@ -292,67 +328,87 @@ minikube-deploy-stupid-apps:
 ## minikube-build-and-push-ruby-stupid-app: Build image of ruby stupid app and load it into minikube
 .PHONY: minikube-build-and-push-ruby-stupid-app
 minikube-build-and-push-ruby-stupid-app:
-	@test/minikube-lab/build_and_push_image.sh "test/stupid-apps/ruby" "stupid-apps" "ruby"
+	@test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/ruby" "stupid-apps" "ruby"
 
 ## minikube-build-and-push-node-stupid-app: Build image of node stupid app and load it into minikube
 .PHONY: minikube-build-and-push-node-stupid-app
 minikube-build-and-push-node-stupid-app:
-	@test/minikube-lab/build_and_push_image.sh "test/stupid-apps/node" "stupid-apps" "node"
+	@test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/node" "stupid-apps" "node"
 
 ## minikube-build-and-push-python-stupid-app: Build image of python stupid app and load it into minikube
 .PHONY: minikube-build-and-push-python-stupid-app
 minikube-build-and-push-python-stupid-app:
-	@test/minikube-lab/build_and_push_image.sh "test/stupid-apps/python" "stupid-apps" "python"
+	@test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/python" "stupid-apps" "python"
 
 ## minikube-build-and-push-jvm-stupid-app: Build image of jvm stupid app and load it into minikube
 .PHONY: minikube-build-and-push-jvm-stupid-app
 minikube-build-and-push-jvm-stupid-app:
-	@test/minikube-lab/build_and_push_image.sh "test/stupid-apps/jvm" "stupid-apps" "jvm"
+	@test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/jvm" "stupid-apps" "jvm"
 
 ## minikube-build-and-push-rust-stupid-app: Build image of rust stupid app and load it into minikube
 .PHONY: minikube-build-and-push-rust-stupid-app
 minikube-build-and-push-rust-stupid-app:
-	@test/minikube-lab/build_and_push_image.sh "test/stupid-apps/rust" "stupid-apps" "rust"
+	@test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/rust" "stupid-apps" "rust"
+
+## minikube-build-and-push-php-stupid-app: Build image of php stupid app and load it into minikube
+.PHONY: minikube-build-and-push-php-stupid-app
+minikube-build-and-push-php-stupid-app:
+	@test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/php" "stupid-apps" "php"
+
+## minikube-build-and-push-dotnet-stupid-app: Build image of dotnet stupid app and load it into minikube
+.PHONY: minikube-build-and-push-dotnet-stupid-app
+minikube-build-and-push-dotnet-stupid-app:
+	@test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/dotnet" "stupid-apps" "dotnet"
 
 ## build-and-push-clang-stupid-app: Build image of clang stupid app and push it to DockerHub
 .PHONY: build-and-push-clang-stupid-app
 build-and-push-clang-stupid-app:
-	REGISTRY=docker.io test/minikube-lab/build_and_push_image.sh "test/stupid-apps/clang" "josepdcs" "clang"
+	REGISTRY=docker.io test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/clang" "josepdcs" "clang"
 
 ## build-and-push-golang-stupid-app: Build image of golang stupid app and push it to DockerHub
 .PHONY: build-and-push-golang-stupid-app
 build-and-push-golang-stupid-app:
-	REGISTRY=docker.io test/minikube-lab/build_and_push_image.sh "test/stupid-apps/golang" "josepdcs" "golang"
+	REGISTRY=docker.io test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/golang" "josepdcs" "golang"
 
 ## build-and-push-jvm-stupid-app: Build image of jvm stupid app and push it to DockerHub
 .PHONY: build-and-push-jvm-stupid-app
 build-and-push-jvm-stupid-app:
-	REGISTRY=docker.io test/minikube-lab/build_and_push_image.sh "test/stupid-apps/jvm" "josepdcs" "jvm"
+	REGISTRY=docker.io test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/jvm" "josepdcs" "jvm"
 
 ## build-and-push-multiprocess-stupid-app: Build image of multiprocess stupid app and push it to DockerHub
 .PHONY: build-and-push-multiprocess-stupid-app
 build-and-push-multiprocess-stupid-app:
-	REGISTRY=docker.io test/minikube-lab/build_and_push_image.sh "test/stupid-apps/multiprocess" "josepdcs" "multiprocess"
+	REGISTRY=docker.io test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/multiprocess" "josepdcs" "multiprocess"
 
 ## build-and-push-node-stupid-app: Build image of node stupid app and push it to DockerHub
 .PHONY: build-and-push-node-stupid-app
 build-and-push-node-stupid-app:
-	REGISTRY=docker.io test/minikube-lab/build_and_push_image.sh "test/stupid-apps/node" "josepdcs" "node"
+	REGISTRY=docker.io test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/node" "josepdcs" "node"
 
 ## build-and-push-python-stupid-app: Build image of python stupid app and push it to DockerHub
 .PHONY: build-and-push-python-stupid-app
 build-and-push-python-stupid-app:
-	REGISTRY=docker.io test/minikube-lab/build_and_push_image.sh "test/stupid-apps/python" "josepdcs" "python"
+	REGISTRY=docker.io test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/python" "josepdcs" "python"
 
 ## build-and-push-ruby-stupid-app: Build image of ruby stupid app and push it to DockerHub
 .PHONY: build-and-push-ruby-stupid-app
 build-and-push-ruby-stupid-app:
-	REGISTRY=docker.io test/minikube-lab/build_and_push_image.sh "test/stupid-apps/ruby" "josepdcs" "ruby"
+	REGISTRY=docker.io test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/ruby" "josepdcs" "ruby"
 
 ## build-and-push-rust-stupid-app: Build image of rust stupid app and push it to DockerHub
 .PHONY: build-and-push-rust-stupid-app
 build-and-push-rust-stupid-app:
-	REGISTRY=docker.io test/minikube-lab/build_and_push_image.sh "test/stupid-apps/rust" "josepdcs" "rust"
+	REGISTRY=docker.io test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/rust" "josepdcs" "rust"
+
+## build-and-push-php-stupid-app: Build image of php stupid app and push it to DockerHub
+.PHONY: build-and-push-php-stupid-app
+build-and-push-php-stupid-app:
+	REGISTRY=docker.io test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/php" "josepdcs" "php"
+
+## build-and-push-dotnet-stupid-app: Build image of dotnet stupid app and push it to DockerHub
+.PHONY: build-and-push-dotnet-stupid-app
+build-and-push-dotnet-stupid-app:
+	REGISTRY=docker.io test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/dotnet" "josepdcs" "dotnet"
 
 ## build-and-push-stupid-apps: Build images of stupid-apps and push them to DockerHub
 .PHONY: build-and-push-stupid-apps
@@ -363,7 +419,9 @@ build-and-push-multiprocess-stupid-app \
 build-and-push-node-stupid-app \
 build-and-push-python-stupid-app \
 build-and-push-ruby-stupid-app \
-build-and-push-rust-stupid-app
+build-and-push-rust-stupid-app \
+build-and-push-php-stupid-app \
+build-and-push-dotnet-stupid-app
 
 ## minikube-configure-profiling: Configure all needed for profiling (service account, namespace, etc.)
 .PHONY: minikube-configure-profiling

@@ -7,8 +7,8 @@ ENV GO111MODULE=on \
     GOARCH=amd64
 
 WORKDIR /app
-COPY ./test/stupid-apps/golang/go.mod /app/go.mod
-COPY ./test/stupid-apps/golang/main.go /app/main.go
+COPY ./go.mod /app/go.mod
+COPY ./main.go /app/main.go
 RUN go get -d -v ./...
 RUN go build -o poc
 

@@ -14,25 +14,26 @@ const (
 )
 
 type ProfilingJob struct {
-	Duration                 time.Duration
-	Interval                 time.Duration
-	UID                      string
-	ContainerRuntime         api.ContainerRuntime
-	ContainerRuntimePath     string
-	ContainerID              string
-	PodUID                   string
-	Language                 api.ProgrammingLanguage
-	Event                    api.ProfilingEvent
-	Compressor               compressor.Type
-	Tool                     api.ProfilingTool
-	OutputType               api.OutputType
-	FileName                 string
-	HeapDumpSplitInChunkSize string
-	PID                      string
-	Pgrep                    string
-	NodeHeapSnapshotSignal   int
-	AdditionalArguments      map[string]string
-	Iteration                int
+	Duration               time.Duration
+	Interval               time.Duration
+	UID                    string
+	ContainerRuntime       api.ContainerRuntime
+	ContainerRuntimePath   string
+	ContainerID            string
+	PodUID                 string
+	Language               api.ProgrammingLanguage
+	Event                  api.ProfilingEvent
+	Compressor             compressor.Type
+	Tool                   api.ProfilingTool
+	OutputType             api.OutputType
+	FileName               string
+	OutputSplitInChunkSize string
+	PID                    string
+	Pgrep                  string
+	HeartbeatInterval      time.Duration
+	NodeHeapSnapshotSignal int
+	AdditionalArguments    map[string]string
+	Iteration              int
 }
 
 func (p *ProfilingJob) String() string {

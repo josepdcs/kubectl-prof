@@ -62,6 +62,31 @@ func TestGet(t *testing.T) {
 			want: NewNodeDummyProfiler(publish.NewPublisher()),
 		},
 		{
+			name: "should return phpspy profiler",
+			tool: api.Phpspy,
+			want: NewPhpspyProfiler(executil.NewCommander(), publish.NewPublisher()),
+		},
+		{
+			name: "should return dotnet profiler for dotnet-trace",
+			tool: api.DotnetTrace,
+			want: NewDotnetProfiler(executil.NewCommander(), publish.NewPublisher()),
+		},
+		{
+			name: "should return dotnet profiler for dotnet-gcdump",
+			tool: api.DotnetGcdump,
+			want: NewDotnetProfiler(executil.NewCommander(), publish.NewPublisher()),
+		},
+		{
+			name: "should return dotnet profiler for dotnet-counters",
+			tool: api.DotnetCounters,
+			want: NewDotnetProfiler(executil.NewCommander(), publish.NewPublisher()),
+		},
+		{
+			name: "should return dotnet profiler for dotnet-dump",
+			tool: api.DotnetDump,
+			want: NewDotnetProfiler(executil.NewCommander(), publish.NewPublisher()),
+		},
+		{
 			name: "should return mock profiler",
 			tool: api.FakeTool,
 			want: NewMockProfiler(),

@@ -122,7 +122,7 @@ func (n *nodeDummyManager) invoke(job *job.ProfilingJob, pid, cwd string) (error
 		log.WarningLogLn(fmt.Sprintf("The file could not be removed: %s", fileName))
 	}
 
-	return n.publisher.DoWithNativeGzipAndSplit(resultFileName, job.HeapDumpSplitInChunkSize, job.OutputType), time.Since(start)
+	return n.publisher.DoWithNativeGzipAndSplit(resultFileName, job.OutputSplitInChunkSize, job.OutputType), time.Since(start)
 }
 
 func (n *NodeDummyProfiler) CleanUp(*job.ProfilingJob) error {

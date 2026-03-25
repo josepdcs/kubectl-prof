@@ -42,9 +42,9 @@ func NewProfilingJobApi(connectionInfo kubernetes.ConnectionInfo) ProfilingJobAp
 }
 
 func (p *profilingJobApi) CreateProfilingJob(targetPod *v1.Pod, cfg *config.ProfilerConfig, ctx context.Context) (string, *batchv1.Job, error) {
-	j, err := job.Get(cfg.Target.Language, cfg.Target.ProfilingTool)
+	j, err := job.NewCreator(cfg.Target.Language, cfg.Target.ProfilingTool)
 	if err != nil {
-		return "", nil, errors.Wrap(err, "unable to get the job type")
+		return "", nil, errors.Wrap(err, "unable to create the job creator")
 	}
 	id, profilingJob, err := j.Create(targetPod, cfg)
 	if err != nil {

@@ -14,12 +14,14 @@ const (
 	Clang         ProgrammingLanguage = "clang"   // Clang represents C language compiled with Clang.
 	ClangPlusPlus ProgrammingLanguage = "clang++" // ClangPlusPlus represents C++ language compiled with Clang.
 	Rust          ProgrammingLanguage = "rust"    // Rust represents the Rust programming language.
+	PHP           ProgrammingLanguage = "php"     // PHP represents the PHP programming language.
+	DotNet        ProgrammingLanguage = "dotnet"  // DotNet represents the .NET (Core/5+) programming platform.
 	FakeLang      ProgrammingLanguage = "fake"    // FakeLang represents a fake language for testing purposes.
 )
 
 var (
 	// supportedLangs contains all supported programming languages for profiling.
-	supportedLangs = []ProgrammingLanguage{Java, Go, Python, Ruby, Node, Clang, ClangPlusPlus, Rust}
+	supportedLangs = []ProgrammingLanguage{Java, Go, Python, Ruby, Node, Clang, ClangPlusPlus, Rust, PHP, DotNet}
 )
 
 // AvailableLanguages returns the list of all supported programming languages.

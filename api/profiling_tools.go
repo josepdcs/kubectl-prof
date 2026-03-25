@@ -10,22 +10,28 @@ import (
 type ProfilingTool string
 
 const (
-	AsyncProfiler ProfilingTool = "async-profiler"   // AsyncProfiler is a profiling tool used primarily for Java applications to output various performance metrics.
-	Jcmd          ProfilingTool = "jcmd"             // Jcmd is a profiling tool used primarily for Java applications to output various performance metrics.
-	Pyspy         ProfilingTool = "pyspy"            // Pyspy is a profiling tool used primarily for Python applications to output various performance metrics.
-	Bpf           ProfilingTool = "bpf"              // Bpf is a profiling tool used primarily for C/C++ applications to output various performance metrics.
-	Btf           ProfilingTool = "btf"              // Btf is a CO-RE eBPF profiling tool using libbpf-tools that requires BTF kernel support.
-	Perf          ProfilingTool = "perf"             // Perf is a profiling tool used primarily for Linux applications to output various performance metrics.
-	Rbspy         ProfilingTool = "rbspy"            // Rbspy is a profiling tool used primarily for Ruby applications to output various performance metrics.
-	NodeDummy     ProfilingTool = "node-dummy"       // NodeDummy is a profiling tool used primarily for Node.js applications to output various performance metrics.
-	CargoFlame    ProfilingTool = "cargo-flamegraph" // CargoFlame is a profiling tool used primarily for Rust applications to output various performance metrics.
-	Memray        ProfilingTool = "memray"           // Memray is a memory profiling tool used primarily for Python applications to capture heap allocations.
-	FakeTool      ProfilingTool = "fake"             // FakeTool is a profiling tool used primarily for testing purposes.
+	AsyncProfiler  ProfilingTool = "async-profiler"   // AsyncProfiler is a profiling tool used primarily for Java applications to output various performance metrics.
+	Jcmd           ProfilingTool = "jcmd"             // Jcmd is a profiling tool used primarily for Java applications to output various performance metrics.
+	Pyspy          ProfilingTool = "pyspy"            // Pyspy is a profiling tool used primarily for Python applications to output various performance metrics.
+	Bpf            ProfilingTool = "bpf"              // Bpf is a profiling tool used primarily for C/C++ applications to output various performance metrics.
+	Btf            ProfilingTool = "btf"              // Btf is a CO-RE eBPF profiling tool using libbpf-tools that requires BTF kernel support.
+	Perf           ProfilingTool = "perf"             // Perf is a profiling tool used primarily for Linux applications to output various performance metrics.
+	Rbspy          ProfilingTool = "rbspy"            // Rbspy is a profiling tool used primarily for Ruby applications to output various performance metrics.
+	NodeDummy      ProfilingTool = "node-dummy"       // NodeDummy is a profiling tool used primarily for Node.js applications to output various performance metrics.
+	CargoFlame     ProfilingTool = "cargo-flamegraph" // CargoFlame is a profiling tool used primarily for Rust applications to output various performance metrics.
+	Memray         ProfilingTool = "memray"           // Memray is a memory profiling tool used primarily for Python applications to capture heap allocations.
+	Phpspy         ProfilingTool = "phpspy"           // Phpspy is a profiling tool used primarily for PHP applications to output various performance metrics.
+	DotnetTrace    ProfilingTool = "dotnet-trace"     // DotnetTrace is a profiling tool for .NET Core/5+ applications to collect CPU and runtime traces.
+	DotnetGcdump   ProfilingTool = "dotnet-gcdump"    // DotnetGcdump is a profiling tool for .NET Core/5+ applications to collect GC heap dumps for memory analysis.
+	DotnetCounters ProfilingTool = "dotnet-counters"  // DotnetCounters is a profiling tool for .NET Core/5+ applications to collect performance counter metrics.
+	DotnetDump     ProfilingTool = "dotnet-dump"      // DotnetDump is a profiling tool for .NET Core/5+ applications to collect full memory dumps for crash/hang analysis.
+	FakeTool       ProfilingTool = "fake"             // FakeTool is a profiling tool used primarily for testing purposes.
 )
 
 var (
 	// profilingTools contains all supported profiling tools.
-	profilingTools = []ProfilingTool{AsyncProfiler, Jcmd, Pyspy, Bpf, Btf, Perf, Rbspy, NodeDummy, CargoFlame, Memray}
+	profilingTools = []ProfilingTool{AsyncProfiler, Jcmd, Pyspy, Bpf, Btf, Perf, Rbspy, NodeDummy, CargoFlame, Memray, Phpspy,
+		DotnetTrace, DotnetGcdump, DotnetCounters, DotnetDump}
 )
 
 // AvailableProfilingTools returns the list of all available profiling tools.
@@ -68,6 +74,19 @@ var GetProfilingTool = func(l ProgrammingLanguage, o OutputType) ProfilingTool {
 		case HeapSnapshot, HeapDump:
 			return NodeDummy
 		}
+	case PHP:
+		return Phpspy
+	case DotNet:
+		switch o {
+		case Gcdump:
+			return DotnetGcdump
+		case Counters:
+			return DotnetCounters
+		case Dump:
+			return DotnetDump
+		default:
+			return DotnetTrace
+		}
 	}
 
 	// return the default according programming language
@@ -85,6 +104,8 @@ var GetProfilingToolsByProgrammingLanguage = map[ProgrammingLanguage][]Profiling
 	ClangPlusPlus: {Bpf, Btf, Perf, CargoFlame},
 	Ruby:          {Rbspy},
 	Rust:          {CargoFlame, Bpf, Btf, Perf},
+	PHP:           {Phpspy},
+	DotNet:        {DotnetTrace, DotnetGcdump, DotnetCounters, DotnetDump},
 	FakeLang:      {FakeTool},
 }
 

@@ -55,6 +55,20 @@ func TestGet(t *testing.T) {
 			want: &rubyCreator{},
 		},
 		{
+			name: "php creator is instanced",
+			args: args{
+				lang: api.PHP,
+			},
+			want: &phpCreator{},
+		},
+		{
+			name: "dotnet creator is instanced",
+			args: args{
+				lang: api.DotNet,
+			},
+			want: &dotnetCreator{},
+		},
+		{
 			name: "node creator is instanced",
 			args: args{
 				lang: api.Node,
@@ -147,7 +161,7 @@ func TestGet(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := Get(tt.args.lang, tt.args.tool)
+			got, err := NewCreator(tt.args.lang, tt.args.tool)
 
 			if err != nil {
 				assert.Contains(t, err.Error(), tt.containedErrMsg)

@@ -273,7 +273,10 @@ func (p *memrayManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 	// output file to the target's filesystem. Wait for it to finish before reading the file.
 	// Emit periodic heartbeat events to keep the log stream alive through proxies/load balancers.
 	log.DebugLogLn(fmt.Sprintf("tracker injected for PID %s; waiting %v for profiling to complete", pid, job.Interval))
-	heartbeatInterval := 30 * time.Second
+	heartbeatInterval := job.HeartbeatInterval
+	if heartbeatInterval <= 0 {
+		heartbeatInterval = 30 * time.Second
+	}
 	remaining := job.Interval
 	for remaining > 0 {
 		sleep := heartbeatInterval

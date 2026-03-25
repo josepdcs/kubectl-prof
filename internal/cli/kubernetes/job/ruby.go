@@ -47,7 +47,7 @@ func (r *rubyCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (
 		Spec: batchv1.JobSpec{
 			Parallelism:             int32Ptr(1),
 			Completions:             int32Ptr(1),
-			TTLSecondsAfterFinished: int32Ptr(int32(cfg.Job.CleanupDelay.Seconds())),
+			TTLSecondsAfterFinished: int32Ptr(5),
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: commonMeta,
 				Spec: apiv1.PodSpec{

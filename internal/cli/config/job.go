@@ -2,7 +2,6 @@ package config
 
 import (
 	"strings"
-	"time"
 
 	apiv1 "k8s.io/api/core/v1"
 )
@@ -23,8 +22,6 @@ type JobConfig struct {
 	// TolerationsRaw holds raw toleration strings from command line
 	TolerationsRaw []string
 
-	// CleanupDelay is how long Kubernetes keeps the completed Job/Pod before deleting it.
-	CleanupDelay time.Duration
 }
 
 // DeepCopy returns a deep copy of the JobConfig.
@@ -38,7 +35,6 @@ func (j *JobConfig) DeepCopy() *JobConfig {
 		Namespace:       j.Namespace,
 		Tolerations:     tolerations,
 		TolerationsRaw:  tolerationsRaw,
-		CleanupDelay:    j.CleanupDelay,
 	}
 }
 
