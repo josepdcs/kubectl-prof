@@ -153,7 +153,7 @@ func TestGet(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := Get(tt.args.lang, tt.args.tool)
+			got, err := NewCreator(tt.args.lang, tt.args.tool)
 
 			if err != nil {
 				assert.Contains(t, err.Error(), tt.containedErrMsg)

@@ -199,7 +199,7 @@ func Test_dummyCreator_getImageName(t *testing.T) {
 		want string
 	}{
 		{
-			name: "Get image name from TargetConfig",
+			name: "NewCreator image name from TargetConfig",
 			args: args{
 				cfg: &config.TargetConfig{
 					Image: "Image",
@@ -208,7 +208,7 @@ func Test_dummyCreator_getImageName(t *testing.T) {
 			want: "Image",
 		},
 		{
-			name: "Get default image",
+			name: "NewCreator default image",
 			args: args{
 				cfg: &config.TargetConfig{
 					Image: "",
