@@ -44,16 +44,16 @@
 
 ### Supported Languages 💻
 
-| Language | Status | Tools Available |
-|----------|--------|-----------------|
-| ☕ **Java** (JVM) | ✅ Fully Supported | async-profiler, jcmd |
-| 🐹 **Go** | ✅ Fully Supported | eBPF profiling |
-| 🐍 **Python** | ✅ Fully Supported | py-spy, memray |
-| 💎 **Ruby** | ✅ Fully Supported | rbspy |
-| 📗 **Node.js** | ✅ Fully Supported | eBPF profiling, perf |
-| 🦀 **Rust** | ✅ Fully Supported | cargo-flamegraph |
-| ⚙️ **Clang/Clang++** | ✅ Fully Supported | eBPF profiling, perf |
-| 🐘 **PHP** | ✅ Fully Supported | phpspy |
+| Language | Status | Tools Available                                       |
+|----------|--------|-------------------------------------------------------|
+| ☕ **Java** (JVM) | ✅ Fully Supported | async-profiler, jcmd                                  |
+| 🐹 **Go** | ✅ Fully Supported | eBPF profiling                                        |
+| 🐍 **Python** | ✅ Fully Supported | py-spy                                          |
+| 💎 **Ruby** | ✅ Fully Supported | rbspy                                                 |
+| 📗 **Node.js** | ✅ Fully Supported | eBPF profiling, perf                                  |
+| 🦀 **Rust** | ✅ Fully Supported | cargo-flamegraph                                      |
+| ⚙️ **Clang/Clang++** | ✅ Fully Supported | eBPF profiling, perf                                  |
+| 🐘 **PHP** | ✅ Fully Supported | phpspy                                                |
 | 🟣 **.NET** (Core/5+) | ✅ Fully Supported | dotnet-trace, dotnet-gcdump, dotnet-counters, dotnet-dump |
 
 ### Container Runtimes 🐳
@@ -257,22 +257,32 @@ Generate a [SpeedScope](https://www.speedscope.app/) compatible file:
 kubectl prof mypod -t 1m -l python -o speedscope --local-path=/tmp
 ```
 
-#### Memory Profiling with Memray
+[//]: # (#### Memory Profiling with Memray)
 
-Profile memory allocations using [memray](https://github.com/bloomberg/memray):
+[//]: # ()
+[//]: # (Profile memory allocations using [memray]&#40;https://github.com/bloomberg/memray&#41;:)
 
-> **Note:** memray uses `nsenter` to enter the target container's namespaces, which requires `SYS_ADMIN` in addition to `SYS_PTRACE`. Both capabilities are included automatically when `--tool memray` is used (no extra flags needed).
+[//]: # ()
+[//]: # (> **Note:** memray uses `nsenter` to enter the target container's namespaces, which requires `SYS_ADMIN` in addition to `SYS_PTRACE`. Both capabilities are included automatically when `--tool memray` is used &#40;no extra flags needed&#41;.)
 
-```shell
-# Memory flamegraph (HTML)
-kubectl prof mypod -t 1m -l python --tool memray -o flamegraph --local-path=/tmp
+[//]: # ()
+[//]: # (```shell)
 
-# Memory allocation summary (text)
-kubectl prof mypod -t 1m -l python --tool memray -o summary --local-path=/tmp
+[//]: # (# Memory flamegraph &#40;HTML&#41;)
 
-# Memory allocation tree (text)
-kubectl prof mypod -t 1m -l python --tool memray -o tree --local-path=/tmp
-```
+[//]: # (kubectl prof mypod -t 1m -l python --tool memray -o flamegraph --local-path=/tmp)
+
+[//]: # ()
+[//]: # (# Memory allocation summary &#40;text&#41;)
+
+[//]: # (kubectl prof mypod -t 1m -l python --tool memray -o summary --local-path=/tmp)
+
+[//]: # ()
+[//]: # (# Memory allocation tree &#40;text&#41;)
+
+[//]: # (kubectl prof mypod -t 1m -l python --tool memray -o tree --local-path=/tmp)
+
+[//]: # (```)
 
 ---
 
@@ -816,10 +826,13 @@ make build-docker-agents
 - SpeedScope: `-o speedscope`
 - Raw output: `-o raw`
 
-**[memray](https://github.com/bloomberg/memray)** - Python memory profiler (`--tool memray`)
-- Memory flamegraph (HTML): `-o flamegraph`
-- Allocation summary (text): `-o summary`
-- Allocation tree (text): `-o tree`
+[//]: # (**[memray]&#40;https://github.com/bloomberg/memray&#41;** - Python memory profiler &#40;`--tool memray`&#41;)
+
+[//]: # (- Memory flamegraph &#40;HTML&#41;: `-o flamegraph`)
+
+[//]: # (- Allocation summary &#40;text&#41;: `-o summary`)
+
+[//]: # (- Allocation tree &#40;text&#41;: `-o tree`)
 
 #### 🐹 Go
 
