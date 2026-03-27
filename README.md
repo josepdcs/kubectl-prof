@@ -747,16 +747,16 @@ Download pre-built binaries from the [releases page](https://github.com/josepdcs
 #### Linux x86_64
 
 ```shell
-wget https://github.com/josepdcs/kubectl-prof/releases/download/1.11.1/kubectl-prof_1.11.1_linux_amd64.tar.gz
-tar xvfz kubectl-prof_1.11.1_linux_amd64.tar.gz
+wget https://github.com/josepdcs/kubectl-prof/releases/download/2.0.0/kubectl-prof_2.0.0_linux_amd64.tar.gz
+tar xvfz kubectl-prof_2.0.0_linux_amd64.tar.gz
 sudo install kubectl-prof /usr/local/bin/
 ```
 
 #### macOS
 
 ```shell
-wget https://github.com/josepdcs/kubectl-prof/releases/download/1.11.1/kubectl-prof_1.11.1_darwin_amd64.tar.gz
-tar xvfz kubectl-prof_1.11.1_darwin_amd64.tar.gz
+wget https://github.com/josepdcs/kubectl-prof/releases/download/2.0.0/kubectl-prof_2.0.0_darwin_amd64.tar.gz
+tar xvfz kubectl-prof_2.0.0_darwin_amd64.tar.gz
 sudo install kubectl-prof /usr/local/bin/
 ```
 
@@ -768,7 +768,7 @@ Download the Windows binary from the [releases page](https://github.com/josepdcs
 
 ### Prerequisites
 
-- Go 1.24 or higher
+- Go 1.25 or higher
 - Make
 - Docker (for building agent containers)
 
