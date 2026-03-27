@@ -59,7 +59,7 @@ func Test_pythonCreate_create(t *testing.T) {
 				},
 				Privileged: false,
 			},
-			Namespace:    "Namespace",
+			Namespace: "Namespace",
 		},
 	}
 	b := &pythonCreator{}
@@ -180,7 +180,7 @@ func Test_pythonCreate_shouldFailWhenUnableGenerateResources(t *testing.T) {
 				},
 				Privileged: false,
 			},
-			Namespace:    "Namespace",
+			Namespace: "Namespace",
 		},
 	}
 	b := &pythonCreator{}
@@ -204,7 +204,7 @@ func Test_pythonCreate_memray_capabilities(t *testing.T) {
 			ProfilingTool:        api.Memray,
 		},
 		Job: &config.JobConfig{
-			Namespace:    "Namespace",
+			Namespace: "Namespace",
 		},
 	}
 	b := &pythonCreator{}

@@ -87,20 +87,6 @@ type LogData struct {
 	Msg   string    `json:"msg"`
 }
 
-// typeToData maps an event type to its corresponding data structure.
-var typeToData = map[EventType]interface{}{
-	Error:    &ErrorData{},
-	Result:   &ResultData{},
-	Progress: &ProgressData{},
-	Notice:   &NoticeData{},
-	Log:      &LogData{},
-}
-
-// GetDataStructByType returns the data structure corresponding to the given event type.
-func GetDataStructByType(t EventType) interface{} {
-	return typeToData[t]
-}
-
 // ParseEvent parses the given event string into its corresponding data structure.
 func ParseEvent(eventString string) (interface{}, error) {
 	event := &Event{}
@@ -109,7 +95,21 @@ func ParseEvent(eventString string) (interface{}, error) {
 		return nil, err
 	}
 
-	eventData := GetDataStructByType(event.Type)
+	var eventData interface{}
+	switch event.Type {
+	case Error:
+		eventData = &ErrorData{}
+	case Result:
+		eventData = &ResultData{}
+	case Progress:
+		eventData = &ProgressData{}
+	case Notice:
+		eventData = &NoticeData{}
+	case Log:
+		eventData = &LogData{}
+	default:
+		return nil, nil
+	}
 	err = jsoniter.Unmarshal(*event.Data, eventData)
 	return eventData, err
 }

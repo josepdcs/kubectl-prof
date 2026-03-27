@@ -33,22 +33,22 @@ const (
 // GetOutputTypesByProfilingTool maps each ProfilingTool to its supported output types.
 // The first output type in each slice is considered the default for that tool.
 var GetOutputTypesByProfilingTool = map[ProfilingTool][]OutputType{
-	AsyncProfiler: {FlameGraph, Jfr, Flat, Traces, Collapsed, Tree, Raw},
-	Jcmd:          {Jfr, ThreadDump, HeapDump, HeapHistogram},
-	Pyspy:         {FlameGraph, SpeedScope, ThreadDump, Raw},
-	Bpf:           {FlameGraph, Raw},
-	Btf:           {FlameGraph, Raw},
-	Perf:          {FlameGraph, Raw},
-	Memray:        {FlameGraph, Summary, Tree},
-	Rbspy:         {FlameGraph, SpeedScope, Callgrind, Summary, SummaryByLine},
-	CargoFlame:    {FlameGraph},
-	NodeDummy:     {HeapSnapshot, HeapDump},
-	Phpspy:        {FlameGraph, Raw},
+	AsyncProfiler:  {FlameGraph, Jfr, Flat, Traces, Collapsed, Tree, Raw},
+	Jcmd:           {Jfr, ThreadDump, HeapDump, HeapHistogram},
+	Pyspy:          {FlameGraph, SpeedScope, ThreadDump, Raw},
+	Bpf:            {FlameGraph, Raw},
+	Btf:            {FlameGraph, Raw},
+	Perf:           {FlameGraph, Raw},
+	Memray:         {FlameGraph, Summary, Tree},
+	Rbspy:          {FlameGraph, SpeedScope, Callgrind, Summary, SummaryByLine},
+	CargoFlame:     {FlameGraph},
+	NodeDummy:      {HeapSnapshot, HeapDump},
+	Phpspy:         {FlameGraph, Raw},
 	DotnetTrace:    {SpeedScope, Raw},
 	DotnetGcdump:   {Gcdump},
 	DotnetCounters: {Counters},
 	DotnetDump:     {Dump},
-	FakeTool:      {FlameGraph},
+	FakeTool:       {FlameGraph},
 }
 
 // AvailableOutputTypesString returns a JSON string representation of all output types by profiling tool.

@@ -76,6 +76,7 @@ func (p *profilingContainerApi) HandleProfilingContainerLogs(pod *v1.Pod, contai
 	resultFile := make(chan result.File)
 	go handler.Handle(eventsChan, done, resultFile)
 	go func() {
+		defer close(eventsChan)
 		defer func(readCloser io.ReadCloser) {
 			err := readCloser.Close()
 			if err != nil {

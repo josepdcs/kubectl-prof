@@ -558,12 +558,12 @@ func Test_asyncProfilerManager_invoke(t *testing.T) {
 			when: func(fields fields, args args) (error, time.Duration) {
 				return fields.AsyncProfiler.invoke(args.job, args.pid)
 			},
-   then: func(t *testing.T, fields fields, err error) {
-                require.Error(t, err)
-                assert.ErrorContains(t, err, "fake publisher with error")
-                assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
-                // Publishing was attempted and returned an error; avoid asserting Fake publisher counters to reduce flakiness.
-            },
+			then: func(t *testing.T, fields fields, err error) {
+				require.Error(t, err)
+				assert.ErrorContains(t, err, "fake publisher with error")
+				assert.True(t, file.Exists(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg")))
+				// Publishing was attempted and returned an error; avoid asserting Fake publisher counters to reduce flakiness.
+			},
 			after: func() {
 				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000.txt"))
 				_ = file.Remove(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000.svg"))

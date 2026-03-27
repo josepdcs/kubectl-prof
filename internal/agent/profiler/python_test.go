@@ -369,8 +369,8 @@ func Test_pythonManager_invoke(t *testing.T) {
 		{
 			name: "should invoke fail when command fail",
 			given: func() (fields, args) {
-    commander := executil.NewMockCommander()
-    commander.On("Command").Return(&exec.Cmd{})
+				commander := executil.NewMockCommander()
+				commander.On("Command").Return(&exec.Cmd{})
 				publisher := publish.NewFakePublisher()
 				publisher.On("Do").Return(nil)
 
@@ -436,8 +436,8 @@ func Test_pythonManager_invoke(t *testing.T) {
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw-1000-1.txt"), b.String())
 				file.Write(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph-1000-1.svg"), b.String())
 
-    commander := executil.NewMockCommander()
-    commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
+				commander := executil.NewMockCommander()
+				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
 				publisher.On("Do").Return(errors.New("fake publisher with error"))
 
@@ -513,9 +513,9 @@ func Test_pythonManager_handleFlamegraph(t *testing.T) {
 				var b bytes.Buffer
 				b.Write([]byte("test"))
 				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
-    commander := executil.NewMockCommander()
-    // mock commander.Command return exec.Command("ls", common.TmpDir())
-    commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
+				commander := executil.NewMockCommander()
+				// mock commander.Command return exec.Command("ls", common.TmpDir())
+				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
 
 				return fields{
@@ -550,9 +550,9 @@ func Test_pythonManager_handleFlamegraph(t *testing.T) {
 				var b bytes.Buffer
 				b.Write([]byte("test"))
 				_ = os.WriteFile(filepath.Join(common.TmpDir(), config.ProfilingPrefix+"raw.txt"), b.Bytes(), 0644)
-    commander := executil.NewMockCommander()
-    // mock commander.Command return exec.Command("ls", common.TmpDir())
-    commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
+				commander := executil.NewMockCommander()
+				// mock commander.Command return exec.Command("ls", common.TmpDir())
+				commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 				publisher := publish.NewFakePublisher()
 
 				return fields{

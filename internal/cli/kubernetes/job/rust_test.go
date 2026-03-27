@@ -58,7 +58,7 @@ func Test_rustCreate_create(t *testing.T) {
 				},
 				Privileged: false,
 			},
-			Namespace:    "Namespace",
+			Namespace: "Namespace",
 		},
 	}
 	b := &rustCreator{}
@@ -184,7 +184,7 @@ func Test_rustCreate_shouldFailWhenUnableGenerateResources(t *testing.T) {
 				},
 				Privileged: false,
 			},
-			Namespace:    "Namespace",
+			Namespace: "Namespace",
 		},
 	}
 	b := &rustCreator{}

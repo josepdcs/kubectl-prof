@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	sharedDir 									  = "/kubectl-prof"
+	sharedDir                     = "/kubectl-prof"
 	asyncProfilerDir              = "/async-profiler"
 	asprofPath                    = asyncProfilerDir + "/build/bin/asprof"
 	libPath                       = asyncProfilerDir + "/build/lib/libasyncProfiler.so"
@@ -42,14 +42,14 @@ var asyncProfilerCommand = func(j *asyncProfilerManager, job *job.ProfilingJob, 
 		output = string(api.Collapsed)
 	}
 	args := []string{
-		"--libpath", filepath.Join(j.getTmpDir(), libPath), 
-		"-o", output, 
-		"-d", interval, 
-		"-f", fileName, 
-		"-e", event, 
+		"--libpath", filepath.Join(j.getTmpDir(), libPath),
+		"-o", output,
+		"-d", interval,
+		"-f", fileName,
+		"-e", event,
 		"--fdtransfer",
 	}
-	
+
 	// Add additional async-profiler arguments if they exist
 	if job.AdditionalArguments != nil {
 		// Iterate through additional arguments in order
@@ -64,7 +64,7 @@ var asyncProfilerCommand = func(j *asyncProfilerManager, job *job.ProfilingJob, 
 			}
 		}
 	}
-	
+
 	args = append(args, pid)
 
 	return j.commander.Command(filepath.Join(j.getTmpDir(), asprofPath), args...)
@@ -72,9 +72,9 @@ var asyncProfilerCommand = func(j *asyncProfilerManager, job *job.ProfilingJob, 
 
 var asyncProfilerStopCommand = func(j *asyncProfilerManager, job *job.ProfilingJob, pid string) *exec.Cmd {
 	return j.commander.Command(
-		filepath.Join(j.getTmpDir(), asprofPath), 
-		"stop", 
-		"--libpath", filepath.Join(j.getTmpDir(), libPath), 
+		filepath.Join(j.getTmpDir(), asprofPath),
+		"stop",
+		"--libpath", filepath.Join(j.getTmpDir(), libPath),
 		pid)
 }
 

@@ -599,4 +599,3 @@ func Test_memrayManager_invoke(t *testing.T) {
 		})
 	}
 }
-

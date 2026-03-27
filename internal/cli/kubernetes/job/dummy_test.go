@@ -58,7 +58,7 @@ func Test_dummyCreate_create(t *testing.T) {
 				},
 				Privileged: false,
 			},
-			Namespace:    "Namespace",
+			Namespace: "Namespace",
 		},
 	}
 	b := &dummyCreator{}
@@ -176,7 +176,7 @@ func Test_dummyCreate_shouldFailWhenUnableGenerateResources(t *testing.T) {
 				},
 				Privileged: false,
 			},
-			Namespace:    "Namespace",
+			Namespace: "Namespace",
 		},
 	}
 	b := &dummyCreator{}
