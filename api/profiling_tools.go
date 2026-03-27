@@ -19,6 +19,7 @@ const (
 	Rbspy          ProfilingTool = "rbspy"            // Rbspy is a profiling tool used primarily for Ruby applications to output various performance metrics.
 	NodeDummy      ProfilingTool = "node-dummy"       // NodeDummy is a profiling tool used primarily for Node.js applications to output various performance metrics.
 	CargoFlame     ProfilingTool = "cargo-flamegraph" // CargoFlame is a profiling tool used primarily for Rust applications to output various performance metrics.
+	Memray         ProfilingTool = "memray"           // Memray is a memory profiling tool used primarily for Python applications to capture heap allocations.
 	Phpspy         ProfilingTool = "phpspy"           // Phpspy is a profiling tool used primarily for PHP applications to output various performance metrics.
 	DotnetTrace    ProfilingTool = "dotnet-trace"     // DotnetTrace is a profiling tool for .NET Core/5+ applications to collect CPU and runtime traces.
 	DotnetGcdump   ProfilingTool = "dotnet-gcdump"    // DotnetGcdump is a profiling tool for .NET Core/5+ applications to collect GC heap dumps for memory analysis.
@@ -29,7 +30,7 @@ const (
 
 var (
 	// profilingTools contains all supported profiling tools.
-	profilingTools = []ProfilingTool{AsyncProfiler, Jcmd, Pyspy, Bpf, Btf, Perf, Rbspy, NodeDummy, CargoFlame, Phpspy,
+	profilingTools = []ProfilingTool{AsyncProfiler, Jcmd, Pyspy, Bpf, Btf, Perf, Rbspy, NodeDummy, CargoFlame, Memray, Phpspy,
 		DotnetTrace, DotnetGcdump, DotnetCounters, DotnetDump}
 )
 
@@ -96,7 +97,7 @@ var GetProfilingTool = func(l ProgrammingLanguage, o OutputType) ProfilingTool {
 // The first tool in each slice is considered the default for that language.
 var GetProfilingToolsByProgrammingLanguage = map[ProgrammingLanguage][]ProfilingTool{
 	Java:          {Jcmd, AsyncProfiler},
-	Python:        {Pyspy},
+	Python:        {Pyspy, Memray},
 	Go:            {Bpf, Btf, CargoFlame},
 	Node:          {Bpf, Btf, Perf, NodeDummy, CargoFlame},
 	Clang:         {Bpf, Btf, Perf, CargoFlame},

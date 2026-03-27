@@ -42,12 +42,12 @@ These commands help you identify application performance issues.
 	%[1]s prof my-pod -t 5m -l java -o jfr
 
 	# Profile an alpine based container for java language
-	%[1]s prof my-pod -l java --alpine 
+	%[1]s prof my-pod -l java --alpine
 
 	# Profile a pod for 5 minutes in intervals of 60 seconds for java language by giving the cpu limits, the container runtime, the agent image and the image pull policy
 	%[1]s my-pod -l java -o flamegraph -t 5m --interval 60s --cpu-limits=1 -r containerd --image=localhost/my-agent-image-jvm:latest --image-pull-policy=IfNotPresent
 
-	# Profile in contprof namespace a pod running in contprof-stupid-apps namespace by using the profiler service account for go language 
+	# Profile in contprof namespace a pod running in contprof-stupid-apps namespace by using the profiler service account for go language
 	%[1]s prof my-pod -n contprof --service-account=profiler --target-namespace=contprof-stupid-apps -l go
 
 	# Set custom resource requests and limits for the agent pod (default: neither requests nor limits are set) for python language
@@ -260,6 +260,7 @@ func setProfileFlags(cmd *cobra.Command, target *config.TargetConfig, job *confi
 	cmd.Flags().IntVar(&target.NodeHeapSnapshotSignal, "node-heap-snapshot-signal", 12, "OS signal number sent to the Node.js process to trigger a heap snapshot (default: 12 = SIGUSR2). Use 10 for SIGUSR1")
 	cmd.Flags().StringSliceVar(&flags.capabilities, "capabilities", nil, "Linux capabilities to add to the agent container (e.g. --capabilities SYS_ADMIN --capabilities SYS_PTRACE). May be required when --privileged is false")
 	cmd.Flags().StringSliceVar(&job.TolerationsRaw, "tolerations", nil, "Tolerations for the profiling job pod, in the format key=value:effect or key:effect (e.g. --tolerations node-role=infra:NoSchedule --tolerations dedicated:NoExecute)")
+	cmd.Flags().DurationVar(&target.HeartbeatInterval, "heartbeat-interval", 30*time.Second, "Interval between heartbeat progress events emitted during profiling. Keeps connections alive through proxies/load balancers (e.g. 30s, 1m)")
 	cmd.Flags().StringSliceVar(&target.AsyncProfilerArgs, "async-profiler-args", nil, "Extra arguments forwarded directly to async-profiler (e.g. --async-profiler-args --alloc=2m --async-profiler-args --lock=1ms). See async-profiler docs for available options")
 
 	options.configFlags.AddFlags(cmd.Flags())

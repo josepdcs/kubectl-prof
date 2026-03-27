@@ -45,6 +45,7 @@ type ExtraTargetOptions struct {
 	RetrieveFileRetries         int
 	PID                         string
 	Pgrep                       string
+	HeartbeatInterval           time.Duration
 	NodeHeapSnapshotSignal      int
 	AsyncProfilerArgs           []string
 }

@@ -1,5 +1,6 @@
 .idea/
 .run/
+.tool-versions
 bin/
 coverage.out
 test/stupid-apps/dotnet/obj/

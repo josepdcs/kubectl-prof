@@ -48,6 +48,10 @@ var toolExtensionMap = map[api.ProfilingTool]map[api.OutputType]string{
 		api.Raw:           ".txt",
 		api.HeapDump:      ".hprof",
 	},
+	api.Memray: {
+		api.Summary: ".txt",
+		api.Tree:    ".txt",
+	},
 	api.Pyspy: {
 		api.SpeedScope: ".json",
 		api.ThreadDump: ".txt",
@@ -94,6 +98,7 @@ var toolExtensionMap = map[api.ProfilingTool]map[api.OutputType]string{
 var toolDefaultExtensionMap = map[api.ProfilingTool]string{
 	api.Jcmd:           ".html",
 	api.AsyncProfiler:  ".html",
+	api.Memray:         ".html",
 	api.Pyspy:          ".svg",
 	api.Rbspy:          ".svg",
 	api.Bpf:            ".svg",

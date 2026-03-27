@@ -47,6 +47,9 @@ func GetArgs(targetPod *apiv1.Pod, cfg *config.ProfilerConfig, id string) []stri
 	args = appendArgument(args, "--node-heap-snapshot-signal", strconv.Itoa(cfg.Target.NodeHeapSnapshotSignal), func() bool {
 		return cfg.Target.NodeHeapSnapshotSignal > 0 && cfg.Target.Language == api.Node
 	})
+	args = appendArgument(args, "--heartbeat-interval", cfg.Target.HeartbeatInterval.String(), func() bool {
+		return cfg.Target.HeartbeatInterval > 0
+	})
 	args = appendAsyncProfilerArgs(args, cfg.Target.AsyncProfilerArgs, func() bool {
 		return len(cfg.Target.AsyncProfilerArgs) > 0
 	})

@@ -58,7 +58,7 @@ func Test_bpfCreate_create(t *testing.T) {
 				},
 				Privileged: false,
 			},
-			Namespace: "Namespace",
+			Namespace:    "Namespace",
 		},
 	}
 	b := &bpfCreator{}
@@ -189,7 +189,7 @@ func Test_bpfCreate_shouldFailWhenUnableGenerateResources(t *testing.T) {
 				},
 				Privileged: false,
 			},
-			Namespace: "Namespace",
+			Namespace:    "Namespace",
 		},
 	}
 	b := &bpfCreator{}

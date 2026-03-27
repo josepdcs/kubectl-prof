@@ -42,7 +42,7 @@ func (p *Exec) Execute(namespace, podName, containerName string, command []strin
 		StreamOptions: exec.StreamOptions{
 			Namespace:       namespace,
 			PodName:         podName,
-			Stdin:           true,
+			Stdin:           false,
 			TTY:             false,
 			Quiet:           false,
 			InterruptParent: nil,

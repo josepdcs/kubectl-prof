@@ -30,6 +30,7 @@ type ProfilingJob struct {
 	OutputSplitInChunkSize string
 	PID                    string
 	Pgrep                  string
+	HeartbeatInterval      time.Duration
 	NodeHeapSnapshotSignal int
 	AdditionalArguments    map[string]string
 	Iteration              int

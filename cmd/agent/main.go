@@ -169,6 +169,11 @@ func runApp() error {
 				Usage:    "additional arguments to pass to async-profiler",
 				Required: false,
 			},
+			&cli.StringFlag{
+				Name:     action.HeartbeatInterval,
+				Usage:    "interval between heartbeat progress events during profiling (e.g. 30s, 1m)",
+				Required: false,
+			},
 		},
 		Action: func(c *cli.Context) error {
 			period, errParse := time.ParseDuration(c.String(action.GracePeriodForEnding))
@@ -212,6 +217,7 @@ func toArgs(c *cli.Context) map[string]interface{} {
 		action.Pgrep:                      c.String(action.Pgrep),
 		action.NodeHeapSnapshotSignal:     c.Int(action.NodeHeapSnapshotSignal),
 		action.AsyncProfilerArg:           c.StringSlice(action.AsyncProfilerArg),
+		action.HeartbeatInterval:          c.String(action.HeartbeatInterval),
 	}
 }
 

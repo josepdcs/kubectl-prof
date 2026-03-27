@@ -188,6 +188,7 @@ func (v *additionalParametersValidator) validate(args map[string]any, j *job.Pro
 	setPgrep(args, j)
 	setNodeHeapSnapshotSignal(args, j)
 	setAsyncProfilerArgs(args, j)
+	setHeartbeatInterval(args, j)
 	return v.validateNext(args, j)
 }
 
@@ -251,6 +252,17 @@ func setAsyncProfilerArgs(args map[string]any, j *job.ProfilingJob) {
 				key := fmt.Sprintf("async-profiler-arg-%d", i)
 				j.AdditionalArguments[key] = arg
 			}
+		}
+	}
+}
+
+// setHeartbeatInterval sets the heartbeat interval for profilers that need periodic progress events.
+func setHeartbeatInterval(args map[string]any, j *job.ProfilingJob) {
+	j.HeartbeatInterval = defaultHeartbeatInterval
+	if args[HeartbeatInterval] != nil && stringUtils.IsNotBlank(args[HeartbeatInterval].(string)) {
+		interval, err := time.ParseDuration(args[HeartbeatInterval].(string))
+		if err == nil && interval > 0 {
+			j.HeartbeatInterval = interval
 		}
 	}
 }

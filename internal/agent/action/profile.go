@@ -32,8 +32,10 @@ const (
 	Pgrep                             = "pgrep"
 	NodeHeapSnapshotSignal            = "node-heap-snapshot-signal"
 	AsyncProfilerArg                  = "async-profiler-arg"
+	HeartbeatInterval                 = "heartbeat-interval"
 
 	defaultDuration               = 60 * time.Second
+	defaultHeartbeatInterval      = 30 * time.Second
 	defaultContainerRuntime       = api.Containerd
 	defaultCompressor             = compressor.Gzip
 	defaultEventType              = api.Ctimer

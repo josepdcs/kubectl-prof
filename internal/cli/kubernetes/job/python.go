@@ -3,6 +3,7 @@ package job
 import (
 	"fmt"
 
+	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/cli/config"
 	"github.com/josepdcs/kubectl-prof/internal/cli/kubernetes"
 	"github.com/josepdcs/kubectl-prof/internal/cli/version"
@@ -17,6 +18,11 @@ type pythonCreator struct{}
 
 var pythonDefaultCapabilities = []apiv1.Capability{"SYS_PTRACE"}
 
+// memrayDefaultCapabilities adds SYS_ADMIN to the default capabilities for memray profiling.
+// memray uses nsenter to enter target container namespaces (--net, --mount, --pid), which
+// requires CAP_SYS_ADMIN in addition to SYS_PTRACE for the ptrace-based attach.
+var memrayDefaultCapabilities = []apiv1.Capability{"SYS_PTRACE", "SYS_ADMIN"}
+
 func (p *pythonCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
 	id := string(uuid.NewUUID())
 	imageName := p.getImageName(cfg.Target)
@@ -28,7 +34,11 @@ func (p *pythonCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig)
 
 	capabilities := cfg.Job.Capabilities
 	if len(capabilities) == 0 {
-		capabilities = pythonDefaultCapabilities
+		if cfg.Target.ProfilingTool == api.Memray {
+			capabilities = memrayDefaultCapabilities
+		} else {
+			capabilities = pythonDefaultCapabilities
+		}
 	}
 
 	commonMeta := p.getObjectMeta(id, cfg)

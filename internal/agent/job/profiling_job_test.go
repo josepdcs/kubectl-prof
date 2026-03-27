@@ -77,7 +77,7 @@ func TestProfilingJob_ToMap(t *testing.T) {
 	out := p.ToMap()
 
 	assert.NotEmpty(t, out)
-	assert.Len(t, out, 19)
+	assert.Len(t, out, 20)
 	assert.Equal(t, float64(10), out["Duration"])
 	assert.Equal(t, float64(5), out["Interval"])
 	assert.Equal(t, "ID", out["UID"])

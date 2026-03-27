@@ -58,7 +58,7 @@ func Test_jvmCreate_create(t *testing.T) {
 				},
 				Privileged: false,
 			},
-			Namespace: "Namespace",
+			Namespace:    "Namespace",
 		},
 	}
 	b := &jvmCreator{}
@@ -178,7 +178,7 @@ func Test_jvmCreate_shouldFailWhenUnableGenerateResources(t *testing.T) {
 				},
 				Privileged: false,
 			},
-			Namespace: "Namespace",
+			Namespace:    "Namespace",
 		},
 	}
 	b := &jvmCreator{}

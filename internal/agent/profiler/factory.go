@@ -33,6 +33,8 @@ func Get(tool api.ProfilingTool) Profiler {
 		return NewBtfProfiler(executil.NewCommander(), publish.NewPublisher())
 	case api.Pyspy:
 		return NewPythonProfiler(executil.NewCommander(), publish.NewPublisher())
+	case api.Memray:
+		return NewMemrayProfiler(executil.NewCommander(), publish.NewPublisher())
 	case api.Perf:
 		return NewPerfProfiler(executil.NewCommander(), publish.NewPublisher())
 	case api.Rbspy:

@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -471,14 +472,16 @@ func Test_jcmdManager_publishResult(t *testing.T) {
 		outputType api.OutputType
 	}
 	tests := []struct {
-		name      string
-		given     func() (fields, args)
-		when      func(fields, args) error
-		then      func(t *testing.T, err error)
+		name         string
+		skipNonLinux bool
+		given        func() (fields, args)
+		when         func(fields, args) error
+		then         func(t *testing.T, err error)
 		afterEach func()
 	}{
 		{
-			name: "should publish heap dump",
+			name:         "should publish heap dump",
+			skipNonLinux: true,
 			given: func() (fields, args) {
 				cmd := exec.Command("cp", filepath.Join(testdata.ResultTestDataDir(), "heapdump.hprof"), common.TmpDir())
 				_ = cmd.Run()
@@ -499,6 +502,7 @@ func Test_jcmdManager_publishResult(t *testing.T) {
 				assert.False(t, file.Exists(filepath.Join(common.TmpDir(), "heapdump.hprof.gz")))
 			},
 			afterEach: func() {
+				_ = file.Remove(filepath.Join(common.TmpDir(), "heapdump.hprof.gz"))
 				file.RemoveAll(common.TmpDir(), "heapdump.hprof.gz.*")
 			},
 		},
@@ -522,7 +526,11 @@ func Test_jcmdManager_publishResult(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipNonLinux && runtime.GOOS != "linux" {
+				t.Skip("requires Linux-specific split command")
+			}
 			// Given
 			fields, args := tt.given()
 

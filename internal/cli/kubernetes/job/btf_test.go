@@ -58,7 +58,7 @@ func Test_btfCreate_create(t *testing.T) {
 				},
 				Privileged: false,
 			},
-			Namespace: "Namespace",
+			Namespace:    "Namespace",
 		},
 	}
 	b := &btfCreator{}

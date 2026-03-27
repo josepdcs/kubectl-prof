@@ -80,6 +80,11 @@ func TestIsSupportedProfilingTool(t *testing.T) {
 			then:  true,
 		},
 		{
+			name:  "memray",
+			given: "memray",
+			then:  true,
+		},
+		{
 			name:  "not found",
 			given: "bpf2",
 			then:  false,
@@ -229,6 +234,14 @@ func TestIsValidProfilingTool(t *testing.T) {
 			then: true,
 		},
 		{
+			name: "Memray + Python",
+			given: args{
+				tool:     Memray,
+				language: Python,
+			},
+			then: true,
+		},
+		{
 			name: "Not valid",
 			given: args{
 				tool:     AsyncProfiler,
@@ -351,6 +364,22 @@ func TestGetProfilingTool(t *testing.T) {
 				outputType: Raw,
 			},
 			then: Pyspy,
+		},
+		{
+			name: "Python + Summary",
+			given: args{
+				language:   Python,
+				outputType: Summary,
+			},
+			then: Pyspy, // Memray requires explicit --tool memray
+		},
+		{
+			name: "Python + Tree",
+			given: args{
+				language:   Python,
+				outputType: Tree,
+			},
+			then: Pyspy, // Memray requires explicit --tool memray
 		},
 		// Go tests
 		{
@@ -583,7 +612,7 @@ func TestGetProfilingToolsByProgrammingLanguage(t *testing.T) {
 		{
 			name:     "Python",
 			language: Python,
-			expected: []ProfilingTool{Pyspy},
+			expected: []ProfilingTool{Pyspy, Memray},
 		},
 		{
 			name:     "Go",
