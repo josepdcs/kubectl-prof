@@ -30,7 +30,7 @@ func (h *EventHandler) Handle(events chan string, done chan bool, resultFile cha
 			h.printer.Print("❌\n")
 			done <- true
 		case *api.LogData:
-			if (h.target.PrintAgentLogs) {
+			if h.target.PrintAgentLogs {
 				h.printer.Print(fmt.Sprintf("Agent[%s]: %s\n", eventType.Level, eventType.Msg))
 			}
 		case *api.ResultData:
@@ -49,6 +49,7 @@ func (h *EventHandler) Handle(events chan string, done chan bool, resultFile cha
 		default:
 		}
 	}
+	done <- true
 }
 
 func (h *EventHandler) reportProgress(data *api.ProgressData, done chan bool) {

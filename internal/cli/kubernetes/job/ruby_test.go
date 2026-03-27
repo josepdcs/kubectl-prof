@@ -58,7 +58,7 @@ func Test_rubyCreate_create(t *testing.T) {
 				},
 				Privileged: false,
 			},
-			Namespace:    "Namespace",
+			Namespace: "Namespace",
 		},
 	}
 	b := &rubyCreator{}
@@ -178,7 +178,7 @@ func Test_rubyCreate_shouldFailWhenUnableGenerateResources(t *testing.T) {
 				},
 				Privileged: false,
 			},
-			Namespace:    "Namespace",
+			Namespace: "Namespace",
 		},
 	}
 	b := &rubyCreator{}

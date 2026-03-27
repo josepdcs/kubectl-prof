@@ -58,7 +58,7 @@ func Test_perfCreate_create(t *testing.T) {
 				},
 				Privileged: false,
 			},
-			Namespace:    "Namespace",
+			Namespace: "Namespace",
 		},
 	}
 	b := &perfCreator{}
@@ -179,7 +179,7 @@ func Test_perfCreate_shouldFailWhenUnableGenerateResources(t *testing.T) {
 				},
 				Privileged: false,
 			},
-			Namespace:    "Namespace",
+			Namespace: "Namespace",
 		},
 	}
 	b := &perfCreator{}

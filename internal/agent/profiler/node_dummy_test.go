@@ -249,15 +249,15 @@ func TestNodeDummyProfiler_CleanUp(t *testing.T) {
 				f := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph.svg")
 				_, _ = os.Create(f)
 				_, _ = os.Create(f + compressor.GetExtensionFileByCompressor[compressor.Gzip])
-    return fields{
-                        NodeDummyProfiler: &NodeDummyProfiler{
-                            NodeDummyManager: newMockNodeDummyManager(),
-                        },
-                    }, args{
-                        job: &job.ProfilingJob{
-                            Duration:         0,
-                            ContainerRuntime: api.FakeContainer,
-                            ContainerID:      "ContainerID",
+				return fields{
+						NodeDummyProfiler: &NodeDummyProfiler{
+							NodeDummyManager: newMockNodeDummyManager(),
+						},
+					}, args{
+						job: &job.ProfilingJob{
+							Duration:         0,
+							ContainerRuntime: api.FakeContainer,
+							ContainerID:      "ContainerID",
 						},
 					}
 			},

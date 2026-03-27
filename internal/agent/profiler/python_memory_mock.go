@@ -28,4 +28,3 @@ func (m *mockMemrayManager) invoke(j *job.ProfilingJob, pid string) (error, time
 	}
 	return err, d
 }
-

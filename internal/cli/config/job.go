@@ -21,7 +21,6 @@ type JobConfig struct {
 
 	// TolerationsRaw holds raw toleration strings from command line
 	TolerationsRaw []string
-
 }
 
 // DeepCopy returns a deep copy of the JobConfig.
