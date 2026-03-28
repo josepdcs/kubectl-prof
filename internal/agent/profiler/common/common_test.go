@@ -525,21 +525,6 @@ func TestGetFileExtension(t *testing.T) {
 			},
 		},
 		{
-			name: "with Tree when Memray",
-			given: func() args {
-				return args{
-					tool:       api.Memray,
-					OutputType: api.Tree,
-				}
-			},
-			when: func(args args) string {
-				return GetFileExtension(args.tool, args.OutputType)
-			},
-			then: func(t *testing.T, result string) {
-				assert.Equal(t, ".txt", result)
-			},
-		},
-		{
 			name: "with FlameGraph when default",
 			given: func() args {
 				return args{
