@@ -48,7 +48,7 @@
 |----------|--------|-------------------------------------------------------|
 | ☕ **Java** (JVM) | ✅ Fully Supported | async-profiler, jcmd                                  |
 | 🐹 **Go** | ✅ Fully Supported | eBPF profiling                                        |
-| 🐍 **Python** | ✅ Fully Supported | py-spy                                          |
+| 🐍 **Python** | ✅ Fully Supported | py-spy, memray                                  |
 | 💎 **Ruby** | ✅ Fully Supported | rbspy                                                 |
 | 📗 **Node.js** | ✅ Fully Supported | eBPF profiling, perf                                  |
 | 🦀 **Rust** | ✅ Fully Supported | cargo-flamegraph                                      |
@@ -257,32 +257,58 @@ Generate a [SpeedScope](https://www.speedscope.app/) compatible file:
 kubectl prof mypod -t 1m -l python -o speedscope --local-path=/tmp
 ```
 
-[//]: # (#### Memory Profiling with Memray)
+#### Memory Profiling with Memray
 
-[//]: # ()
-[//]: # (Profile memory allocations using [memray]&#40;https://github.com/bloomberg/memray&#41;:)
+[Memray](https://github.com/bloomberg/memray) is a memory profiler for Python that tracks every allocation and deallocation made by your code. Unlike py-spy (which profiles CPU usage), memray reveals where your application allocates memory, helping you find memory leaks, reduce peak memory usage, and understand allocation patterns.
 
-[//]: # ()
-[//]: # (> **Note:** memray uses `nsenter` to enter the target container's namespaces, which requires `SYS_ADMIN` in addition to `SYS_PTRACE`. Both capabilities are included automatically when `--tool memray` is used &#40;no extra flags needed&#41;.)
+Memray attaches to running Python processes via GDB injection -- your application keeps running with zero downtime. No restart, no code changes, no instrumentation required.
 
-[//]: # ()
-[//]: # (```shell)
+> **Note:** You must specify `--tool memray` explicitly. The default Python profiling tool remains py-spy.
 
-[//]: # (# Memory flamegraph &#40;HTML&#41;)
+**Requirements:**
+- **Capabilities:** `SYS_PTRACE` and `SYS_ADMIN` are required (for ptrace-based attach and nsenter into the target container's namespaces). Both are added automatically when `--tool memray` is used -- no extra flags needed.
+- **Python versions:** 3.10, 3.11, 3.12, 3.13 (glibc-based images only)
+- **Not supported:** Alpine/musl-based target containers, statically-linked Python builds
 
-[//]: # (kubectl prof mypod -t 1m -l python --tool memray -o flamegraph --local-path=/tmp)
+**Output types:**
 
-[//]: # ()
-[//]: # (# Memory allocation summary &#40;text&#41;)
+| Output | Flag | Format | Description |
+|--------|------|--------|-------------|
+| Memory flamegraph | `-o flamegraph` | HTML | Interactive flamegraph showing allocation call stacks and sizes |
+| Allocation summary | `-o summary` | Text | Tabular summary of the largest allocators by function |
 
-[//]: # (kubectl prof mypod -t 1m -l python --tool memray -o summary --local-path=/tmp)
+**Memory flamegraph (HTML):**
 
-[//]: # ()
-[//]: # (# Memory allocation tree &#40;text&#41;)
+```shell
+kubectl prof mypod -t 1m -l python --tool memray -o flamegraph --local-path=/tmp
+```
 
-[//]: # (kubectl prof mypod -t 1m -l python --tool memray -o tree --local-path=/tmp)
+The output is a self-contained HTML file you can open in any browser. Wider frames indicate functions responsible for more memory allocations.
 
-[//]: # (```)
+**Allocation summary (text):**
+
+```shell
+kubectl prof mypod -t 1m -l python --tool memray -o summary --local-path=/tmp
+```
+
+The output is a text file listing the top allocators by total bytes allocated.
+
+**Long profiling sessions and the heartbeat interval:**
+
+When profiling for longer durations (e.g. 5-10 minutes), network proxies or load balancers in front of your Kubernetes API server may terminate idle connections. Memray emits periodic heartbeat events to keep the log stream alive. The default interval is 30 seconds. You can adjust it with `--heartbeat-interval`:
+
+```shell
+kubectl prof mypod -t 10m -l python --tool memray -o flamegraph --heartbeat-interval=15s
+```
+
+**Targeting a specific process:**
+
+If your pod runs multiple Python processes, use `--pid` or `--pgrep` to target a specific one:
+
+```shell
+kubectl prof mypod -t 2m -l python --tool memray -o flamegraph --pid 1234
+kubectl prof mypod -t 2m -l python --tool memray -o flamegraph --pgrep my-worker
+```
 
 ---
 
@@ -826,13 +852,13 @@ make build-docker-agents
 - SpeedScope: `-o speedscope`
 - Raw output: `-o raw`
 
-[//]: # (**[memray]&#40;https://github.com/bloomberg/memray&#41;** - Python memory profiler &#40;`--tool memray`&#41;)
+**[memray](https://github.com/bloomberg/memray)** - Python memory profiler (`--tool memray`)
+- Memory flamegraph (HTML): `-o flamegraph`
+- Allocation summary (text): `-o summary`
+- Attaches to running processes via GDB injection (zero downtime)
+- Requires `SYS_PTRACE` + `SYS_ADMIN` capabilities (added automatically)
+- Supported target Python versions: 3.10, 3.11, 3.12, 3.13 (glibc-based only)
 
-[//]: # (- Memory flamegraph &#40;HTML&#41;: `-o flamegraph`)
-
-[//]: # (- Allocation summary &#40;text&#41;: `-o summary`)
-
-[//]: # (- Allocation tree &#40;text&#41;: `-o tree`)
 
 #### 🐹 Go
 

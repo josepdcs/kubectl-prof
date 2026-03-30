@@ -50,7 +50,6 @@ var toolExtensionMap = map[api.ProfilingTool]map[api.OutputType]string{
 	},
 	api.Memray: {
 		api.Summary: ".txt",
-		api.Tree:    ".txt",
 	},
 	api.Pyspy: {
 		api.SpeedScope: ".json",

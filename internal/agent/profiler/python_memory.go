@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -29,6 +32,7 @@ import (
 const (
 	memrayLocation         = "/app/memray"
 	memrayDelayBetweenJobs = 2 * time.Second
+	memrayStagingDir       = "/tmp/.kubectl-prof-memray"
 )
 
 // memrayCommand runs memray attach --aggregate inside the target's network namespace via nsenter.
@@ -41,87 +45,166 @@ var memrayCommand = func(commander executil.Commander, job *job.ProfilingJob, pi
 	return commander.Command("nsenter", args...)
 }
 
-// stageMemrayLib copies memray's _inject.abi3.so from the profiling container into the target
-// container's filesystem at its exact same path so that gdb's dlopen() call (which runs in the
-// target's mount namespace) can find our version of the library.
-// Only _inject.abi3.so is staged; the target's native _memray.cpython-*.so is intentionally
-// left untouched so the tracker writes a file in the target's format (read back via nsenter).
-// Returns a cleanup function that restores the original file (or removes the staged one).
+// libpythonRe matches lines in /proc/<pid>/maps that reference a libpython3.XX shared library.
+var libpythonRe = regexp.MustCompile(`libpython(3\.\d+)`)
+
+// pythonBinaryVersionRe extracts a version like "3.11" from a Python binary name (e.g. python3.11).
+var pythonBinaryVersionRe = regexp.MustCompile(`python(3\.\d+)`)
+
+// detectTargetPythonVersion determines the Python minor version of the target process.
+// Primary: reads /proc/<pid>/maps to find the loaded libpython3.XX shared library.
+// Fallback: resolves /proc/<pid>/exe symlink and checks if the binary name contains a version.
+// Returns a string like "3.10", "3.11", "3.12", "3.13".
+// Exposed as a package-level var so tests can override it.
+var detectTargetPythonVersion = func(pid string) (string, error) {
+	// Primary: read /proc/<pid>/maps for libpython reference.
+	mapsPath := fmt.Sprintf("/proc/%s/maps", pid)
+	mapsData, err := os.ReadFile(mapsPath)
+	if err == nil {
+		if m := libpythonRe.FindSubmatch(mapsData); m != nil {
+			return string(m[1]), nil
+		}
+	}
+
+	// Fallback: resolve /proc/<pid>/exe and extract version from binary name.
+	exePath := fmt.Sprintf("/proc/%s/exe", pid)
+	target, err := os.Readlink(exePath)
+	if err == nil {
+		base := filepath.Base(target)
+		if m := pythonBinaryVersionRe.FindStringSubmatch(base); m != nil {
+			return m[1], nil
+		}
+	}
+
+	return "", fmt.Errorf("could not detect Python version for PID %s: no libpython in /proc/%s/maps and binary name has no version (statically-linked Python not supported)", pid, pid)
+}
+
+// copyDir recursively copies a directory tree from src to dst.
+// Exposed as a package-level var so tests can override it.
+var copyDir = func(src, dst string) error {
+	return filepath.WalkDir(src, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		relPath, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		dstPath := filepath.Join(dst, relPath)
+		if d.IsDir() {
+			return os.MkdirAll(dstPath, 0755)
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(dstPath, data, info.Mode())
+	})
+}
+
+// stageMemrayPackage stages the version-matched memray package and _inject.abi3.so into the
+// target container's filesystem. The full package is copied to /tmp/.kubectl-prof-memray/ so
+// the patched payload's sys.path.insert can find it, and _inject.abi3.so is placed at its
+// agent-install path so gdb's dlopen() can find it.
 //
 // Multiple PIDs from the same container share a mount namespace, so their
-// /proc/<pid>/root/<libSrc> paths all resolve to the same physical file. The staging
-// state is ref-counted by libSrc: the first caller stages the file and saves the original;
-// subsequent callers for the same libSrc increment the counter without re-reading. The
-// last cleanup decrements to zero and performs the actual restore/remove, trying each known
-// PID's /proc path in turn so that a stale path (from a PID that exited mid-profiling) does
-// not prevent restoration.
+// /proc/<pid>/root/ paths all resolve to the same physical filesystem. The staging
+// state is ref-counted: the first caller stages the files; subsequent callers increment
+// the counter. The last cleanup decrements to zero and performs the actual removal,
+// trying each known PID's /proc path in turn so that a stale path (from a PID that
+// exited mid-profiling) does not prevent cleanup.
 var (
-	stageMemrayLibMu        sync.Mutex
-	stageMemrayLibRefs      = map[string]int{}
-	stageMemrayLibOriginals = map[string][]byte{}
-	stageMemrayLibHadOrig   = map[string]bool{}
-	stageMemrayLibPIDs      = map[string][]string{}
+	stageMemrayPackageMu        sync.Mutex
+	stageMemrayPackageRefs      = map[string]int{}
+	stageMemrayPackageOriginals = map[string][]byte{}
+	stageMemrayPackageHadOrig   = map[string]bool{}
+	stageMemrayPackagePIDs      = map[string][]string{}
 )
 
-var stageMemrayLib = func(pid string) (func(), error) {
+var stageMemrayPackage = func(pid string) (func(), error) {
+	// Detect target Python version to select the correct memray build.
+	pyVersion, err := detectTargetPythonVersion(pid)
+	if err != nil {
+		return nil, fmt.Errorf("could not detect target Python version for memray staging: %w", err)
+	}
+
+	// Locate _inject.abi3.so in the agent's memray installation.
 	out, err := exec.Command("python3", "-c",
 		"import memray, pathlib\n"+
 			"print(pathlib.Path(memray.__file__).parent / '_inject.abi3.so')").Output()
 	if err != nil {
 		return nil, fmt.Errorf("could not locate memray inject library: %w", err)
 	}
-
 	libSrc := strings.TrimSpace(string(out))
 	if libSrc == "" {
 		return nil, fmt.Errorf("could not locate memray inject library: empty output")
 	}
 	libDst := fmt.Sprintf("/proc/%s/root%s", pid, libSrc)
 
+	// Version-matched memray package source and target staging directory.
+	pkgSrc := fmt.Sprintf("/opt/memray/%s", pyVersion)
+	pkgDst := fmt.Sprintf("/proc/%s/root%s", pid, memrayStagingDir)
+
 	if err := os.MkdirAll(filepath.Dir(libDst), 0755); err != nil {
 		return nil, fmt.Errorf("could not create directory for %s: %w", libDst, err)
 	}
 
-	data, err := os.ReadFile(libSrc)
+	libData, err := os.ReadFile(libSrc)
 	if err != nil {
 		return nil, fmt.Errorf("could not read %s: %w", libSrc, err)
 	}
 
-	stageMemrayLibMu.Lock()
-	if stageMemrayLibRefs[libSrc] == 0 {
-		// First reference: save original and stage the file.
+	stageMemrayPackageMu.Lock()
+	if stageMemrayPackageRefs[libSrc] == 0 {
+		// First reference: stage inject library and memray package.
 		oldData, _ := os.ReadFile(libDst)
-		stageMemrayLibHadOrig[libSrc] = oldData != nil
-		stageMemrayLibOriginals[libSrc] = oldData
-		if err := os.WriteFile(libDst, data, 0755); err != nil {
-			stageMemrayLibMu.Unlock()
+		stageMemrayPackageHadOrig[libSrc] = oldData != nil
+		stageMemrayPackageOriginals[libSrc] = oldData
+		if err := os.WriteFile(libDst, libData, 0755); err != nil {
+			stageMemrayPackageMu.Unlock()
 			return nil, fmt.Errorf("could not stage %s to %s: %w", libSrc, libDst, err)
 		}
+		// Stage full memray package for import.
+		if err := copyDir(pkgSrc, pkgDst); err != nil {
+			// Rollback: remove the already-staged inject library.
+			if stageMemrayPackageHadOrig[libSrc] {
+				_ = os.WriteFile(libDst, stageMemrayPackageOriginals[libSrc], 0755)
+			} else {
+				_ = os.Remove(libDst)
+			}
+			stageMemrayPackageMu.Unlock()
+			return nil, fmt.Errorf("could not stage memray package from %s to %s: %w", pkgSrc, pkgDst, err)
+		}
 	}
-	stageMemrayLibRefs[libSrc]++
-	stageMemrayLibPIDs[libSrc] = append(stageMemrayLibPIDs[libSrc], pid)
-	stageMemrayLibMu.Unlock()
+	stageMemrayPackageRefs[libSrc]++
+	stageMemrayPackagePIDs[libSrc] = append(stageMemrayPackagePIDs[libSrc], pid)
+	stageMemrayPackageMu.Unlock()
 
 	return func() {
-		stageMemrayLibMu.Lock()
-		defer stageMemrayLibMu.Unlock()
-		stageMemrayLibRefs[libSrc]--
-		if stageMemrayLibRefs[libSrc] == 0 {
-			// Try each known PID's /proc path until one succeeds. The target PID that
-			// registered this cleanup may have exited by now, making its
-			// /proc/<pid>/root/... path stale. All PIDs in the same container share a
-			// mount namespace, so any still-live PID's path reaches the same physical
-			// file. Iterating through the full set avoids a silent failure leaving the
-			// staged library in place.
+		stageMemrayPackageMu.Lock()
+		defer stageMemrayPackageMu.Unlock()
+		stageMemrayPackageRefs[libSrc]--
+		if stageMemrayPackageRefs[libSrc] == 0 {
+			// Try each known PID's /proc path until one succeeds.
 			restored := false
-			for _, p := range stageMemrayLibPIDs[libSrc] {
+			for _, p := range stageMemrayPackagePIDs[libSrc] {
+				// Remove staged memray package directory.
+				stagingPath := fmt.Sprintf("/proc/%s/root%s", p, memrayStagingDir)
+				_ = os.RemoveAll(stagingPath)
+
+				// Restore or remove _inject.abi3.so.
 				dst := fmt.Sprintf("/proc/%s/root%s", p, libSrc)
-				var err error
-				if stageMemrayLibHadOrig[libSrc] {
-					err = os.WriteFile(dst, stageMemrayLibOriginals[libSrc], 0755)
+				var restoreErr error
+				if stageMemrayPackageHadOrig[libSrc] {
+					restoreErr = os.WriteFile(dst, stageMemrayPackageOriginals[libSrc], 0755)
 				} else {
-					err = os.Remove(dst)
+					restoreErr = os.Remove(dst)
 				}
-				if err == nil {
+				if restoreErr == nil {
 					restored = true
 					break
 				}
@@ -129,12 +212,42 @@ var stageMemrayLib = func(pid string) (func(), error) {
 			if !restored {
 				log.WarningLogLn(fmt.Sprintf("could not restore memray inject library %s: all PID paths exhausted (library may remain staged)", libSrc))
 			}
-			delete(stageMemrayLibRefs, libSrc)
-			delete(stageMemrayLibOriginals, libSrc)
-			delete(stageMemrayLibHadOrig, libSrc)
-			delete(stageMemrayLibPIDs, libSrc)
+			delete(stageMemrayPackageRefs, libSrc)
+			delete(stageMemrayPackageOriginals, libSrc)
+			delete(stageMemrayPackageHadOrig, libSrc)
+			delete(stageMemrayPackagePIDs, libSrc)
 		}
 	}, nil
+}
+
+// copyFile streams the content of src to dst without loading the entire file into memory.
+var copyFile = func(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
+	}
+	if _, err = io.Copy(out, in); err != nil {
+		out.Close()
+		return err
+	}
+	return out.Close()
+}
+
+// pidExists checks whether a process with the given PID still exists by stat-ing /proc/<pid>.
+// Returns false only when the error is definitively "not exist"; any other error (EACCES,
+// transient procfs failure) returns true so that callers do not incorrectly skip a live PID.
+// Exposed as a package-level var so tests can override it.
+var pidExists = func(pid string) bool {
+	_, err := os.Stat(fmt.Sprintf("/proc/%s", pid))
+	if err == nil {
+		return true
+	}
+	return !os.IsNotExist(err)
 }
 
 // rawFileInTargetPath returns the path to the raw file inside the target's mount namespace.
@@ -223,14 +336,19 @@ func (p *memrayManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 
-	// Stage _inject.abi3.so into the target container's filesystem so that gdb's dlopen()
-	// call (which runs in the target's mount namespace) can find the library.
-	cleanup, err := stageMemrayLib(pid)
+	// Stage the memray package and _inject.abi3.so into the target container's filesystem.
+	// Staging is required for profiling — without it, gdb injection and import memray will fail.
+	cleanup, err := stageMemrayPackage(pid)
 	if err != nil {
-		log.WarningLogLn(fmt.Sprintf("could not stage memray inject library for PID %s: %s (profiling may fail)", pid, err))
-	} else {
-		defer cleanup()
+		// The PID may have exited between discovery and staging — if the process is gone,
+		// skip it rather than failing the entire profiling run.
+		if !pidExists(pid) {
+			log.WarningLogLn(fmt.Sprintf("PID %s no longer exists during staging, skipping: %s", pid, err))
+			return nil, time.Since(start)
+		}
+		return fmt.Errorf("could not stage memray package for PID %s: %w", pid, err), time.Since(start)
 	}
+	defer cleanup()
 
 	// intermediate raw binary file (not a user-facing output type, so built directly)
 	rawFileName := filepath.Join(common.TmpDir(), fmt.Sprintf("%smemray-raw-%s-%d.bin", config.ProfilingPrefix, pid, job.Iteration))
@@ -298,11 +416,11 @@ func (p *memrayManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 	}
 
 	// The raw file was written by the target's native memray tracker into the target's /tmp.
-	// Run the report command inside the target's mount namespace so the same memray version
-	// is used for both writing and reading — avoiding format incompatibility errors.
+	// Copy it to the agent's local /tmp and run the report command locally using the agent's
+	// own memray installation — no need to enter the target's mount namespace.
 	resultFileName := common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType, pid, job.Iteration)
-	log.DebugLogLn(fmt.Sprintf("generating report for PID %s via target mount namespace", pid))
-	err = handleReportInMountNs(p.commander, job, pid, rawFileName, resultFileName)
+	log.DebugLogLn(fmt.Sprintf("generating report for PID %s locally in agent container", pid))
+	err = handleReport(p.commander, job, pid, rawFileName, resultFileName)
 	if err != nil {
 		log.ErrorLogLn(fmt.Sprintf("could not generate report (PID: %s): %s", pid, err.Error()))
 		_ = os.Remove(rawFileInTarget)
@@ -313,52 +431,70 @@ func (p *memrayManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 	return p.publisher.Do(job.Compressor, resultFileName, job.OutputType), time.Since(start)
 }
 
-// handleReportInMountNs runs the memray report command inside the target's mount namespace
-// (via nsenter --mount) so the target's own Python/memray installation is used. This avoids
-// format incompatibility when the target has a different memray version than the profiling container.
-// Exposed as a package-level var so tests can override it without /proc filesystem access.
-var handleReportInMountNs = func(commander executil.Commander, job *job.ProfilingJob, pid string, rawFileName string, resultFileName string) error {
-	mntNs := fmt.Sprintf("/proc/%s/ns/mnt", pid)
+// copyRawFileFromTarget copies the raw profiling data from the target's filesystem
+// (via /proc/<pid>/root/...) to a local path in the agent container.
+// Exposed as a package-level var so tests can override it.
+var copyRawFileFromTarget = func(srcPath string, dstPath string) error {
+	src, err := os.Open(srcPath)
+	if err != nil {
+		return fmt.Errorf("could not read raw file from target at %s: %w", srcPath, err)
+	}
+	defer src.Close()
+	dst, err := os.OpenFile(dstPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+	if err != nil {
+		return fmt.Errorf("could not write raw file locally at %s: %w", dstPath, err)
+	}
+	if _, err := io.Copy(dst, src); err != nil {
+		dst.Close()
+		return fmt.Errorf("could not copy raw file from %s to %s: %w", srcPath, dstPath, err)
+	}
+	if err := dst.Close(); err != nil {
+		return fmt.Errorf("could not finalize raw file at %s: %w", dstPath, err)
+	}
+	return nil
+}
+
+// handleReport copies the raw profiling data from the target's filesystem to the agent's
+// local /tmp, then runs the memray report command locally using the agent's own memray
+// installation. This avoids entering the target's mount namespace for report generation.
+// Exposed as a package-level var so tests can override it.
+var handleReport = func(commander executil.Commander, job *job.ProfilingJob, pid string, rawFileName string, resultFileName string) error {
+	// Copy raw file from target's filesystem to agent's local /tmp.
+	rawFileInTarget := rawFileInTargetPath(pid, rawFileName)
+	localRawFile := rawFileName + ".local"
+	if err := copyRawFileFromTarget(rawFileInTarget, localRawFile); err != nil {
+		return err
+	}
+	defer os.Remove(localRawFile)
 
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 
-	pidNs := fmt.Sprintf("/proc/%s/ns/pid", pid)
-
 	switch job.OutputType {
 	case api.FlameGraph:
-		// Output file goes into target's /tmp; we copy it back afterward.
-		targetOutput := rawFileName + ".html"
-		// Enter both mount and PID namespaces: mount so python3 uses the target's memray
-		// installation, PID so /proc/self resolves correctly within the target's procfs.
-		args := []string{"--mount=" + mntNs, "--pid=" + pidNs, "--", "python3", "-m", "memray", "flamegraph", rawFileName, "-o", targetOutput}
-		cmd := commander.Command("nsenter", args...)
+		localOutput := localRawFile + ".html"
+		args := []string{"-m", "memray", "flamegraph", localRawFile, "-o", localOutput}
+		cmd := commander.Command("python3", args...)
 		cmd.Stdout = &out
 		cmd.Stderr = &stderr
-		log.DebugLogLn(fmt.Sprintf("nsenter --mount=%s --pid=%s -- python3 -m memray flamegraph %s -o %s", mntNs, pidNs, rawFileName, targetOutput))
+		log.DebugLogLn(fmt.Sprintf("python3 -m memray flamegraph %s -o %s", localRawFile, localOutput))
 		if err := cmd.Run(); err != nil {
-			return errors.Wrapf(err, "could not generate flamegraph in target namespace: %s", stderr.String())
+			return errors.Wrapf(err, "could not generate flamegraph: %s", stderr.String())
 		}
-		// Copy the output file from the target's /tmp back to the profiling container.
-		targetOutputInHost := fmt.Sprintf("/proc/%s/root%s", pid, targetOutput)
-		data, err := os.ReadFile(targetOutputInHost)
-		if err != nil {
-			return errors.Wrapf(err, "could not read flamegraph output from target namespace at %s", targetOutputInHost)
+		if err := copyFile(localOutput, resultFileName); err != nil {
+			return errors.Wrapf(err, "could not copy flamegraph output to %s", resultFileName)
 		}
-		if err := os.WriteFile(resultFileName, data, 0600); err != nil {
-			return err
-		}
-		_ = os.Remove(targetOutputInHost)
+		_ = os.Remove(localOutput)
 		return nil
 
-	case api.Summary, api.Tree:
-		args := []string{"--mount=" + mntNs, "--pid=" + pidNs, "--", "python3", "-m", "memray", string(job.OutputType), rawFileName}
-		cmd := commander.Command("nsenter", args...)
+	case api.Summary:
+		args := []string{"-m", "memray", string(job.OutputType), localRawFile}
+		cmd := commander.Command("python3", args...)
 		cmd.Stdout = &out
 		cmd.Stderr = &stderr
-		log.DebugLogLn(fmt.Sprintf("nsenter --mount=%s --pid=%s -- python3 -m memray %s %s", mntNs, pidNs, string(job.OutputType), rawFileName))
+		log.DebugLogLn(fmt.Sprintf("python3 -m memray %s %s", string(job.OutputType), localRawFile))
 		if err := cmd.Run(); err != nil {
-			return errors.Wrapf(err, "could not generate %s report in target namespace: %s", string(job.OutputType), stderr.String())
+			return errors.Wrapf(err, "could not generate %s report: %s", string(job.OutputType), stderr.String())
 		}
 		return os.WriteFile(resultFileName, out.Bytes(), 0600)
 
