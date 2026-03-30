@@ -1,6 +1,8 @@
 package api
 
-import "github.com/samber/lo"
+import (
+	"slices"
+)
 
 // ContainerRuntime represents a container runtime environment.
 type ContainerRuntime string
@@ -38,5 +40,5 @@ func IsSupportedContainerRuntime(runtime string) bool {
 		runtime == string(FakeContainerWithPIDResultError) || runtime == string(FakeContainerWithCWDResultError) {
 		return true
 	}
-	return lo.Contains(AvailableContainerRuntimes(), ContainerRuntime(runtime))
+	return slices.Contains(AvailableContainerRuntimes(), ContainerRuntime(runtime))
 }

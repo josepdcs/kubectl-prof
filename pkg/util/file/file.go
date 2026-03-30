@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -168,3 +169,32 @@ func Copy(src, dst string) (int64, error) {
 func Move(src, dst string) error {
 	return os.Rename(src, dst)
 }
+
+// CopyDir recursively copies a directory tree from src to dst,
+// preserving file permissions. The destination directory is created
+// if it does not exist.
+func CopyDir(src, dst string) error {
+	return filepath.WalkDir(src, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		relPath, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		dstPath := filepath.Join(dst, relPath)
+		if d.IsDir() {
+			return os.MkdirAll(dstPath, 0755)
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(dstPath, data, info.Mode())
+	})
+}
+

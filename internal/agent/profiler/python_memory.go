@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
-	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -33,6 +31,7 @@ const (
 	memrayLocation         = "/app/memray"
 	memrayDelayBetweenJobs = 2 * time.Second
 	memrayStagingDir       = "/tmp/.kubectl-prof-memray"
+	procRootPath           = "/proc/%s/root%s"
 )
 
 // memrayCommand runs memray attach --aggregate inside the target's network namespace via nsenter.
@@ -79,32 +78,8 @@ var detectTargetPythonVersion = func(pid string) (string, error) {
 	return "", fmt.Errorf("could not detect Python version for PID %s: no libpython in /proc/%s/maps and binary name has no version (statically-linked Python not supported)", pid, pid)
 }
 
-// copyDir recursively copies a directory tree from src to dst.
-// Exposed as a package-level var so tests can override it.
-var copyDir = func(src, dst string) error {
-	return filepath.WalkDir(src, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		relPath, err := filepath.Rel(src, path)
-		if err != nil {
-			return err
-		}
-		dstPath := filepath.Join(dst, relPath)
-		if d.IsDir() {
-			return os.MkdirAll(dstPath, 0755)
-		}
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		info, err := d.Info()
-		if err != nil {
-			return err
-		}
-		return os.WriteFile(dstPath, data, info.Mode())
-	})
-}
+// copyDir delegates to file.CopyDir so it can be overridden in tests.
+var copyDir = file.CopyDir
 
 // stageMemrayPackage stages the version-matched memray package and _inject.abi3.so into the
 // target container's filesystem. The full package is copied to /tmp/.kubectl-prof-memray/ so
@@ -143,11 +118,11 @@ var stageMemrayPackage = func(pid string) (func(), error) {
 	if libSrc == "" {
 		return nil, fmt.Errorf("could not locate memray inject library: empty output")
 	}
-	libDst := fmt.Sprintf("/proc/%s/root%s", pid, libSrc)
+	libDst := fmt.Sprintf(procRootPath, pid, libSrc)
 
 	// Version-matched memray package source and target staging directory.
 	pkgSrc := fmt.Sprintf("/opt/memray/%s", pyVersion)
-	pkgDst := fmt.Sprintf("/proc/%s/root%s", pid, memrayStagingDir)
+	pkgDst := fmt.Sprintf(procRootPath, pid, memrayStagingDir)
 
 	if err := os.MkdirAll(filepath.Dir(libDst), 0755); err != nil {
 		return nil, fmt.Errorf("could not create directory for %s: %w", libDst, err)
@@ -193,11 +168,11 @@ var stageMemrayPackage = func(pid string) (func(), error) {
 			restored := false
 			for _, p := range stageMemrayPackagePIDs[libSrc] {
 				// Remove staged memray package directory.
-				stagingPath := fmt.Sprintf("/proc/%s/root%s", p, memrayStagingDir)
+				stagingPath := fmt.Sprintf(procRootPath, p, memrayStagingDir)
 				_ = os.RemoveAll(stagingPath)
 
 				// Restore or remove _inject.abi3.so.
-				dst := fmt.Sprintf("/proc/%s/root%s", p, libSrc)
+				dst := fmt.Sprintf(procRootPath, p, libSrc)
 				var restoreErr error
 				if stageMemrayPackageHadOrig[libSrc] {
 					restoreErr = os.WriteFile(dst, stageMemrayPackageOriginals[libSrc], 0755)
@@ -220,24 +195,6 @@ var stageMemrayPackage = func(pid string) (func(), error) {
 	}, nil
 }
 
-// copyFile streams the content of src to dst without loading the entire file into memory.
-var copyFile = func(src, dst string) error {
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-	out, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
-	if err != nil {
-		return err
-	}
-	if _, err = io.Copy(out, in); err != nil {
-		out.Close()
-		return err
-	}
-	return out.Close()
-}
-
 // pidExists checks whether a process with the given PID still exists by stat-ing /proc/<pid>.
 // Returns false only when the error is definitively "not exist"; any other error (EACCES,
 // transient procfs failure) returns true so that callers do not incorrectly skip a live PID.
@@ -253,7 +210,7 @@ var pidExists = func(pid string) bool {
 // rawFileInTargetPath returns the path to the raw file inside the target's mount namespace.
 // Exposed as a package-level var so tests can override it.
 var rawFileInTargetPath = func(pid string, rawFileName string) string {
-	return fmt.Sprintf("/proc/%s/root%s", pid, rawFileName)
+	return fmt.Sprintf(procRootPath, pid, rawFileName)
 }
 
 // checkRawFileExists verifies the raw file exists. Exposed as a package-level var so tests
@@ -330,6 +287,27 @@ func (p *MemrayProfiler) Invoke(job *job.ProfilingJob) (error, time.Duration) {
 	return err, time.Since(start)
 }
 
+// waitForProfilingInterval waits for the profiling interval to elapse, emitting periodic
+// heartbeat events to keep the log stream alive through proxies/load balancers.
+// If heartbeatInterval is zero or negative the default of 30 seconds is used.
+func waitForProfilingInterval(interval, heartbeatInterval time.Duration) {
+	if heartbeatInterval <= 0 {
+		heartbeatInterval = 30 * time.Second
+	}
+	remaining := interval
+	for remaining > 0 {
+		sleep := heartbeatInterval
+		if remaining < sleep {
+			sleep = remaining
+		}
+		time.Sleep(sleep)
+		remaining -= sleep
+		if remaining > 0 {
+			_ = log.EventLn(api.Progress, &api.ProgressData{Time: time.Now(), Stage: api.Profiling})
+		}
+	}
+}
+
 func (p *memrayManager) invoke(job *job.ProfilingJob, pid string) (error, time.Duration) {
 	start := time.Now()
 
@@ -356,15 +334,13 @@ func (p *memrayManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 	// The tracker (--aggregate) writes the raw file to its own /tmp (target's mount namespace).
 	// Clean both locations before running to avoid "file exists" errors from prior runs.
 	rawFileInTarget := rawFileInTargetPath(pid, rawFileName)
-	_ = os.Remove(rawFileName)
-	_ = os.Remove(rawFileInTarget)
+	_ = file.Remove(rawFileName)
+	_ = file.Remove(rawFileInTarget)
 
 	cmd := memrayCommand(p.commander, job, pid, rawFileName)
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 	err = cmd.Run()
-	log.DebugLogLn(fmt.Sprintf("memray attach stdout (PID %s): %q", pid, out.String()))
-	log.DebugLogLn(fmt.Sprintf("memray attach stderr (PID %s): %q", pid, stderr.String()))
 	if err != nil {
 		stderrStr := stderr.String()
 		// The PID may have exited between discovery and attach — skip it rather than
@@ -391,22 +367,7 @@ func (p *memrayManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 	// output file to the target's filesystem. Wait for it to finish before reading the file.
 	// Emit periodic heartbeat events to keep the log stream alive through proxies/load balancers.
 	log.DebugLogLn(fmt.Sprintf("tracker injected for PID %s; waiting %v for profiling to complete", pid, job.Interval))
-	heartbeatInterval := job.HeartbeatInterval
-	if heartbeatInterval <= 0 {
-		heartbeatInterval = 30 * time.Second
-	}
-	remaining := job.Interval
-	for remaining > 0 {
-		sleep := heartbeatInterval
-		if remaining < sleep {
-			sleep = remaining
-		}
-		time.Sleep(sleep)
-		remaining -= sleep
-		if remaining > 0 {
-			_ = log.EventLn(api.Progress, &api.ProgressData{Time: time.Now(), Stage: api.Profiling})
-		}
-	}
+	waitForProfilingInterval(job.Interval, job.HeartbeatInterval)
 
 	// Verify the tracker actually produced a raw file before attempting report generation.
 	// The tracker may have crashed or the target process may have exited mid-profile.
@@ -426,7 +387,7 @@ func (p *memrayManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 		_ = os.Remove(rawFileInTarget)
 		return err, time.Since(start)
 	}
-	_ = os.Remove(rawFileInTarget)
+	_ = file.Remove(rawFileInTarget)
 
 	return p.publisher.Do(job.Compressor, resultFileName, job.OutputType), time.Since(start)
 }
@@ -434,24 +395,9 @@ func (p *memrayManager) invoke(job *job.ProfilingJob, pid string) (error, time.D
 // copyRawFileFromTarget copies the raw profiling data from the target's filesystem
 // (via /proc/<pid>/root/...) to a local path in the agent container.
 // Exposed as a package-level var so tests can override it.
-var copyRawFileFromTarget = func(srcPath string, dstPath string) error {
-	src, err := os.Open(srcPath)
-	if err != nil {
-		return fmt.Errorf("could not read raw file from target at %s: %w", srcPath, err)
-	}
-	defer src.Close()
-	dst, err := os.OpenFile(dstPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
-	if err != nil {
-		return fmt.Errorf("could not write raw file locally at %s: %w", dstPath, err)
-	}
-	if _, err := io.Copy(dst, src); err != nil {
-		dst.Close()
-		return fmt.Errorf("could not copy raw file from %s to %s: %w", srcPath, dstPath, err)
-	}
-	if err := dst.Close(); err != nil {
-		return fmt.Errorf("could not finalize raw file at %s: %w", dstPath, err)
-	}
-	return nil
+var copyRawFileFromTarget = func(src, dst string) error {
+	_, err := file.Copy(src, dst)
+	return err
 }
 
 // handleReport copies the raw profiling data from the target's filesystem to the agent's
@@ -465,7 +411,12 @@ var handleReport = func(commander executil.Commander, job *job.ProfilingJob, pid
 	if err := copyRawFileFromTarget(rawFileInTarget, localRawFile); err != nil {
 		return err
 	}
-	defer os.Remove(localRawFile)
+	defer func(f string) {
+		err := file.Remove(f)
+		if err != nil {
+			log.WarningLogLn(fmt.Sprintf("could not remove local raw file %s: %s", f, err))
+		}
+	}(localRawFile)
 
 	var out bytes.Buffer
 	var stderr bytes.Buffer
@@ -477,14 +428,13 @@ var handleReport = func(commander executil.Commander, job *job.ProfilingJob, pid
 		cmd := commander.Command("python3", args...)
 		cmd.Stdout = &out
 		cmd.Stderr = &stderr
-		log.DebugLogLn(fmt.Sprintf("python3 -m memray flamegraph %s -o %s", localRawFile, localOutput))
 		if err := cmd.Run(); err != nil {
 			return errors.Wrapf(err, "could not generate flamegraph: %s", stderr.String())
 		}
-		if err := copyFile(localOutput, resultFileName); err != nil {
+		if _, err := file.Copy(localOutput, resultFileName); err != nil {
 			return errors.Wrapf(err, "could not copy flamegraph output to %s", resultFileName)
 		}
-		_ = os.Remove(localOutput)
+		_ = file.Remove(localOutput)
 		return nil
 
 	case api.Summary:
@@ -492,7 +442,6 @@ var handleReport = func(commander executil.Commander, job *job.ProfilingJob, pid
 		cmd := commander.Command("python3", args...)
 		cmd.Stdout = &out
 		cmd.Stderr = &stderr
-		log.DebugLogLn(fmt.Sprintf("python3 -m memray %s %s", string(job.OutputType), localRawFile))
 		if err := cmd.Run(); err != nil {
 			return errors.Wrapf(err, "could not generate %s report: %s", string(job.OutputType), stderr.String())
 		}

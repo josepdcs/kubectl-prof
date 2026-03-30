@@ -1,6 +1,8 @@
 package api
 
-import "github.com/samber/lo"
+import (
+	"slices"
+)
 
 // LogLevel represents a logging level for the profiling agent.
 type LogLevel string
@@ -27,5 +29,5 @@ func AvailableLogLevels() []LogLevel {
 // IsSupportedLogLevel checks if the given log level string is a supported log level.
 // It returns true if the log level is in the list of available log levels.
 func IsSupportedLogLevel(logLevel string) bool {
-	return lo.Contains(AvailableLogLevels(), LogLevel(logLevel))
+	return slices.Contains(AvailableLogLevels(), LogLevel(logLevel))
 }

@@ -1,6 +1,8 @@
 package api
 
-import "github.com/samber/lo"
+import (
+	"slices"
+)
 
 // ProgrammingLanguage represents a supported programming language for profiling.
 type ProgrammingLanguage string
@@ -35,5 +37,5 @@ func IsSupportedLanguage(lang string) bool {
 	if lang == string(FakeLang) {
 		return true
 	}
-	return lo.Contains(AvailableLanguages(), ProgrammingLanguage(lang))
+	return slices.Contains(AvailableLanguages(), ProgrammingLanguage(lang))
 }

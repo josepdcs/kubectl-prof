@@ -1,8 +1,8 @@
 package api
 
 import (
-	jsoniter "github.com/json-iterator/go"
-	"github.com/samber/lo"
+	"encoding/json"
+	"slices"
 )
 
 // OutputType represents the format of the profiling output.
@@ -53,7 +53,7 @@ var GetOutputTypesByProfilingTool = map[ProfilingTool][]OutputType{
 
 // AvailableOutputTypesString returns a JSON string representation of all output types by profiling tool.
 func AvailableOutputTypesString() string {
-	out, _ := jsoniter.Marshal(GetOutputTypesByProfilingTool)
+	out, _ := json.Marshal(GetOutputTypesByProfilingTool)
 	return string(out)
 }
 
@@ -89,16 +89,11 @@ func AvailableOutputTypes() []OutputType {
 // IsSupportedOutputType checks if the given output type string is a supported output type.
 // It returns true if the output type is in the list of available output types.
 func IsSupportedOutputType(outputType string) bool {
-	return lo.Contains(AvailableOutputTypes(), OutputType(outputType))
+	return slices.Contains(AvailableOutputTypes(), OutputType(outputType))
 }
 
 // IsValidOutputType checks if the given OutputType is valid for the specified ProfilingTool.
 // It returns true if the output type is supported by the profiling tool.
 func IsValidOutputType(OutputType OutputType, profilingTool ProfilingTool) bool {
-	for _, current := range GetOutputTypesByProfilingTool[profilingTool] {
-		if OutputType == current {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(GetOutputTypesByProfilingTool[profilingTool], OutputType)
 }
