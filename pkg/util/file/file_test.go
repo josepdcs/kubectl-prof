@@ -721,3 +721,133 @@ func TestMove(t *testing.T) {
 		})
 	}
 }
+
+func TestCopyDir(t *testing.T) {
+	type args struct {
+		src string
+		dst string
+	}
+	tests := []struct {
+		name  string
+		given func() args
+		when  func(args args) error
+		then  func(t *testing.T, args args, err error)
+		after func(args args)
+	}{
+		{
+			name: "should copy directory tree with nested files",
+			given: func() args {
+				src := filepath.Join(os.TempDir(), "test-copydir-src")
+				dst := filepath.Join(os.TempDir(), "test-copydir-dst")
+				_ = os.MkdirAll(filepath.Join(src, "sub"), 0755)
+				_ = os.WriteFile(filepath.Join(src, "a.txt"), []byte("file-a"), 0644)
+				_ = os.WriteFile(filepath.Join(src, "sub", "b.txt"), []byte("file-b"), 0644)
+				return args{src: src, dst: dst}
+			},
+			when: func(args args) error {
+				return CopyDir(args.src, args.dst)
+			},
+			then: func(t *testing.T, args args, err error) {
+				assert.NoError(t, err)
+
+				data, readErr := os.ReadFile(filepath.Join(args.dst, "a.txt"))
+				assert.NoError(t, readErr)
+				assert.Equal(t, "file-a", string(data))
+
+				data, readErr = os.ReadFile(filepath.Join(args.dst, "sub", "b.txt"))
+				assert.NoError(t, readErr)
+				assert.Equal(t, "file-b", string(data))
+			},
+			after: func(args args) {
+				_ = os.RemoveAll(args.src)
+				_ = os.RemoveAll(args.dst)
+			},
+		},
+		{
+			name: "should create destination directory if it does not exist",
+			given: func() args {
+				src := filepath.Join(os.TempDir(), "test-copydir-newdst-src")
+				dst := filepath.Join(os.TempDir(), "test-copydir-newdst-dst", "nested")
+				_ = os.MkdirAll(src, 0755)
+				_ = os.WriteFile(filepath.Join(src, "file.txt"), []byte("hello"), 0644)
+				return args{src: src, dst: dst}
+			},
+			when: func(args args) error {
+				return CopyDir(args.src, args.dst)
+			},
+			then: func(t *testing.T, args args, err error) {
+				assert.NoError(t, err)
+				data, readErr := os.ReadFile(filepath.Join(args.dst, "file.txt"))
+				assert.NoError(t, readErr)
+				assert.Equal(t, "hello", string(data))
+			},
+			after: func(args args) {
+				_ = os.RemoveAll(args.src)
+				_ = os.RemoveAll(filepath.Join(os.TempDir(), "test-copydir-newdst-dst"))
+			},
+		},
+		{
+			name: "should preserve file permissions",
+			given: func() args {
+				src := filepath.Join(os.TempDir(), "test-copydir-perm-src")
+				dst := filepath.Join(os.TempDir(), "test-copydir-perm-dst")
+				_ = os.MkdirAll(src, 0755)
+				_ = os.WriteFile(filepath.Join(src, "exec.sh"), []byte("#!/bin/sh"), 0755)
+				_ = os.WriteFile(filepath.Join(src, "readonly.txt"), []byte("ro"), 0444)
+				return args{src: src, dst: dst}
+			},
+			when: func(args args) error {
+				return CopyDir(args.src, args.dst)
+			},
+			then: func(t *testing.T, args args, err error) {
+				assert.NoError(t, err)
+
+				infoExec, statErr := os.Stat(filepath.Join(args.dst, "exec.sh"))
+				assert.NoError(t, statErr)
+				assert.Equal(t, os.FileMode(0755), infoExec.Mode().Perm())
+
+				infoRo, statErr := os.Stat(filepath.Join(args.dst, "readonly.txt"))
+				assert.NoError(t, statErr)
+				assert.Equal(t, os.FileMode(0444), infoRo.Mode().Perm())
+			},
+			after: func(args args) {
+				// restore write permission so RemoveAll can delete the file
+				_ = os.Chmod(filepath.Join(args.dst, "readonly.txt"), 0644)
+				_ = os.RemoveAll(args.src)
+				_ = os.RemoveAll(args.dst)
+			},
+		},
+		{
+			name: "should return error for non-existent source",
+			given: func() args {
+				return args{src: "/non/existent/path", dst: filepath.Join(os.TempDir(), "test-copydir-err-dst")}
+			},
+			when: func(args args) error {
+				return CopyDir(args.src, args.dst)
+			},
+			then: func(t *testing.T, args args, err error) {
+				assert.Error(t, err)
+			},
+			after: func(args args) {
+				_ = os.RemoveAll(args.dst)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Given
+			args := tt.given()
+
+			// When
+			err := tt.when(args)
+
+			// Then
+			tt.then(t, args, err)
+
+			if tt.after != nil {
+				tt.after(args)
+			}
+		})
+	}
+}
+

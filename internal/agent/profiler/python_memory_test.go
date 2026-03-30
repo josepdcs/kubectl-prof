@@ -376,7 +376,6 @@ func Test_memrayManager_invoke(t *testing.T) {
 	realCheckRawFileExists := checkRawFileExists
 	realCopyRawFileFromTarget := copyRawFileFromTarget
 	realPidExists := pidExists
-	realCopyFile := copyFile
 
 	// Default test overrides: no-op stageMemrayPackage, use local path for raw file, always find raw file,
 	// no-op copy (raw file is already local in tests).
@@ -387,7 +386,6 @@ func Test_memrayManager_invoke(t *testing.T) {
 		checkRawFileExists = func(_ string) (os.FileInfo, error) { return nil, nil }
 		copyRawFileFromTarget = func(src string, dst string) error { return nil }
 		pidExists = func(_ string) bool { return true }
-		copyFile = realCopyFile
 	}
 	restoreTestHelpers := func() {
 		handleReport = realHandleReport
@@ -397,7 +395,6 @@ func Test_memrayManager_invoke(t *testing.T) {
 		checkRawFileExists = realCheckRawFileExists
 		copyRawFileFromTarget = realCopyRawFileFromTarget
 		pidExists = realPidExists
-		copyFile = realCopyFile
 	}
 
 	type fields struct {
@@ -784,37 +781,6 @@ func Test_memrayManager_invoke(t *testing.T) {
 	}
 }
 
-func Test_copyDir(t *testing.T) {
-	t.Run("should copy directory tree", func(t *testing.T) {
-		// Create source directory with nested files.
-		srcDir := filepath.Join(os.TempDir(), "test-copydir-src")
-		dstDir := filepath.Join(os.TempDir(), "test-copydir-dst")
-		defer os.RemoveAll(srcDir)
-		defer os.RemoveAll(dstDir)
-
-		require.NoError(t, os.MkdirAll(filepath.Join(srcDir, "sub"), 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(srcDir, "a.txt"), []byte("file-a"), 0644))
-		require.NoError(t, os.WriteFile(filepath.Join(srcDir, "sub", "b.txt"), []byte("file-b"), 0644))
-
-		// Copy.
-		err := copyDir(srcDir, dstDir)
-		require.NoError(t, err)
-
-		// Verify.
-		data, err := os.ReadFile(filepath.Join(dstDir, "a.txt"))
-		require.NoError(t, err)
-		assert.Equal(t, "file-a", string(data))
-
-		data, err = os.ReadFile(filepath.Join(dstDir, "sub", "b.txt"))
-		require.NoError(t, err)
-		assert.Equal(t, "file-b", string(data))
-	})
-
-	t.Run("should return error for non-existent source", func(t *testing.T) {
-		err := copyDir("/non/existent/path", "/tmp/dst")
-		require.Error(t, err)
-	})
-}
 
 func Test_stageMemrayPackage(t *testing.T) {
 	realStageMemrayPackage := stageMemrayPackage
@@ -904,3 +870,48 @@ func Test_stageMemrayPackage(t *testing.T) {
 		assert.True(t, strings.Contains(err.Error(), "could not stage memray package"))
 	})
 }
+
+func Test_waitForProfilingInterval(t *testing.T) {
+	t.Run("should return immediately for zero interval", func(t *testing.T) {
+		start := time.Now()
+		waitForProfilingInterval(0, 30*time.Second)
+		assert.Less(t, time.Since(start), 100*time.Millisecond)
+	})
+
+	t.Run("should use default heartbeat when heartbeatInterval is zero", func(t *testing.T) {
+		// With a very short interval the default 30s heartbeat is never hit — just verify
+		// it does not block indefinitely and completes in the given interval.
+		start := time.Now()
+		waitForProfilingInterval(10*time.Millisecond, 0)
+		elapsed := time.Since(start)
+		assert.GreaterOrEqual(t, elapsed, 10*time.Millisecond)
+		assert.Less(t, elapsed, 500*time.Millisecond)
+	})
+
+	t.Run("should use default heartbeat when heartbeatInterval is negative", func(t *testing.T) {
+		start := time.Now()
+		waitForProfilingInterval(10*time.Millisecond, -5*time.Second)
+		elapsed := time.Since(start)
+		assert.GreaterOrEqual(t, elapsed, 10*time.Millisecond)
+		assert.Less(t, elapsed, 500*time.Millisecond)
+	})
+
+	t.Run("should complete after the given interval with custom heartbeat", func(t *testing.T) {
+		// interval=30ms, heartbeat=10ms → 3 ticks; each tick emits a heartbeat except the last.
+		start := time.Now()
+		waitForProfilingInterval(30*time.Millisecond, 10*time.Millisecond)
+		elapsed := time.Since(start)
+		assert.GreaterOrEqual(t, elapsed, 30*time.Millisecond)
+		assert.Less(t, elapsed, 500*time.Millisecond)
+	})
+
+	t.Run("should complete after the given interval when heartbeat is larger than interval", func(t *testing.T) {
+		// heartbeat > interval: only one tick, which equals the full interval; no heartbeat event emitted.
+		start := time.Now()
+		waitForProfilingInterval(20*time.Millisecond, 1*time.Second)
+		elapsed := time.Since(start)
+		assert.GreaterOrEqual(t, elapsed, 20*time.Millisecond)
+		assert.Less(t, elapsed, 500*time.Millisecond)
+	})
+}
+

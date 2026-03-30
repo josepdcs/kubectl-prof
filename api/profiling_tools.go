@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"slices"
 
 	"github.com/samber/lo"
 )
@@ -118,10 +119,5 @@ func AvailableProfilingToolsString() string {
 // IsValidProfilingTool checks if the given ProfilingTool is valid for the specified ProgrammingLanguage.
 // It returns true if the tool is supported by the programming language.
 func IsValidProfilingTool(tool ProfilingTool, language ProgrammingLanguage) bool {
-	for _, current := range GetProfilingToolsByProgrammingLanguage[language] {
-		if tool == current {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(GetProfilingToolsByProgrammingLanguage[language], tool)
 }

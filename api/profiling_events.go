@@ -1,6 +1,8 @@
 package api
 
-import "github.com/samber/lo"
+import (
+	"slices"
+)
 
 // ProfilingEvent represents the type of event to profile.
 type ProfilingEvent string
@@ -28,5 +30,5 @@ func AvailableEvents() []ProfilingEvent {
 // IsSupportedEvent checks if the given event string is a supported profiling event.
 // It returns true if the event is in the list of available events.
 func IsSupportedEvent(event string) bool {
-	return lo.Contains(AvailableEvents(), ProfilingEvent(event))
+	return slices.Contains(AvailableEvents(), ProfilingEvent(event))
 }

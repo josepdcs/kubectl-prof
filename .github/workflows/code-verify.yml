@@ -2,10 +2,8 @@
 name: Code Verify
 
 on:
-  push:
-    branches-ignore: [main, bugfix/GH-19-krew-not-working ]
   pull_request:
-    branches: ['*']
+    branches: ['main']
 
 jobs:
 

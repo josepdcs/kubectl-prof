@@ -88,14 +88,14 @@ type LogData struct {
 }
 
 // ParseEvent parses the given event string into its corresponding data structure.
-func ParseEvent(eventString string) (interface{}, error) {
+func ParseEvent(eventString string) (any, error) {
 	event := &Event{}
 	err := jsoniter.Unmarshal([]byte(eventString), event)
 	if err != nil {
 		return nil, err
 	}
 
-	var eventData interface{}
+	var eventData any
 	switch event.Type {
 	case Error:
 		eventData = &ErrorData{}
