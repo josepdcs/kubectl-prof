@@ -79,6 +79,9 @@ func (l *nativeCreatorLink) get(lang api.ProgrammingLanguage, tool api.Profiling
 		if tool == api.Btf {
 			return &btfCreator{}, nil
 		}
+		if tool == api.GoPprof {
+			return &pprofCreator{}, nil
+		}
 		return &bpfCreator{}, nil
 	}
 	return l.baseJobCreatorLink.get(lang, tool)

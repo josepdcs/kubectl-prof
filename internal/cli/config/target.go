@@ -48,6 +48,7 @@ type ExtraTargetOptions struct {
 	HeartbeatInterval           time.Duration
 	NodeHeapSnapshotSignal      int
 	AsyncProfilerArgs           []string
+	PprofPort                   string
 }
 
 // DeepCopy returns a deep copy of the target config

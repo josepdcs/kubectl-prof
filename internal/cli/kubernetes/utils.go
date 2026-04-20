@@ -53,6 +53,9 @@ func GetArgs(targetPod *apiv1.Pod, cfg *config.ProfilerConfig, id string) []stri
 	args = appendAsyncProfilerArgs(args, cfg.Target.AsyncProfilerArgs, func() bool {
 		return len(cfg.Target.AsyncProfilerArgs) > 0
 	})
+	args = appendArgument(args, "--pprof-port", cfg.Target.PprofPort, func() bool {
+		return stringUtils.IsNotBlank(cfg.Target.PprofPort) && cfg.Target.ProfilingTool == api.GoPprof
+	})
 
 	return args
 }

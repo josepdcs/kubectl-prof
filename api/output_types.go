@@ -48,6 +48,7 @@ var GetOutputTypesByProfilingTool = map[ProfilingTool][]OutputType{
 	DotnetGcdump:   {Gcdump},
 	DotnetCounters: {Counters},
 	DotnetDump:     {Dump},
+	GoPprof:        {Raw, FlameGraph},
 	FakeTool:       {FlameGraph},
 }
 

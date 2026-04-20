@@ -189,6 +189,7 @@ func (v *additionalParametersValidator) validate(args map[string]any, j *job.Pro
 	setNodeHeapSnapshotSignal(args, j)
 	setAsyncProfilerArgs(args, j)
 	setHeartbeatInterval(args, j)
+	setPprofArgs(args, j)
 	return v.validateNext(args, j)
 }
 
@@ -317,4 +318,20 @@ func validateOutputType(outputType string, job *job.ProfilingJob) {
 	}
 
 	job.OutputType = api.OutputType(outputType)
+}
+
+// setPprofArgs sets the pprof host and port from the CLI args into the job's additional arguments.
+func setPprofArgs(args map[string]any, j *job.ProfilingJob) {
+	if args[PprofHost] != nil && stringUtils.IsNotBlank(args[PprofHost].(string)) {
+		if j.AdditionalArguments == nil {
+			j.AdditionalArguments = make(map[string]string)
+		}
+		j.AdditionalArguments["pprof-host"] = args[PprofHost].(string)
+	}
+	if args[PprofPort] != nil && stringUtils.IsNotBlank(args[PprofPort].(string)) {
+		if j.AdditionalArguments == nil {
+			j.AdditionalArguments = make(map[string]string)
+		}
+		j.AdditionalArguments["pprof-port"] = args[PprofPort].(string)
+	}
 }

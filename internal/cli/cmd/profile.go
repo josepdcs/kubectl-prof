@@ -262,6 +262,7 @@ func setProfileFlags(cmd *cobra.Command, target *config.TargetConfig, job *confi
 	cmd.Flags().StringSliceVar(&job.TolerationsRaw, "tolerations", nil, "Tolerations for the profiling job pod, in the format key=value:effect or key:effect (e.g. --tolerations node-role=infra:NoSchedule --tolerations dedicated:NoExecute)")
 	cmd.Flags().DurationVar(&target.HeartbeatInterval, "heartbeat-interval", 30*time.Second, "Interval between heartbeat progress events emitted during profiling. Keeps connections alive through proxies/load balancers (e.g. 30s, 1m)")
 	cmd.Flags().StringSliceVar(&target.AsyncProfilerArgs, "async-profiler-args", nil, "Extra arguments forwarded directly to async-profiler (e.g. --async-profiler-args --alloc=2m --async-profiler-args --lock=1ms). See async-profiler docs for available options")
+	cmd.Flags().StringVar(&target.PprofPort, "pprof-port", "", "Port on the target pod where the Go pprof HTTP endpoint is exposed (default: 6060). Used only with --tool pprof")
 
 	options.configFlags.AddFlags(cmd.Flags())
 }

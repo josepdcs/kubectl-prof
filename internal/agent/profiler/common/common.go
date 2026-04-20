@@ -90,6 +90,9 @@ var toolExtensionMap = map[api.ProfilingTool]map[api.OutputType]string{
 	api.DotnetDump: {
 		api.Dump: ".dmp",
 	},
+	api.GoPprof: {
+		api.Raw: ".pb.gz",
+	},
 }
 
 // toolDefaultExtensionMap maps profiling tools to their default file extensions.
@@ -109,6 +112,7 @@ var toolDefaultExtensionMap = map[api.ProfilingTool]string{
 	api.DotnetGcdump:   ".gcdump",
 	api.DotnetCounters: ".json",
 	api.DotnetDump:     ".dmp",
+	api.GoPprof:        ".pb.gz",
 }
 
 // GetFileExtension returns the file extension for a given profiling tool and output type.

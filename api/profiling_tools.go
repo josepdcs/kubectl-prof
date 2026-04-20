@@ -26,13 +26,14 @@ const (
 	DotnetGcdump   ProfilingTool = "dotnet-gcdump"    // DotnetGcdump is a profiling tool for .NET Core/5+ applications to collect GC heap dumps for memory analysis.
 	DotnetCounters ProfilingTool = "dotnet-counters"  // DotnetCounters is a profiling tool for .NET Core/5+ applications to collect performance counter metrics.
 	DotnetDump     ProfilingTool = "dotnet-dump"      // DotnetDump is a profiling tool for .NET Core/5+ applications to collect full memory dumps for crash/hang analysis.
+	GoPprof        ProfilingTool = "pprof"            // GoPprof is a profiling tool for Go applications that connects to the target's net/http/pprof endpoint to collect profiling data.
 	FakeTool       ProfilingTool = "fake"             // FakeTool is a profiling tool used primarily for testing purposes.
 )
 
 var (
 	// profilingTools contains all supported profiling tools.
 	profilingTools = []ProfilingTool{AsyncProfiler, Jcmd, Pyspy, Bpf, Btf, Perf, Rbspy, NodeDummy, CargoFlame, Memray, Phpspy,
-		DotnetTrace, DotnetGcdump, DotnetCounters, DotnetDump}
+		DotnetTrace, DotnetGcdump, DotnetCounters, DotnetDump, GoPprof}
 )
 
 // AvailableProfilingTools returns the list of all available profiling tools.
@@ -99,7 +100,7 @@ var GetProfilingTool = func(l ProgrammingLanguage, o OutputType) ProfilingTool {
 var GetProfilingToolsByProgrammingLanguage = map[ProgrammingLanguage][]ProfilingTool{
 	Java:          {Jcmd, AsyncProfiler},
 	Python:        {Pyspy, Memray},
-	Go:            {Bpf, Btf, CargoFlame},
+	Go:            {Bpf, Btf, CargoFlame, GoPprof},
 	Node:          {Bpf, Btf, Perf, NodeDummy, CargoFlame},
 	Clang:         {Bpf, Btf, Perf, CargoFlame},
 	ClangPlusPlus: {Bpf, Btf, Perf, CargoFlame},

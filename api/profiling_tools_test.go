@@ -85,6 +85,11 @@ func TestIsSupportedProfilingTool(t *testing.T) {
 			then:  true,
 		},
 		{
+			name:  "pprof",
+			given: "pprof",
+			then:  true,
+		},
+		{
 			name:  "not found",
 			given: "bpf2",
 			then:  false,
@@ -238,6 +243,14 @@ func TestIsValidProfilingTool(t *testing.T) {
 			given: args{
 				tool:     Memray,
 				language: Python,
+			},
+			then: true,
+		},
+		{
+			name: "GoPprof + Go",
+			given: args{
+				tool:     GoPprof,
+				language: Go,
 			},
 			then: true,
 		},
@@ -617,7 +630,7 @@ func TestGetProfilingToolsByProgrammingLanguage(t *testing.T) {
 		{
 			name:     "Go",
 			language: Go,
-			expected: []ProfilingTool{Bpf, Btf, CargoFlame},
+			expected: []ProfilingTool{Bpf, Btf, CargoFlame, GoPprof},
 		},
 		{
 			name:     "Node",
