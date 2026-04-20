@@ -84,7 +84,7 @@ func (p *pprofCreator) getImageName(t *config.TargetConfig) string {
 	if t.Image != "" {
 		imageName = t.Image
 	} else {
-		imageName = fmt.Sprintf("%s:%s-bpf", baseImageName, version.GetCurrent())
+		imageName = fmt.Sprintf("%s:%s-dummy", baseImageName, version.GetCurrent())
 	}
 	return imageName
 }
