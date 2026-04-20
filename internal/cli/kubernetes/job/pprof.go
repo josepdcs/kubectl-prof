@@ -78,7 +78,7 @@ func (p *pprofCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) 
 	return id, job, nil
 }
 
-// getImageName if image name is provider from config.TargetConfig this one is returned otherwise a new one is built
+// getImageName if image name is provided from config.TargetConfig this one is returned otherwise a new one is built
 func (p *pprofCreator) getImageName(t *config.TargetConfig) string {
 	var imageName string
 	if t.Image != "" {
