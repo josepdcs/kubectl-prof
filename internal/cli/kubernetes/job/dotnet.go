@@ -72,7 +72,7 @@ func (d *dotnetCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig)
 							Name:            ContainerName,
 							Image:           imageName,
 							Command:         []string{command},
-							Args:            kubernetes.GetArgs(targetPod, cfg, id),
+							Args:            kubernetes.Arguments(targetPod, cfg, id),
 							VolumeMounts: []apiv1.VolumeMount{
 								{
 									Name:      "target-filesystem",

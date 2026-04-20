@@ -31,7 +31,7 @@ func (p *pprofCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) 
 		return "", nil, errors.Wrap(err, "unable to generate resource requirements")
 	}
 
-	args := kubernetes.GetArgs(targetPod, cfg, id)
+	args := kubernetes.Arguments(targetPod, cfg, id)
 	args = append(args, "--pprof-host", targetPod.Status.PodIP)
 
 	job := &batchv1.Job{

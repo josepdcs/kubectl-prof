@@ -106,7 +106,7 @@ func Test_rubyCreate_create(t *testing.T) {
 							Name:            ContainerName,
 							Image:           cfg.Target.Image,
 							Command:         []string{"/app/agent"},
-							Args:            kubernetes.GetArgs(targetPod, cfg, id),
+							Args:            kubernetes.Arguments(targetPod, cfg, id),
 							VolumeMounts: []apiv1.VolumeMount{
 								{
 									Name:      "target-filesystem",

@@ -352,7 +352,7 @@ func TestGetArgs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equalf(t, tt.want, GetArgs(tt.args.targetPod, tt.args.cfg, tt.args.id), "getArgs(%v, %v, %v)", tt.args.targetPod, tt.args.cfg, tt.args.id)
+			assert.Equalf(t, tt.want, Arguments(tt.args.targetPod, tt.args.cfg, tt.args.id), "getArgs(%v, %v, %v)", tt.args.targetPod, tt.args.cfg, tt.args.id)
 		})
 	}
 }

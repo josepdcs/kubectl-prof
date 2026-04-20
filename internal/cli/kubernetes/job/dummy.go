@@ -67,7 +67,7 @@ func (p *dummyCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) 
 							// Command:         []string{"tail"},
 							// Args:            []string{"-f", "/bin/ls"},
 							Command: []string{command},
-							Args:    kubernetes.GetArgs(targetPod, cfg, id),
+							Args:    kubernetes.Arguments(targetPod, cfg, id),
 							VolumeMounts: []apiv1.VolumeMount{
 								{
 									Name:      "target-filesystem",
