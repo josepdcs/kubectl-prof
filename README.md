@@ -47,7 +47,7 @@
 | Language | Status | Tools Available                                       |
 |----------|--------|-------------------------------------------------------|
 | ☕ **Java** (JVM) | ✅ Fully Supported | async-profiler, jcmd                                  |
-| 🐹 **Go** | ✅ Fully Supported | eBPF profiling                                        |
+| 🐹 **Go** | ✅ Fully Supported | eBPF profiling, pprof                                 |
 | 🐍 **Python** | ✅ Fully Supported | py-spy, memray                                  |
 | 💎 **Ruby** | ✅ Fully Supported | rbspy                                                 |
 | 📗 **Node.js** | ✅ Fully Supported | eBPF profiling, perf                                  |
@@ -314,11 +314,41 @@ kubectl prof mypod -t 2m -l python --tool memray -o flamegraph --pgrep my-worker
 
 ### 🐹 Go Profiling
 
-Profile a Go application for 1 minute:
+#### eBPF Profiling (default)
+
+Profile a Go application for 1 minute using eBPF:
 
 ```shell
 kubectl prof mypod -t 1m -l go -o flamegraph
 ```
+
+#### pprof Profiling (no eBPF / no privileges required)
+
+If your Go application exposes the standard [`net/http/pprof`](https://pkg.go.dev/net/http/pprof) endpoint, you can profile it directly without eBPF or any elevated privileges:
+
+```shell
+kubectl prof mypod -t 30s -l go --tool pprof
+```
+
+**Custom pprof port** (default is `6060`):
+
+```shell
+kubectl prof mypod -t 30s -l go --tool pprof --pprof-port 8080
+```
+
+**Raw protobuf output** (compatible with `go tool pprof`):
+
+```shell
+kubectl prof mypod -t 30s -l go --tool pprof -o raw
+```
+
+> 💡 **How it works:** The agent pod sends an HTTP GET request to `http://<podIP>:<port>/debug/pprof/profile?seconds=<duration>` and collects the CPU profile. No `HostPID`, `SYS_ADMIN`, or privileged access is needed — only network connectivity to the target pod.
+
+> ⚠️ **Note:** Cross-namespace profiling requires `NetworkPolicy` to permit traffic from the agent pod to the target's pprof port.
+
+**Available output formats:**
+- `flamegraph` - FlameGraph visualization (default)
+- `raw` - Raw protobuf profile (`.pb.gz`), compatible with `go tool pprof`
 
 ---
 
@@ -875,9 +905,23 @@ make build-docker-agents
    - Usage: Add `--tool btf` flag
    - Example: `kubectl prof my-pod -t 1m -l go --tool btf`
 
-**Output formats (both tools):**
+**Output formats (eBPF tools):**
 - FlameGraphs: `-o flamegraph` (default)
 - Raw output: `-o raw`
+
+**[pprof](https://pkg.go.dev/net/http/pprof)** - Native Go HTTP profiling (no eBPF required)
+- Connects directly to the application's `net/http/pprof` endpoint
+- **No `HostPID`, `SYS_ADMIN`, or privileged access** — only needs network connectivity
+- Usage: Add `--tool pprof` flag
+- Custom port: Add `--pprof-port <port>` (default: `6060`)
+- Example: `kubectl prof my-pod -t 30s -l go --tool pprof`
+- Example with custom port: `kubectl prof my-pod -t 30s -l go --tool pprof --pprof-port 8080`
+
+**Output formats (pprof):**
+- FlameGraphs: `-o flamegraph` (default)
+- Raw protobuf: `-o raw` → `.pb.gz` (compatible with `go tool pprof`)
+
+> ⚠️ **Note:** Cross-namespace profiling with pprof requires `NetworkPolicy` to permit traffic from the agent pod to the target's pprof port.
 
 #### 🦀 Rust
 
