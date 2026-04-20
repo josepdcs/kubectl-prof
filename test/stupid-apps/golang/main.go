@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"net/http"
+	_ "net/http/pprof"
 	"sync"
 	"time"
 )
@@ -28,6 +30,14 @@ func fastFunction(wg *sync.WaitGroup) {
 }
 
 func main() {
+	// Start pprof HTTP server on port 6060 for profiling
+	go func() {
+		fmt.Println("Starting pprof server on :6060")
+		if err := http.ListenAndServe(":6060", nil); err != nil {
+			fmt.Printf("pprof server error: %v\n", err)
+		}
+	}()
+
 	var wg sync.WaitGroup
 	wg.Add(2)
 
