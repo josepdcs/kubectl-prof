@@ -8,7 +8,7 @@ COPY . .
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof/cmd/agent
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /go/bin/agent
 
-FROM rust:1.89-trixie AS rusttools
+FROM rust:1.92-trixie AS rusttools
 RUN cargo install flamegraph && \
     cargo install addr2line --features="bin"
 
