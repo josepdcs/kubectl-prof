@@ -38,10 +38,10 @@ func (p *dummyCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) 
 		},
 		ObjectMeta: commonMeta,
 		Spec: batchv1.JobSpec{
-			Parallelism:             int32Ptr(1),
-			Completions:             int32Ptr(1),
-			TTLSecondsAfterFinished: int32Ptr(5),
-			BackoffLimit:            int32Ptr(2),
+			Parallelism:             new(int32(1)),
+			Completions:             new(int32(1)),
+			TTLSecondsAfterFinished: new(int32(5)),
+			BackoffLimit:            new(int32(2)),
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: commonMeta,
 				Spec: apiv1.PodSpec{
@@ -64,10 +64,8 @@ func (p *dummyCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) 
 							ImagePullPolicy: cfg.Target.ImagePullPolicy,
 							Name:            ContainerName,
 							Image:           imageName,
-							// Command:         []string{"tail"},
-							// Args:            []string{"-f", "/bin/ls"},
-							Command: []string{command},
-							Args:    kubernetes.Arguments(targetPod, cfg, id),
+							Command:         []string{command},
+							Args:            kubernetes.Arguments(targetPod, cfg, id),
 							VolumeMounts: []apiv1.VolumeMount{
 								{
 									Name:      "target-filesystem",

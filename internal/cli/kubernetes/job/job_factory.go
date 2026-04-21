@@ -67,7 +67,7 @@ type nativeCreatorLink struct {
 	baseJobCreatorLink
 }
 
-// get returns the Creator implementation for Go, Clang, ClangPlusPlus and Node.
+// get returns the Creator implementation for Go, Clang, ClangPlusPlus and Node according to the profiling tool.
 func (l *nativeCreatorLink) get(lang api.ProgrammingLanguage, tool api.ProfilingTool) (Creator, error) {
 	if lang == api.Go || lang == api.Clang || lang == api.ClangPlusPlus || lang == api.Node {
 		if tool == api.Perf {

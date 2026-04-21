@@ -824,7 +824,7 @@ Download the Windows binary from the [releases page](https://github.com/josepdcs
 
 ### Prerequisites
 
-- Go 1.25 or higher
+- Go 1.26 or higher
 - Make
 - Docker (for building agent containers)
 

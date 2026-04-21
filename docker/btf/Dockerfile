@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.25.2-alpine AS agentbuild
+FROM --platform=$BUILDPLATFORM golang:1.26.2-alpine AS agentbuild
 ARG TARGETOS
 ARG TARGETARCH
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof

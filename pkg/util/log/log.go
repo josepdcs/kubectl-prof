@@ -53,8 +53,7 @@ func (l *Logger) EventLn(eventType api.EventType, data interface{}) error {
 		return err
 	}
 
-	rawEventData := jsoniter.RawMessage(eventData)
-	event := api.Event{Type: eventType, Data: &rawEventData}
+	event := api.Event{Type: eventType, Data: new(jsoniter.RawMessage(eventData))}
 	str, _ := jsoniter.MarshalToString(event)
 
 	// print on standard output if allowed

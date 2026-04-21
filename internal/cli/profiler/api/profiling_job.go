@@ -121,11 +121,10 @@ func (p *profilingJobApi) GetProfilingContainerName() string {
 }
 
 func (p *profilingJobApi) DeleteProfilingJob(job *batchv1.Job, ctx context.Context) error {
-	deleteStrategy := metav1.DeletePropagationForeground
 	return p.connectionInfo.ClientSet.
 		BatchV1().
 		Jobs(job.Namespace).
 		Delete(ctx, job.Name, metav1.DeleteOptions{
-			PropagationPolicy: &deleteStrategy,
+			PropagationPolicy: new(metav1.DeletePropagationForeground),
 		})
 }

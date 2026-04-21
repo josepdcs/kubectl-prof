@@ -80,9 +80,9 @@ func Test_rustCreate_create(t *testing.T) {
 		},
 		ObjectMeta: wantedObjectMeta,
 		Spec: batchv1.JobSpec{
-			Parallelism:             int32Ptr(1),
-			Completions:             int32Ptr(1),
-			TTLSecondsAfterFinished: int32Ptr(5),
+			Parallelism:             new(int32(1)),
+			Completions:             new(int32(1)),
+			TTLSecondsAfterFinished: new(int32(5)),
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: wantedObjectMeta,
 				Spec: apiv1.PodSpec{
