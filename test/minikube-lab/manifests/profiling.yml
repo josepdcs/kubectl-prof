@@ -22,3 +22,24 @@ apiVersion: v1
 metadata:
   name: profiler
   namespace: profiling
+
+---
+# NetworkPolicy to allow profiling agent pods in the "profiling" namespace
+# to reach pprof endpoints exposed by apps in the "stupid-apps" namespace.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-pprof-from-profiling
+  namespace: stupid-apps
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: profiling
+      ports:
+        - protocol: TCP
+          port: 6060

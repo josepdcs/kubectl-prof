@@ -45,9 +45,9 @@ func (r *rustCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (
 		},
 		ObjectMeta: commonMeta,
 		Spec: batchv1.JobSpec{
-			Parallelism:             int32Ptr(1),
-			Completions:             int32Ptr(1),
-			TTLSecondsAfterFinished: int32Ptr(5),
+			Parallelism:             new(int32(1)),
+			Completions:             new(int32(1)),
+			TTLSecondsAfterFinished: new(int32(5)),
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: commonMeta,
 				Spec: apiv1.PodSpec{
@@ -71,7 +71,7 @@ func (r *rustCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (
 							Name:            ContainerName,
 							Image:           imageName,
 							Command:         []string{command},
-							Args:            kubernetes.GetArgs(targetPod, cfg, id),
+							Args:            kubernetes.Arguments(targetPod, cfg, id),
 							Env: []apiv1.EnvVar{
 								{
 									Name:  "PATH",

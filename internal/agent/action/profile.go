@@ -33,6 +33,8 @@ const (
 	NodeHeapSnapshotSignal            = "node-heap-snapshot-signal"
 	AsyncProfilerArg                  = "async-profiler-arg"
 	HeartbeatInterval                 = "heartbeat-interval"
+	PprofHost                         = "pprof-host"
+	PprofPort                         = "pprof-port"
 
 	defaultDuration               = 60 * time.Second
 	defaultHeartbeatInterval      = 30 * time.Second

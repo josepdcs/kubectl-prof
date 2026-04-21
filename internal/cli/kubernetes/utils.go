@@ -20,7 +20,8 @@ func ToContainerId(containerName string, pod *apiv1.Pod) (string, error) {
 	return "", errors.New("Could not find container id for " + containerName)
 }
 
-func GetArgs(targetPod *apiv1.Pod, cfg *config.ProfilerConfig, id string) []string {
+// Arguments generates and returns a slice of arguments for the specified target pod, profiler configuration, and job ID.
+func Arguments(targetPod *apiv1.Pod, cfg *config.ProfilerConfig, id string) []string {
 	args := []string{
 		"--target-container-runtime", string(cfg.Target.ContainerRuntime),
 		"--target-container-runtime-path", cfg.Target.ContainerRuntimePath,
@@ -53,10 +54,14 @@ func GetArgs(targetPod *apiv1.Pod, cfg *config.ProfilerConfig, id string) []stri
 	args = appendAsyncProfilerArgs(args, cfg.Target.AsyncProfilerArgs, func() bool {
 		return len(cfg.Target.AsyncProfilerArgs) > 0
 	})
+	args = appendArgument(args, "--pprof-port", cfg.Target.PprofPort, func() bool {
+		return stringUtils.IsNotBlank(cfg.Target.PprofPort) && cfg.Target.ProfilingTool == api.GoPprof
+	})
 
 	return args
 }
 
+// appendAsyncProfilerArgs conditionally appends async-profiler arguments to the provided args slice if the condition is true.
 func appendAsyncProfilerArgs(args []string, asyncProfilerArgs []string, condition func() bool) []string {
 	if condition() {
 		for _, arg := range asyncProfilerArgs {
@@ -66,6 +71,7 @@ func appendAsyncProfilerArgs(args []string, asyncProfilerArgs []string, conditio
 	return args
 }
 
+// appendArgument conditionally appends a key-value pair to the args slice based on a provided condition function.
 func appendArgument(args []string, key string, value string, condition func() bool) []string {
 	if condition() {
 		if stringUtils.IsNotBlank(value) {

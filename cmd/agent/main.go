@@ -174,6 +174,16 @@ func runApp() error {
 				Usage:    "interval between heartbeat progress events during profiling (e.g. 30s, 1m)",
 				Required: false,
 			},
+			&cli.StringFlag{
+				Name:     action.PprofHost,
+				Usage:    "target pod IP for pprof HTTP endpoint",
+				Required: false,
+			},
+			&cli.StringFlag{
+				Name:     action.PprofPort,
+				Usage:    "target pod pprof port (default: 6060)",
+				Required: false,
+			},
 		},
 		Action: func(c *cli.Context) error {
 			period, errParse := time.ParseDuration(c.String(action.GracePeriodForEnding))
@@ -218,6 +228,8 @@ func toArgs(c *cli.Context) map[string]interface{} {
 		action.NodeHeapSnapshotSignal:     c.Int(action.NodeHeapSnapshotSignal),
 		action.AsyncProfilerArg:           c.StringSlice(action.AsyncProfilerArg),
 		action.HeartbeatInterval:          c.String(action.HeartbeatInterval),
+		action.PprofHost:                  c.String(action.PprofHost),
+		action.PprofPort:                  c.String(action.PprofPort),
 	}
 }
 

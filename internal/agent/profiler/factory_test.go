@@ -87,6 +87,11 @@ func TestGet(t *testing.T) {
 			want: NewDotnetProfiler(executil.NewCommander(), publish.NewPublisher()),
 		},
 		{
+			name: "should return pprof profiler",
+			tool: api.GoPprof,
+			want: NewPprofProfiler(publish.NewPublisher()),
+		},
+		{
 			name: "should return mock profiler",
 			tool: api.FakeTool,
 			want: NewMockProfiler(),

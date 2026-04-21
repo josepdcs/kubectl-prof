@@ -13,30 +13,26 @@ import (
 	"k8s.io/apimachinery/pkg/util/uuid"
 )
 
-type rubyCreator struct{}
+type pprofCreator struct{}
 
-var rubyDefaultCapabilities = []apiv1.Capability{"SYS_PTRACE"}
-
-func (r *rubyCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
+func (p *pprofCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (string, *batchv1.Job, error) {
 	id := string(uuid.NewUUID())
-	imageName := r.getImageName(cfg.Target)
+	imageName := p.getImageName(cfg.Target)
 
 	var imagePullSecret []apiv1.LocalObjectReference
 	if cfg.Target.ImagePullSecret != "" {
 		imagePullSecret = []apiv1.LocalObjectReference{{Name: cfg.Target.ImagePullSecret}}
 	}
 
-	capabilities := cfg.Job.Capabilities
-	if len(capabilities) == 0 {
-		capabilities = rubyDefaultCapabilities
-	}
-
-	commonMeta := r.getObjectMeta(id, cfg)
+	commonMeta := p.getObjectMeta(id, cfg)
 
 	resources, err := cfg.Job.ToResourceRequirements()
 	if err != nil {
 		return "", nil, errors.Wrap(err, "unable to generate resource requirements")
 	}
+
+	args := kubernetes.Arguments(targetPod, cfg, id)
+	args = append(args, "--pprof-host", targetPod.Status.PodIP)
 
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
@@ -48,21 +44,11 @@ func (r *rubyCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (
 			Parallelism:             new(int32(1)),
 			Completions:             new(int32(1)),
 			TTLSecondsAfterFinished: new(int32(5)),
+			BackoffLimit:            new(int32(2)),
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: commonMeta,
 				Spec: apiv1.PodSpec{
-					HostPID:     true,
-					Tolerations: cfg.Job.Tolerations,
-					Volumes: []apiv1.Volume{
-						{
-							Name: "target-filesystem",
-							VolumeSource: apiv1.VolumeSource{
-								HostPath: &apiv1.HostPathVolumeSource{
-									Path: cfg.Target.ContainerRuntimePath,
-								},
-							},
-						},
-					},
+					Tolerations:      cfg.Job.Tolerations,
 					ImagePullSecrets: imagePullSecret,
 					InitContainers:   nil,
 					Containers: []apiv1.Container{
@@ -71,18 +57,9 @@ func (r *rubyCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (
 							Name:            ContainerName,
 							Image:           imageName,
 							Command:         []string{command},
-							Args:            kubernetes.Arguments(targetPod, cfg, id),
-							VolumeMounts: []apiv1.VolumeMount{
-								{
-									Name:      "target-filesystem",
-									MountPath: cfg.Target.ContainerRuntimePath,
-								},
-							},
+							Args:            args,
 							SecurityContext: &apiv1.SecurityContext{
-								Privileged: &cfg.Job.Privileged,
-								Capabilities: &apiv1.Capabilities{
-									Add: capabilities,
-								},
+								Privileged: new(false),
 							},
 							Resources: resources,
 						},
@@ -101,20 +78,20 @@ func (r *rubyCreator) Create(targetPod *apiv1.Pod, cfg *config.ProfilerConfig) (
 	return id, job, nil
 }
 
-// getImageName if image name is provider from config.TargetConfig this one is returned otherwise a new one is built
-func (r *rubyCreator) getImageName(t *config.TargetConfig) string {
+// getImageName if image name is provided from config.TargetConfig this one is returned otherwise a new one is built
+func (p *pprofCreator) getImageName(t *config.TargetConfig) string {
 	var imageName string
 	if t.Image != "" {
 		imageName = t.Image
 	} else {
-		imageName = fmt.Sprintf("%s:%s-ruby", baseImageName, version.GetCurrent())
+		imageName = fmt.Sprintf("%s:%s-dummy", baseImageName, version.GetCurrent())
 	}
 	return imageName
 }
 
-func (r *rubyCreator) getObjectMeta(id string, cfg *config.ProfilerConfig) metav1.ObjectMeta {
+func (p *pprofCreator) getObjectMeta(id string, cfg *config.ProfilerConfig) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
-		Name:      fmt.Sprintf("%s-ruby-%s", ContainerName, id),
+		Name:      fmt.Sprintf("%s-pprof-%s", ContainerName, id),
 		Namespace: cfg.Job.Namespace,
 		Labels: map[string]string{
 			LabelID: id,
