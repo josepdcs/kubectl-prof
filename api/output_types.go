@@ -28,6 +28,8 @@ const (
 	Gcdump        OutputType = "gcdump"          // Gcdump represents a GC heap dump for .NET applications captured by dotnet-gcdump.
 	Counters      OutputType = "counters"        // Counters represents performance counter metrics collected by dotnet-counters.
 	Dump          OutputType = "dump"            // Dump represents a full memory dump for .NET applications captured by dotnet-dump.
+	GoroutineDump OutputType = "goroutinedump"   // GoroutineDump represents a goroutine dump for Go applications via net/http/pprof.
+	AllocsDump    OutputType = "allocsdump"      // AllocsDump represents an allocation profile for Go applications via net/http/pprof /allocs endpoint.
 )
 
 // GetOutputTypesByProfilingTool maps each ProfilingTool to its supported output types.
@@ -48,7 +50,7 @@ var GetOutputTypesByProfilingTool = map[ProfilingTool][]OutputType{
 	DotnetGcdump:   {Gcdump},
 	DotnetCounters: {Counters},
 	DotnetDump:     {Dump},
-	GoPprof:        {Raw, FlameGraph},
+	GoPprof:        {Raw, Pprof, HeapDump, AllocsDump, GoroutineDump},
 	FakeTool:       {FlameGraph},
 }
 
@@ -79,6 +81,8 @@ var (
 		Gcdump,
 		Counters,
 		Dump,
+		GoroutineDump,
+		AllocsDump,
 	}
 )
 

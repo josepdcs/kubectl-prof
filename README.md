@@ -314,41 +314,165 @@ kubectl prof mypod -t 2m -l python --tool memray -o flamegraph --pgrep my-worker
 
 ### 🐹 Go Profiling
 
-#### eBPF Profiling (default)
+---
 
-Profile a Go application for 1 minute using eBPF:
+#### pprof Profiling (no privileges required) — recommended
+
+If your Go application exposes the standard [`net/http/pprof`](https://pkg.go.dev/net/http/pprof) endpoint, you can profile it directly **without eBPF or any elevated privileges** (`HostPID`, `SYS_ADMIN`, or privileged containers are not needed):
+
+> 💡 **How it works:** The agent pod connects to the target pod's `net/http/pprof` HTTP endpoint over the network, downloads the binary profile (`.pb.gz`) and delivers it to your machine. No kernel-level access is required. **Visualization is done locally** with `go tool pprof`.
+
+##### CPU profiling
+
+```shell
+# CPU profile — raw protobuf (.pb.gz), default
+kubectl prof mypod -t 30s -l go --tool pprof
+
+# Same result, explicit flag (-o raw and -o pprof are aliases)
+kubectl prof mypod -t 30s -l go --tool pprof -o raw
+kubectl prof mypod -t 30s -l go --tool pprof -o pprof
+
+# Custom pprof port (default: 6060)
+kubectl prof mypod -t 30s -l go --tool pprof --pprof-port 8080
+```
+
+Open the result locally — the `-http=:` flag starts a browser UI with all views (flamegraph, graph, top, source…):
+
+```shell
+go tool pprof -http=: golang-deployment-86f57ddb4-h9fvz-agent-raw-pprof-1-2026-04-21T08_48_33Z.pb.gz
+```
+
+Or use the interactive CLI shell:
+
+```shell
+go tool pprof cpu.pb.gz
+# then inside the pprof shell:
+(pprof) top
+(pprof) list MyFunc  # annotated source
+```
+
+##### Memory heap dump
+
+Capture a snapshot of the heap allocations from `/debug/pprof/heap`:
+
+```shell
+kubectl prof mypod -l go --tool pprof -o heapdump
+```
+
+```shell
+go tool pprof -http=: golang-deployment-86f57ddb4-h9fvz-agent-heapdump-pprof-1-2026-04-21T08_48_33Z.out
+```
+
+##### Allocation profile
+
+Capture the cumulative allocation profile from `/debug/pprof/allocs` (all allocations since the process started, not just live objects):
+
+```shell
+kubectl prof mypod -l go --tool pprof -o allocsdump
+```
+
+```shell
+go tool pprof -http=: golang-deployment-86f57ddb4-h9fvz-agent-allocsdump-pprof-1-2026-04-21T08_48_33Z.out
+```
+
+> 💡 **Heap vs Allocs:** `/heap` shows only *live* objects (useful for finding memory leaks), while `/allocs` shows *all objects ever allocated* (useful for finding allocation hot-spots and GC pressure).
+
+##### Goroutine dump
+
+Capture the current state of all goroutines from `/debug/pprof/goroutine`:
+
+```shell
+kubectl prof mypod -l go --tool pprof -o goroutinedump
+```
+
+```shell
+go tool pprof -http=: golang-deployment-86f57ddb4-h9fvz-agent-goroutinedump-pprof-1-2026-04-21T08_48_33Z.pb.gz
+```
+
+**Available output formats (pprof):**
+
+| Format | Flag | Extension | Endpoint | Notes |
+|--------|------|-----------|----------|-------|
+| Raw protobuf | `-o raw` | `.pb.gz` | `/debug/pprof/profile` | default |
+| Pprof (alias) | `-o pprof` | `.pb.gz` | `/debug/pprof/profile` | same as raw |
+| Heap dump | `-o heapdump` | `.out` | `/debug/pprof/heap` | |
+| Allocs dump | `-o allocsdump` | `.out` | `/debug/pprof/allocs` | |
+| Goroutine dump | `-o goroutinedump` | `.pb.gz` | `/debug/pprof/goroutine` | |
+
+> 💡 **Visualize locally with a single command:** open the downloaded `.pb.gz` file in your browser with all visualization options (flamegraph, top, source, graph…):
+> ```shell
+> go tool pprof -http=: golang-deployment-86f57ddb4-h9fvz-agent-raw-pprof-1-2026-04-21T08_48_33Z.pb.gz
+> ```
+> This starts a local HTTP server and opens the browser automatically. Navigate to **View → Flame Graph** for an interactive flamegraph.
+
+---
+
+##### Cross-namespace profiling and NetworkPolicy
+
+The pprof profiler does not require any kernel privileges, but it **does require network connectivity** between the agent pod and the target pod. When both pods run in **different namespaces** (e.g. the target app in `my-app` and the profiling agent in `profiling`), any default-deny `NetworkPolicy` will block the connection.
+
+Apply a `NetworkPolicy` in the **target application's namespace** to allow ingress from the profiling namespace:
+
+```yaml
+# Allow ingress on the pprof port from the profiling namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-pprof-from-profiling
+  namespace: my-app          # namespace where the target pod runs
+spec:
+  podSelector: {}            # applies to all pods in the namespace
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: profiling   # the profiling agent namespace
+      ports:
+        - protocol: TCP
+          port: 6060         # default pprof port (adjust if using --pprof-port)
+```
+
+If you want to restrict it to specific pods in the target namespace:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-pprof-from-profiling
+  namespace: my-app
+spec:
+  podSelector:
+    matchLabels:
+      app: my-go-service     # only allow profiling of pods with this label
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: profiling
+      ports:
+        - protocol: TCP
+          port: 6060
+```
+
+> ⚠️ **Note:** The namespace label `kubernetes.io/metadata.name` is set automatically by Kubernetes 1.21+. For older clusters, add the label manually: `kubectl label namespace profiling kubernetes.io/metadata.name=profiling`.
+
+---
+
+#### eBPF Profiling (default — requires privileges)
+
+Profile a Go application for 1 minute using eBPF (requires `SYS_ADMIN` or a privileged pod):
 
 ```shell
 kubectl prof mypod -t 1m -l go -o flamegraph
 ```
 
-#### pprof Profiling (no eBPF / no privileges required)
-
-If your Go application exposes the standard [`net/http/pprof`](https://pkg.go.dev/net/http/pprof) endpoint, you can profile it directly without eBPF or any elevated privileges:
-
-```shell
-kubectl prof mypod -t 30s -l go --tool pprof
-```
-
-**Custom pprof port** (default is `6060`):
-
-```shell
-kubectl prof mypod -t 30s -l go --tool pprof --pprof-port 8080
-```
-
-**Raw protobuf output** (compatible with `go tool pprof`):
-
-```shell
-kubectl prof mypod -t 30s -l go --tool pprof -o raw
-```
-
-> 💡 **How it works:** The agent pod sends an HTTP GET request to `http://<podIP>:<port>/debug/pprof/profile?seconds=<duration>` and collects the CPU profile. No `HostPID`, `SYS_ADMIN`, or privileged access is needed — only network connectivity to the target pod.
-
-> ⚠️ **Note:** Cross-namespace profiling requires `NetworkPolicy` to permit traffic from the agent pod to the target's pprof port.
-
-**Available output formats:**
-- `flamegraph` - FlameGraph visualization (default)
-- `raw` - Raw protobuf profile (`.pb.gz`), compatible with `go tool pprof`
+**Output formats (eBPF):**
+- `flamegraph` - FlameGraph visualization (SVG)
+- `raw` - Collapsed stack traces (`.txt`)
 
 ---
 
@@ -892,7 +1016,44 @@ make build-docker-agents
 
 #### 🐹 Go
 
-**eBPF Profiling** - Two options available:
+**[pprof](https://pkg.go.dev/net/http/pprof)** - Native Go HTTP profiling (no privileges required)
+- Connects directly to the application's `net/http/pprof` endpoint over HTTP
+- **No `HostPID`, `SYS_ADMIN`, or privileged access** — only needs network connectivity to the target pod
+- The binary profile (`.pb.gz`) is delivered to your machine; **visualization is done locally** with `go tool pprof`
+- Cross-namespace use requires a `NetworkPolicy` allowing ingress on the pprof port from the profiling namespace
+- Usage: `--tool pprof`
+- Custom port: `--pprof-port <port>` (default: `6060`)
+
+**Output formats (pprof) — all produce `.pb.gz` compatible with `go tool pprof`:**
+
+| Format | Flag | Endpoint queried | Notes |
+|--------|------|-----------------|-------|
+| Raw protobuf | `-o raw` | `/debug/pprof/profile` | default, CPU profile |
+| Pprof (alias) | `-o pprof` | `/debug/pprof/profile` | same as raw |
+| Heap dump | `-o heapdump` | `/debug/pprof/heap` | memory allocations, `.out` |
+| Allocs dump | `-o allocsdump` | `/debug/pprof/allocs` | cumulative allocations, `.out` |
+| Goroutine dump | `-o goroutinedump` | `/debug/pprof/goroutine` | goroutine state |
+
+> 💡 **Visualize locally with a single command:** open the downloaded `.pb.gz` file in your browser with all visualization options (flamegraph, top, source, graph…):
+> ```shell
+> go tool pprof -http=: golang-deployment-86f57ddb4-h9fvz-agent-raw-pprof-1-2026-04-21T08_48_33Z.pb.gz
+> ```
+> This starts a local HTTP server and opens the browser automatically. Navigate to **View → Flame Graph** for an interactive flamegraph.
+
+Examples:
+```shell
+kubectl prof my-pod -t 30s -l go --tool pprof                          # CPU profile (default)
+kubectl prof my-pod -t 30s -l go --tool pprof -o raw                   # CPU profile, explicit
+kubectl prof my-pod -t 30s -l go --tool pprof -o pprof                 # CPU profile alias
+kubectl prof my-pod       -l go --tool pprof -o heapdump               # heap snapshot (live objects)
+kubectl prof my-pod       -l go --tool pprof -o allocsdump             # cumulative allocation profile
+kubectl prof my-pod       -l go --tool pprof -o goroutinedump          # goroutine dump
+kubectl prof my-pod -t 30s -l go --tool pprof --pprof-port 8080        # custom port
+```
+
+---
+
+**eBPF Profiling** - Two options available (require `SYS_ADMIN` / privileged pod):
 
 1. **BPF (default)** - BCC-based profiler
    - Uses BCC tools with runtime compilation
@@ -909,19 +1070,6 @@ make build-docker-agents
 - FlameGraphs: `-o flamegraph` (default)
 - Raw output: `-o raw`
 
-**[pprof](https://pkg.go.dev/net/http/pprof)** - Native Go HTTP profiling (no eBPF required)
-- Connects directly to the application's `net/http/pprof` endpoint
-- **No `HostPID`, `SYS_ADMIN`, or privileged access** — only needs network connectivity
-- Usage: Add `--tool pprof` flag
-- Custom port: Add `--pprof-port <port>` (default: `6060`)
-- Example: `kubectl prof my-pod -t 30s -l go --tool pprof`
-- Example with custom port: `kubectl prof my-pod -t 30s -l go --tool pprof --pprof-port 8080`
-
-**Output formats (pprof):**
-- FlameGraphs: `-o flamegraph` (default)
-- Raw protobuf: `-o raw` → `.pb.gz` (compatible with `go tool pprof`)
-
-> ⚠️ **Note:** Cross-namespace profiling with pprof requires `NetworkPolicy` to permit traffic from the agent pod to the target's pprof port.
 
 #### 🦀 Rust
 

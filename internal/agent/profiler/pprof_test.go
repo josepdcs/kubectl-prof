@@ -35,35 +35,24 @@ func TestPprofProfiler_SetUp(t *testing.T) {
 		{
 			name: "should setup with pprof host",
 			job: &job.ProfilingJob{
-				AdditionalArguments: map[string]string{
-					PprofHostKey: "10.0.0.1",
-				},
+				AdditionalArguments: map[string]string{PprofHostKey: "10.0.0.1"},
 			},
-			wantErr: false,
 		},
 		{
 			name: "should setup with pprof host and port",
 			job: &job.ProfilingJob{
-				AdditionalArguments: map[string]string{
-					PprofHostKey: "10.0.0.1",
-					PprofPortKey: "8080",
-				},
+				AdditionalArguments: map[string]string{PprofHostKey: "10.0.0.1", PprofPortKey: "8080"},
 			},
-			wantErr: false,
 		},
 		{
-			name: "should fail without pprof host",
-			job: &job.ProfilingJob{
-				AdditionalArguments: map[string]string{},
-			},
+			name:    "should fail without pprof host",
+			job:     &job.ProfilingJob{AdditionalArguments: map[string]string{}},
 			wantErr: true,
 			errMsg:  "pprof host is required",
 		},
 		{
-			name: "should fail with nil additional arguments",
-			job: &job.ProfilingJob{
-				AdditionalArguments: nil,
-			},
+			name:    "should fail with nil additional arguments",
+			job:     &job.ProfilingJob{AdditionalArguments: nil},
 			wantErr: true,
 			errMsg:  "pprof host is required",
 		},
@@ -100,30 +89,16 @@ func TestPprofProfiler_Invoke(t *testing.T) {
 			name: "should invoke with mock manager",
 			given: func() (fields, args) {
 				mgr := newMockPprofManager()
-				mgr.On("invoke", &job.ProfilingJob{
+				j := &job.ProfilingJob{
 					Tool:       api.GoPprof,
 					OutputType: api.Raw,
 					Interval:   30 * time.Second,
 					Compressor: compressor.Gzip,
 					Iteration:  1,
-					AdditionalArguments: map[string]string{
-						PprofHostKey: "10.0.0.1",
-					},
-				}).Return(nil, 1*time.Second)
-				return fields{
-						PprofProfiler: &PprofProfiler{PprofManager: mgr},
-					}, args{
-						job: &job.ProfilingJob{
-							Tool:       api.GoPprof,
-							OutputType: api.Raw,
-							Interval:   30 * time.Second,
-							Compressor: compressor.Gzip,
-							Iteration:  1,
-							AdditionalArguments: map[string]string{
-								PprofHostKey: "10.0.0.1",
-							},
-						},
-					}
+					AdditionalArguments: map[string]string{PprofHostKey: "10.0.0.1"},
+				}
+				mgr.On("invoke", j).Return(nil, 1*time.Second)
+				return fields{PprofProfiler: &PprofProfiler{PprofManager: mgr}}, args{job: j}
 			},
 			when: func(fields fields, args args) (error, time.Duration) {
 				return fields.PprofProfiler.Invoke(args.job)
@@ -142,16 +117,10 @@ func TestPprofProfiler_Invoke(t *testing.T) {
 					Interval:   30 * time.Second,
 					Compressor: compressor.Gzip,
 					Iteration:  1,
-					AdditionalArguments: map[string]string{
-						PprofHostKey: "10.0.0.1",
-					},
+					AdditionalArguments: map[string]string{PprofHostKey: "10.0.0.1"},
 				}
 				mgr.On("invoke", j).Return(errors.New("connection refused"), 0*time.Second)
-				return fields{
-						PprofProfiler: &PprofProfiler{PprofManager: mgr},
-					}, args{
-						job: j,
-					}
+				return fields{PprofProfiler: &PprofProfiler{PprofManager: mgr}}, args{job: j}
 			},
 			when: func(fields fields, args args) (error, time.Duration) {
 				return fields.PprofProfiler.Invoke(args.job)
@@ -165,13 +134,8 @@ func TestPprofProfiler_Invoke(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Given
 			fields, args := tt.given()
-
-			// When
 			err, d := tt.when(fields, args)
-
-			// Then
 			tt.then(t, err, d)
 		})
 	}
@@ -186,102 +150,112 @@ func TestPprofManager_invoke(t *testing.T) {
 		errMsg     string
 	}{
 		{
-			name: "should invoke successfully",
-			httpClient: &mockHTTPClient{
-				resp: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       io.NopCloser(bytes.NewReader([]byte("profiling data here"))),
-				},
-			},
+			name: "should invoke successfully with raw output",
+			httpClient: &mockHTTPClient{resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(bytes.NewReader([]byte("profiling data here"))),
+			}},
 			job: &job.ProfilingJob{
-				Tool:       api.GoPprof,
-				OutputType: api.Raw,
-				Interval:   30 * time.Second,
-				Compressor: compressor.None,
-				Iteration:  1,
-				AdditionalArguments: map[string]string{
-					PprofHostKey: "10.0.0.1",
-					PprofPortKey: "6060",
-				},
+				Tool: api.GoPprof, OutputType: api.Raw, Interval: 30 * time.Second,
+				Compressor: compressor.None, Iteration: 1,
+				AdditionalArguments: map[string]string{PprofHostKey: "10.0.0.1", PprofPortKey: "6060"},
 			},
-			wantErr: false,
+		},
+		{
+			name: "should invoke successfully with pprof (alias) output",
+			httpClient: &mockHTTPClient{resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(bytes.NewReader([]byte("profiling data here"))),
+			}},
+			job: &job.ProfilingJob{
+				Tool: api.GoPprof, OutputType: api.Pprof, Interval: 30 * time.Second,
+				Compressor: compressor.None, Iteration: 1,
+				AdditionalArguments: map[string]string{PprofHostKey: "10.0.0.1", PprofPortKey: "6060"},
+			},
+		},
+		{
+			name: "should invoke successfully with heapdump output",
+			httpClient: &mockHTTPClient{resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(bytes.NewReader([]byte("heap data here"))),
+			}},
+			job: &job.ProfilingJob{
+				Tool: api.GoPprof, OutputType: api.HeapDump, Interval: 30 * time.Second,
+				Compressor: compressor.None, Iteration: 1,
+				AdditionalArguments: map[string]string{PprofHostKey: "10.0.0.1", PprofPortKey: "6060"},
+			},
+		},
+		{
+			name: "should invoke successfully with allocsdump output",
+			httpClient: &mockHTTPClient{resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(bytes.NewReader([]byte("allocs data here"))),
+			}},
+			job: &job.ProfilingJob{
+				Tool: api.GoPprof, OutputType: api.AllocsDump, Interval: 30 * time.Second,
+				Compressor: compressor.None, Iteration: 1,
+				AdditionalArguments: map[string]string{PprofHostKey: "10.0.0.1", PprofPortKey: "6060"},
+			},
+		},
+		{
+			name: "should invoke successfully with goroutinedump output",
+			httpClient: &mockHTTPClient{resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(bytes.NewReader([]byte("goroutine data here"))),
+			}},
+			job: &job.ProfilingJob{
+				Tool: api.GoPprof, OutputType: api.GoroutineDump, Interval: 30 * time.Second,
+				Compressor: compressor.None, Iteration: 1,
+				AdditionalArguments: map[string]string{PprofHostKey: "10.0.0.1", PprofPortKey: "6060"},
+			},
 		},
 		{
 			name: "should invoke with default port",
-			httpClient: &mockHTTPClient{
-				resp: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       io.NopCloser(bytes.NewReader([]byte("profiling data here"))),
-				},
-			},
+			httpClient: &mockHTTPClient{resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(bytes.NewReader([]byte("profiling data here"))),
+			}},
 			job: &job.ProfilingJob{
-				Tool:       api.GoPprof,
-				OutputType: api.Raw,
-				Interval:   30 * time.Second,
-				Compressor: compressor.None,
-				Iteration:  1,
-				AdditionalArguments: map[string]string{
-					PprofHostKey: "10.0.0.1",
-				},
+				Tool: api.GoPprof, OutputType: api.Raw, Interval: 30 * time.Second,
+				Compressor: compressor.None, Iteration: 1,
+				AdditionalArguments: map[string]string{PprofHostKey: "10.0.0.1"},
 			},
-			wantErr: false,
 		},
 		{
-			name: "should fail on HTTP error",
-			httpClient: &mockHTTPClient{
-				err: errors.New("connection refused"),
-			},
+			name:       "should fail on HTTP error",
+			httpClient: &mockHTTPClient{err: errors.New("connection refused")},
 			job: &job.ProfilingJob{
-				Tool:       api.GoPprof,
-				OutputType: api.Raw,
-				Interval:   30 * time.Second,
-				Compressor: compressor.None,
-				Iteration:  1,
-				AdditionalArguments: map[string]string{
-					PprofHostKey: "10.0.0.1",
-				},
+				Tool: api.GoPprof, OutputType: api.Raw, Interval: 30 * time.Second,
+				Compressor: compressor.None, Iteration: 1,
+				AdditionalArguments: map[string]string{PprofHostKey: "10.0.0.1"},
 			},
 			wantErr: true,
 			errMsg:  "failed to retrieve pprof data",
 		},
 		{
 			name: "should fail on non-200 status",
-			httpClient: &mockHTTPClient{
-				resp: &http.Response{
-					StatusCode: http.StatusNotFound,
-					Body:       io.NopCloser(bytes.NewReader([]byte(""))),
-				},
-			},
+			httpClient: &mockHTTPClient{resp: &http.Response{
+				StatusCode: http.StatusNotFound,
+				Body:       io.NopCloser(bytes.NewReader([]byte(""))),
+			}},
 			job: &job.ProfilingJob{
-				Tool:       api.GoPprof,
-				OutputType: api.Raw,
-				Interval:   30 * time.Second,
-				Compressor: compressor.None,
-				Iteration:  1,
-				AdditionalArguments: map[string]string{
-					PprofHostKey: "10.0.0.1",
-				},
+				Tool: api.GoPprof, OutputType: api.Raw, Interval: 30 * time.Second,
+				Compressor: compressor.None, Iteration: 1,
+				AdditionalArguments: map[string]string{PprofHostKey: "10.0.0.1"},
 			},
 			wantErr: true,
 			errMsg:  "pprof endpoint returned HTTP 404",
 		},
 		{
 			name: "should fail on empty response",
-			httpClient: &mockHTTPClient{
-				resp: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       io.NopCloser(bytes.NewReader([]byte(""))),
-				},
-			},
+			httpClient: &mockHTTPClient{resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(bytes.NewReader([]byte(""))),
+			}},
 			job: &job.ProfilingJob{
-				Tool:       api.GoPprof,
-				OutputType: api.Raw,
-				Interval:   30 * time.Second,
-				Compressor: compressor.None,
-				Iteration:  1,
-				AdditionalArguments: map[string]string{
-					PprofHostKey: "10.0.0.1",
-				},
+				Tool: api.GoPprof, OutputType: api.Raw, Interval: 30 * time.Second,
+				Compressor: compressor.None, Iteration: 1,
+				AdditionalArguments: map[string]string{PprofHostKey: "10.0.0.1"},
 			},
 			wantErr: true,
 			errMsg:  "pprof endpoint returned empty response",
@@ -294,7 +268,6 @@ func TestPprofManager_invoke(t *testing.T) {
 				publisher:  &fakePublisher{},
 				httpClient: tt.httpClient,
 			}
-
 			err, _ := mgr.invoke(tt.job)
 			if tt.wantErr {
 				require.Error(t, err)
@@ -319,24 +292,14 @@ func TestGetPprofHost(t *testing.T) {
 		expected string
 	}{
 		{
-			name: "should return host",
-			job: &job.ProfilingJob{
-				AdditionalArguments: map[string]string{
-					PprofHostKey: "10.0.0.1",
-				},
-			},
+			name:     "should return host",
+			job:      &job.ProfilingJob{AdditionalArguments: map[string]string{PprofHostKey: "10.0.0.1"}},
 			expected: "10.0.0.1",
 		},
+		{name: "should return empty for nil args", job: &job.ProfilingJob{}, expected: ""},
 		{
-			name:     "should return empty for nil args",
-			job:      &job.ProfilingJob{},
-			expected: "",
-		},
-		{
-			name: "should return empty when key not present",
-			job: &job.ProfilingJob{
-				AdditionalArguments: map[string]string{},
-			},
+			name:     "should return empty when key not present",
+			job:      &job.ProfilingJob{AdditionalArguments: map[string]string{}},
 			expected: "",
 		},
 	}
@@ -354,26 +317,16 @@ func TestGetPprofPort(t *testing.T) {
 		expected string
 	}{
 		{
-			name: "should return custom port",
-			job: &job.ProfilingJob{
-				AdditionalArguments: map[string]string{
-					PprofPortKey: "8080",
-				},
-			},
+			name:     "should return custom port",
+			job:      &job.ProfilingJob{AdditionalArguments: map[string]string{PprofPortKey: "8080"}},
 			expected: "8080",
 		},
 		{
-			name: "should return default port when not set",
-			job: &job.ProfilingJob{
-				AdditionalArguments: map[string]string{},
-			},
+			name:     "should return default port when not set",
+			job:      &job.ProfilingJob{AdditionalArguments: map[string]string{}},
 			expected: defaultPprofPort,
 		},
-		{
-			name:     "should return default port for nil args",
-			job:      &job.ProfilingJob{},
-			expected: defaultPprofPort,
-		},
+		{name: "should return default port for nil args", job: &job.ProfilingJob{}, expected: defaultPprofPort},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -385,16 +338,26 @@ func TestGetPprofPort(t *testing.T) {
 // fakePublisher is a simple publisher that does nothing, for testing purposes.
 type fakePublisher struct{}
 
-func (f *fakePublisher) Do(_ compressor.Type, _ string, _ api.OutputType) error {
-	return nil
-}
+func (f *fakePublisher) Do(_ compressor.Type, _ string, _ api.OutputType) error          { return nil }
+func (f *fakePublisher) DoWithNativeGzipAndSplit(_, _ string, _ api.OutputType) error    { return nil }
 
-func (f *fakePublisher) DoWithNativeGzipAndSplit(_, _ string, _ api.OutputType) error {
-	return nil
-}
-
-// Verify that PprofProfiler result file path is generated correctly
+// Result file name tests
 func TestPprofProfiler_ResultFileName(t *testing.T) {
-	resultFile := common.GetResultFile(common.TmpDir(), api.GoPprof, api.Raw, "pprof", 1)
-	assert.Contains(t, resultFile, "raw-pprof-1.pb.gz")
+	assert.Contains(t, common.GetResultFile(common.TmpDir(), api.GoPprof, api.Raw, "pprof", 1), "raw-pprof-1.pb.gz")
+}
+
+func TestPprofProfiler_ResultFileName_Pprof_alias(t *testing.T) {
+	assert.Contains(t, common.GetResultFile(common.TmpDir(), api.GoPprof, api.Pprof, "pprof", 1), "pprof-pprof-1.pb.gz")
+}
+
+func TestPprofProfiler_ResultFileName_HeapDump(t *testing.T) {
+	assert.Contains(t, common.GetResultFile(common.TmpDir(), api.GoPprof, api.HeapDump, "pprof", 1), "heapdump-pprof-1.out")
+}
+
+func TestPprofProfiler_ResultFileName_AllocsDump(t *testing.T) {
+	assert.Contains(t, common.GetResultFile(common.TmpDir(), api.GoPprof, api.AllocsDump, "pprof", 1), "allocsdump-pprof-1.out")
+}
+
+func TestPprofProfiler_ResultFileName_GoroutineDump(t *testing.T) {
+	assert.Contains(t, common.GetResultFile(common.TmpDir(), api.GoPprof, api.GoroutineDump, "pprof", 1), "goroutinedump-pprof-1.pb.gz")
 }

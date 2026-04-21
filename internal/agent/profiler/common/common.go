@@ -91,7 +91,11 @@ var toolExtensionMap = map[api.ProfilingTool]map[api.OutputType]string{
 		api.Dump: ".dmp",
 	},
 	api.GoPprof: {
-		api.Raw: ".pb.gz",
+		api.Raw:           ".pb.gz",
+		api.Pprof:         ".pb.gz",
+		api.HeapDump:      ".out",
+		api.AllocsDump:    ".out",
+		api.GoroutineDump: ".pb.gz",
 	},
 }
 

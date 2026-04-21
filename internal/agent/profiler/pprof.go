@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
+	"github.com/josepdcs/kubectl-prof/api"
 	"github.com/josepdcs/kubectl-prof/internal/agent/config"
 	"github.com/josepdcs/kubectl-prof/internal/agent/job"
 	"github.com/josepdcs/kubectl-prof/internal/agent/profiler/common"
@@ -22,8 +24,11 @@ const (
 	// PprofPortKey is the key used in AdditionalArguments to specify the target pod's pprof port.
 	PprofPortKey = "pprof-port"
 
-	defaultPprofPort = "6060"
-	defaultPprofPath = "/debug/pprof/profile"
+	defaultPprofPort          = "6060"
+	defaultPprofCPUPath       = "/debug/pprof/profile"
+	defaultPprofHeapPath      = "/debug/pprof/heap"
+	defaultPprofAllocsPath    = "/debug/pprof/allocs"
+	defaultPprofGoroutinePath = "/debug/pprof/goroutine"
 )
 
 // PprofProfiler is a profiler that connects to a Go application's net/http/pprof endpoint
@@ -75,9 +80,22 @@ func (m *pprofManager) invoke(job *job.ProfilingJob) (error, time.Duration) {
 
 	host := getPprofHost(job)
 	port := getPprofPort(job)
-	seconds := strconv.Itoa(int(job.Interval.Seconds()))
 
-	url := fmt.Sprintf("http://%s:%s%s?seconds=%s", host, port, defaultPprofPath, seconds)
+	// Choose the pprof endpoint based on output type.
+	// Raw and Pprof (alias) both collect CPU profiles; HeapDump and GoroutineDump
+	// hit their respective endpoints. All results are saved as-is (.pb.gz).
+	var url string
+	switch job.OutputType {
+	case api.HeapDump:
+		url = fmt.Sprintf("http://%s:%s%s", host, port, defaultPprofHeapPath)
+	case api.AllocsDump:
+		url = fmt.Sprintf("http://%s:%s%s", host, port, defaultPprofAllocsPath)
+	case api.GoroutineDump:
+		url = fmt.Sprintf("http://%s:%s%s", host, port, defaultPprofGoroutinePath)
+	default: // api.Raw, api.Pprof
+		seconds := strconv.Itoa(int(job.Interval.Seconds()))
+		url = fmt.Sprintf("http://%s:%s%s?seconds=%s", host, port, defaultPprofCPUPath, seconds)
+	}
 	log.DebugLogLn(fmt.Sprintf("Requesting pprof data from: %s", url))
 
 	resp, err := m.httpClient.Get(url)
@@ -101,8 +119,12 @@ func (m *pprofManager) invoke(job *job.ProfilingJob) (error, time.Duration) {
 		return errors.New("pprof endpoint returned empty response"), time.Since(start)
 	}
 
+	// All output types produce a binary .pb.gz file written directly to disk.
+	// Visualization is done locally by the user with `go tool pprof <file>`.
 	resultFileName := common.GetResultFile(common.TmpDir(), job.Tool, job.OutputType, "pprof", job.Iteration)
-	file.Write(resultFileName, string(body))
+	if err = os.WriteFile(resultFileName, body, 0666); err != nil {
+		return errors.Wrap(err, "failed to write pprof data"), time.Since(start)
+	}
 
 	return m.publisher.Do(job.Compressor, resultFileName, job.OutputType), time.Since(start)
 }
