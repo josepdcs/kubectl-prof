@@ -40,21 +40,19 @@ func TestAsyncProfiler_SetUp(t *testing.T) {
 			name: "should setup",
 			given: func() (fields, args) {
 				asyncProfilerManager := newMockAsyncProfilerManager()
-				asyncProfilerManager.On("removeTmpDir").Return(nil)
-				asyncProfilerManager.On("linkTmpDirToTargetTmpDir", mock.AnythingOfType("string")).Return(nil)
-				asyncProfilerManager.On("copyProfilerToTmpDir").Return(nil)
+				asyncProfilerManager.On("stageProfilerLibrary", mock.AnythingOfType("string")).Return(nil)
 
 				return fields{
-						AsyncProfiler: &AsyncProfiler{
-							AsyncProfilerManager: asyncProfilerManager,
-						},
-					}, args{
-						job: &job.ProfilingJob{
-							Duration:         0,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
-						},
-					}
+					AsyncProfiler: &AsyncProfiler{
+						AsyncProfilerManager: asyncProfilerManager,
+					},
+				}, args{
+					job: &job.ProfilingJob{
+						Duration:         0,
+						ContainerRuntime: api.FakeContainer,
+						ContainerID:      "ContainerID",
+					},
+				}
 			},
 			when: func(fields fields, args args) error {
 				return fields.AsyncProfiler.SetUp(args.job)
@@ -62,31 +60,27 @@ func TestAsyncProfiler_SetUp(t *testing.T) {
 			then: func(t *testing.T, err error, fields fields) {
 				assert.Nil(t, err)
 				assert.Equal(t, []string{"PID_ContainerID"}, fields.AsyncProfiler.targetPIDs)
-				fields.AsyncProfiler.AsyncProfilerManager.(*mockAsyncProfilerManager).AssertNumberOfCalls(t, "removeTmpDir", 1)
-				fields.AsyncProfiler.AsyncProfilerManager.(*mockAsyncProfilerManager).AssertNumberOfCalls(t, "linkTmpDirToTargetTmpDir", 1)
-				fields.AsyncProfiler.AsyncProfilerManager.(*mockAsyncProfilerManager).AssertNumberOfCalls(t, "copyProfilerToTmpDir", 1)
+				fields.AsyncProfiler.AsyncProfilerManager.(*mockAsyncProfilerManager).AssertNumberOfCalls(t, "stageProfilerLibrary", 1)
 			},
 		},
 		{
 			name: "should setup when PID is given",
 			given: func() (fields, args) {
 				asyncProfilerManager := newMockAsyncProfilerManager()
-				asyncProfilerManager.On("removeTmpDir").Return(nil)
-				asyncProfilerManager.On("linkTmpDirToTargetTmpDir", mock.AnythingOfType("string")).Return(nil)
-				asyncProfilerManager.On("copyProfilerToTmpDir").Return(nil)
+				asyncProfilerManager.On("stageProfilerLibrary", mock.AnythingOfType("string")).Return(nil)
 
 				return fields{
-						AsyncProfiler: &AsyncProfiler{
-							AsyncProfilerManager: asyncProfilerManager,
-						},
-					}, args{
-						job: &job.ProfilingJob{
-							Duration:         0,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
-							PID:              "PID_ContainerID",
-						},
-					}
+					AsyncProfiler: &AsyncProfiler{
+						AsyncProfilerManager: asyncProfilerManager,
+					},
+				}, args{
+					job: &job.ProfilingJob{
+						Duration:         0,
+						ContainerRuntime: api.FakeContainer,
+						ContainerID:      "ContainerID",
+						PID:              "PID_ContainerID",
+					},
+				}
 			},
 			when: func(fields fields, args args) error {
 				return fields.AsyncProfiler.SetUp(args.job)
@@ -94,59 +88,53 @@ func TestAsyncProfiler_SetUp(t *testing.T) {
 			then: func(t *testing.T, err error, fields fields) {
 				assert.Nil(t, err)
 				assert.Equal(t, []string{"PID_ContainerID"}, fields.AsyncProfiler.targetPIDs)
-				fields.AsyncProfiler.AsyncProfilerManager.(*mockAsyncProfilerManager).AssertNumberOfCalls(t, "removeTmpDir", 1)
-				fields.AsyncProfiler.AsyncProfilerManager.(*mockAsyncProfilerManager).AssertNumberOfCalls(t, "linkTmpDirToTargetTmpDir", 1)
-				fields.AsyncProfiler.AsyncProfilerManager.(*mockAsyncProfilerManager).AssertNumberOfCalls(t, "copyProfilerToTmpDir", 1)
+				fields.AsyncProfiler.AsyncProfilerManager.(*mockAsyncProfilerManager).AssertNumberOfCalls(t, "stageProfilerLibrary", 1)
 			},
 		},
 		{
 			name: "should fail when getting target filesystem fail",
 			given: func() (fields, args) {
 				asyncProfilerManager := newMockAsyncProfilerManager()
-				asyncProfilerManager.On("removeTmpDir").Return(nil)
-				asyncProfilerManager.On("linkTmpDirToTargetTmpDir", mock.AnythingOfType("string")).Return(nil)
-				asyncProfilerManager.On("copyProfilerToTmpDir").Return(nil)
+				asyncProfilerManager.On("stageProfilerLibrary", mock.AnythingOfType("string")).Return(nil)
 
 				return fields{
-						AsyncProfiler: &AsyncProfiler{
-							AsyncProfilerManager: asyncProfilerManager,
-						},
-					}, args{
-						job: &job.ProfilingJob{
-							Duration:         0,
-							ContainerRuntime: "other",
-							ContainerID:      "ContainerID",
-							PID:              "PID_ContainerID",
-						},
-					}
+					AsyncProfiler: &AsyncProfiler{
+						AsyncProfilerManager: asyncProfilerManager,
+					},
+				}, args{
+					job: &job.ProfilingJob{
+						Duration:         0,
+						ContainerRuntime: "other",
+						ContainerID:      "ContainerID",
+						PID:              "PID_ContainerID",
+					},
+				}
 			},
 			when: func(fields fields, args args) error {
 				return fields.AsyncProfiler.SetUp(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
 				assert.NotNil(t, err)
-				fields.AsyncProfiler.AsyncProfilerManager.(*mockAsyncProfilerManager).AssertNumberOfCalls(t, "removeTmpDir", 0)
-				fields.AsyncProfiler.AsyncProfilerManager.(*mockAsyncProfilerManager).AssertNumberOfCalls(t, "linkTmpDirToTargetTmpDir", 0)
-				fields.AsyncProfiler.AsyncProfilerManager.(*mockAsyncProfilerManager).AssertNumberOfCalls(t, "copyProfilerToTmpDir", 0)
+				fields.AsyncProfiler.AsyncProfilerManager.(*mockAsyncProfilerManager).AssertNumberOfCalls(t, "stageProfilerLibrary", 0)
 			},
 		},
 		{
-			name: "should fail when removing tmp dir fail",
+			name: "should fail when staging the profiler library fails",
 			given: func() (fields, args) {
 				asyncProfilerManager := newMockAsyncProfilerManager()
-				asyncProfilerManager.On("removeTmpDir").Return(errors.New("fake error"))
+				asyncProfilerManager.On("stageProfilerLibrary", mock.AnythingOfType("string")).Return(errors.New("fake error"))
 
 				return fields{
-						AsyncProfiler: &AsyncProfiler{
-							AsyncProfilerManager: asyncProfilerManager,
-						},
-					}, args{
-						job: &job.ProfilingJob{
-							Duration:         0,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
-						},
-					}
+					AsyncProfiler: &AsyncProfiler{
+						AsyncProfilerManager: asyncProfilerManager,
+					},
+				}, args{
+					job: &job.ProfilingJob{
+						Duration:         0,
+						ContainerRuntime: api.FakeContainer,
+						ContainerID:      "ContainerID",
+					},
+				}
 			},
 			when: func(fields fields, args args) error {
 				return fields.AsyncProfiler.SetUp(args.job)
@@ -154,99 +142,33 @@ func TestAsyncProfiler_SetUp(t *testing.T) {
 			then: func(t *testing.T, err error, fields fields) {
 				assert.NotNil(t, err)
 				assert.EqualError(t, err, "fake error")
-				fields.AsyncProfiler.AsyncProfilerManager.(*mockAsyncProfilerManager).AssertNumberOfCalls(t, "removeTmpDir", 1)
-				fields.AsyncProfiler.AsyncProfilerManager.(*mockAsyncProfilerManager).AssertNumberOfCalls(t, "linkTmpDirToTargetTmpDir", 0)
-				fields.AsyncProfiler.AsyncProfilerManager.(*mockAsyncProfilerManager).AssertNumberOfCalls(t, "copyProfilerToTmpDir", 0)
-			},
-		},
-		{
-			name: "should fail when link tmp dir to target tmp dir fail",
-			given: func() (fields, args) {
-				asyncProfilerManager := newMockAsyncProfilerManager()
-				asyncProfilerManager.On("removeTmpDir").Return(nil)
-				asyncProfilerManager.On("linkTmpDirToTargetTmpDir", mock.AnythingOfType("string")).Return(errors.New("fake error"))
-
-				return fields{
-						AsyncProfiler: &AsyncProfiler{
-							AsyncProfilerManager: asyncProfilerManager,
-						},
-					}, args{
-						job: &job.ProfilingJob{
-							Duration:         0,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
-						},
-					}
-			},
-			when: func(fields fields, args args) error {
-				return fields.AsyncProfiler.SetUp(args.job)
-			},
-			then: func(t *testing.T, err error, fields fields) {
-				assert.NotNil(t, err)
-				assert.EqualError(t, err, "fake error")
-				fields.AsyncProfiler.AsyncProfilerManager.(*mockAsyncProfilerManager).AssertNumberOfCalls(t, "removeTmpDir", 1)
-				fields.AsyncProfiler.AsyncProfilerManager.(*mockAsyncProfilerManager).AssertNumberOfCalls(t, "linkTmpDirToTargetTmpDir", 1)
-				fields.AsyncProfiler.AsyncProfilerManager.(*mockAsyncProfilerManager).AssertNumberOfCalls(t, "copyProfilerToTmpDir", 0)
+				fields.AsyncProfiler.AsyncProfilerManager.(*mockAsyncProfilerManager).AssertNumberOfCalls(t, "stageProfilerLibrary", 1)
 			},
 		},
 		{
 			name: "should fail when container PID not found",
 			given: func() (fields, args) {
 				asyncProfilerManager := newMockAsyncProfilerManager()
-				asyncProfilerManager.On("removeTmpDir").Return(nil)
-				asyncProfilerManager.On("linkTmpDirToTargetTmpDir", mock.AnythingOfType("string")).Return(nil)
+				asyncProfilerManager.On("stageProfilerLibrary", mock.AnythingOfType("string")).Return(nil)
 
 				return fields{
-						AsyncProfiler: &AsyncProfiler{
-							AsyncProfilerManager: asyncProfilerManager,
-						},
-					}, args{
-						job: &job.ProfilingJob{
-							Duration:         0,
-							ContainerRuntime: api.FakeContainerWithPIDResultError,
-							ContainerID:      "ContainerID",
-						},
-					}
+					AsyncProfiler: &AsyncProfiler{
+						AsyncProfilerManager: asyncProfilerManager,
+					},
+				}, args{
+					job: &job.ProfilingJob{
+						Duration:         0,
+						ContainerRuntime: api.FakeContainerWithPIDResultError,
+						ContainerID:      "ContainerID",
+					},
+				}
 			},
 			when: func(fields fields, args args) error {
 				return fields.AsyncProfiler.SetUp(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
 				assert.NotNil(t, err)
-				fields.AsyncProfiler.AsyncProfilerManager.(*mockAsyncProfilerManager).AssertNumberOfCalls(t, "removeTmpDir", 1)
-				fields.AsyncProfiler.AsyncProfilerManager.(*mockAsyncProfilerManager).AssertNumberOfCalls(t, "linkTmpDirToTargetTmpDir", 1)
-				fields.AsyncProfiler.AsyncProfilerManager.(*mockAsyncProfilerManager).AssertNumberOfCalls(t, "copyProfilerToTmpDir", 0)
-			},
-		},
-		{
-			name: "should fail when copy profiler to tmp dir fail",
-			given: func() (fields, args) {
-				asyncProfilerManager := newMockAsyncProfilerManager()
-				asyncProfilerManager.On("removeTmpDir").Return(nil)
-				asyncProfilerManager.On("linkTmpDirToTargetTmpDir", mock.AnythingOfType("string")).Return(nil)
-				asyncProfilerManager.On("copyProfilerToTmpDir").Return(errors.New("fake error"))
-
-				return fields{
-						AsyncProfiler: &AsyncProfiler{
-							AsyncProfilerManager: asyncProfilerManager,
-						},
-					}, args{
-						job: &job.ProfilingJob{
-							Duration:         0,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
-						},
-					}
-			},
-			when: func(fields fields, args args) error {
-				return fields.AsyncProfiler.SetUp(args.job)
-			},
-			then: func(t *testing.T, err error, fields fields) {
-				assert.NotNil(t, err)
-				assert.EqualError(t, err, "fake error")
-				fields.AsyncProfiler.AsyncProfilerManager.(*mockAsyncProfilerManager).AssertNumberOfCalls(t, "removeTmpDir", 1)
-				fields.AsyncProfiler.AsyncProfilerManager.(*mockAsyncProfilerManager).AssertNumberOfCalls(t, "linkTmpDirToTargetTmpDir", 1)
-				fields.AsyncProfiler.AsyncProfilerManager.(*mockAsyncProfilerManager).AssertNumberOfCalls(t, "copyProfilerToTmpDir", 1)
+				fields.AsyncProfiler.AsyncProfilerManager.(*mockAsyncProfilerManager).AssertNumberOfCalls(t, "stageProfilerLibrary", 0)
 			},
 		},
 	}
@@ -285,16 +207,16 @@ func TestAsyncProfiler_Invoke(t *testing.T) {
 					Return(nil, time.Duration(0)).Twice()
 
 				return fields{
-						AsyncProfiler: AsyncProfiler{
-							AsyncProfilerManager: asyncProfilerManager,
-						},
-					}, args{
-						job: &job.ProfilingJob{
-							Duration:         0,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
-						},
-					}
+					AsyncProfiler: AsyncProfiler{
+						AsyncProfilerManager: asyncProfilerManager,
+					},
+				}, args{
+					job: &job.ProfilingJob{
+						Duration:         0,
+						ContainerRuntime: api.FakeContainer,
+						ContainerID:      "ContainerID",
+					},
+				}
 			},
 			when: func(fields fields, args args) (error, time.Duration) {
 				fields.AsyncProfiler.delay = 0
@@ -316,17 +238,17 @@ func TestAsyncProfiler_Invoke(t *testing.T) {
 					Return(errors.New("fake invoke error"), time.Duration(0)).Maybe()
 
 				return fields{
-						AsyncProfiler: AsyncProfiler{
-							AsyncProfilerManager: asyncProfilerManager,
-						},
-					}, args{
-						job: &job.ProfilingJob{
-							Duration:         0,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
-							OutputType:       api.FlameGraph,
-						},
-					}
+					AsyncProfiler: AsyncProfiler{
+						AsyncProfilerManager: asyncProfilerManager,
+					},
+				}, args{
+					job: &job.ProfilingJob{
+						Duration:         0,
+						ContainerRuntime: api.FakeContainer,
+						ContainerID:      "ContainerID",
+						OutputType:       api.FlameGraph,
+					},
+				}
 			},
 			when: func(fields fields, args args) (error, time.Duration) {
 				fields.AsyncProfiler.delay = 0
@@ -380,37 +302,39 @@ func TestAsyncProfiler_CleanUp(t *testing.T) {
 		{
 			name: "should clean up",
 			given: func() (fields, args) {
-				_ = os.Mkdir(filepath.Join(sharedDir, "async-profiler"), os.ModePerm)
-				f := filepath.Join(sharedDir, config.ProfilingPrefix+"flamegraph.html")
+				asyncProfilerManager := newMockAsyncProfilerManager()
+				asyncProfilerManager.On("releaseTargetArtifacts").Return()
+
+				f := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph.html")
 				_, _ = os.Create(f)
 				_, _ = os.Create(f + compressor.GetExtensionFileByCompressor[compressor.Gzip])
 				return fields{
-						AsyncProfiler: AsyncProfiler{
-							AsyncProfilerManager: newMockAsyncProfilerManager(),
-						},
-					}, args{
-						job: &job.ProfilingJob{
-							UID:              "UID",
-							Duration:         0,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
-							Compressor:       compressor.Gzip,
-							Tool:             api.AsyncProfiler,
-							OutputType:       api.FlameGraph,
-						},
-					}
+					AsyncProfiler: AsyncProfiler{
+						AsyncProfilerManager: asyncProfilerManager,
+					},
+				}, args{
+					job: &job.ProfilingJob{
+						UID:              "UID",
+						Duration:         0,
+						ContainerRuntime: api.FakeContainer,
+						ContainerID:      "ContainerID",
+						Compressor:       compressor.Gzip,
+						Tool:             api.AsyncProfiler,
+						OutputType:       api.FlameGraph,
+					},
+				}
 			},
 			when: func(fields fields, args args) error {
 				return fields.AsyncProfiler.CleanUp(args.job)
 			},
 			then: func(t *testing.T, err error, fields fields) {
-				f := filepath.Join(sharedDir, config.ProfilingPrefix+"flamegraph.html")
-				g := filepath.Join(sharedDir, config.ProfilingPrefix+"flamegraph.html"+
-					compressor.GetExtensionFileByCompressor[compressor.Gzip])
+				f := filepath.Join(common.TmpDir(), config.ProfilingPrefix+"flamegraph.html")
+				g := f + compressor.GetExtensionFileByCompressor[compressor.Gzip]
 				assert.False(t, file.Exists(f))
 				assert.False(t, file.Exists(g))
-				assert.False(t, file.Exists(filepath.Join(sharedDir, "async-profiler")))
 				assert.Nil(t, err)
+				fields.AsyncProfiler.AsyncProfilerManager.(*mockAsyncProfilerManager).
+					AssertNumberOfCalls(t, "releaseTargetArtifacts", 1)
 			},
 		},
 	}
@@ -428,12 +352,67 @@ func TestAsyncProfiler_CleanUp(t *testing.T) {
 	}
 }
 
-func Test_asyncProfilerManager_copyProfilerToTmpDir(t *testing.T) {
+func Test_asyncProfilerManager_stageProfilerLibrary(t *testing.T) {
 	commander := executil.NewMockCommander()
-	commander.On("Command").Return(exec.Command("ls", common.TmpDir()))
 	publisher := publish.NewFakePublisher()
 	a := NewAsyncProfiler(commander, publisher)
-	assert.Nil(t, a.copyProfilerToTmpDir())
+
+	err := a.stageProfilerLibrary(t.TempDir())
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), libSourcePath)
+}
+
+func Test_safeMkdir(t *testing.T) {
+	t.Run("should create a directory that does not exist", func(t *testing.T) {
+		dir := filepath.Join(t.TempDir(), "kubectl-prof")
+
+		require.NoError(t, safeMkdir(dir))
+
+		info, err := os.Lstat(dir)
+		require.NoError(t, err)
+		assert.True(t, info.IsDir())
+	})
+
+	t.Run("should accept an existing directory", func(t *testing.T) {
+		dir := t.TempDir()
+
+		assert.NoError(t, safeMkdir(dir))
+	})
+
+	t.Run("should refuse a directory writable by the target", func(t *testing.T) {
+		dir := filepath.Join(t.TempDir(), "kubectl-prof")
+		require.NoError(t, os.Mkdir(dir, 0o755))
+		require.NoError(t, os.Chmod(dir, 0o777))
+
+		err := safeMkdir(dir)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "writable by group or others")
+	})
+
+	t.Run("should refuse a symlink", func(t *testing.T) {
+		base := t.TempDir()
+		elsewhere := filepath.Join(base, "elsewhere")
+		require.NoError(t, os.Mkdir(elsewhere, 0o755))
+		link := filepath.Join(base, "kubectl-prof")
+		require.NoError(t, os.Symlink(elsewhere, link))
+
+		err := safeMkdir(link)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "symlink")
+	})
+
+	t.Run("should refuse a regular file", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "kubectl-prof")
+		require.NoError(t, os.WriteFile(path, []byte("not a directory"), 0o600))
+
+		err := safeMkdir(path)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "not a directory")
+	})
 }
 
 func Test_asyncProfilerManager_invoke(t *testing.T) {
@@ -466,19 +445,19 @@ func Test_asyncProfilerManager_invoke(t *testing.T) {
 				publisher.On("Do").Return(nil)
 
 				return fields{
-						AsyncProfiler: NewAsyncProfiler(commander, publisher),
-					}, args{
-						job: &job.ProfilingJob{
-							Duration:         0,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
-							OutputType:       api.FlameGraph,
-							Language:         api.FakeLang,
-							Tool:             api.AsyncProfiler,
-							Compressor:       compressor.None,
-						},
-						pid: "1000",
-					}
+					AsyncProfiler: NewAsyncProfiler(commander, publisher),
+				}, args{
+					job: &job.ProfilingJob{
+						Duration:         0,
+						ContainerRuntime: api.FakeContainer,
+						ContainerID:      "ContainerID",
+						OutputType:       api.FlameGraph,
+						Language:         api.FakeLang,
+						Tool:             api.AsyncProfiler,
+						Compressor:       compressor.None,
+					},
+					pid: "1000",
+				}
 			},
 			when: func(fields fields, args args) (error, time.Duration) {
 				return fields.AsyncProfiler.invoke(args.job, args.pid)
@@ -502,18 +481,18 @@ func Test_asyncProfilerManager_invoke(t *testing.T) {
 				publisher.On("Do").Return(nil)
 
 				return fields{
-						AsyncProfiler: NewAsyncProfiler(commander, publisher),
-					}, args{
-						job: &job.ProfilingJob{
-							Duration:         0,
-							ContainerRuntime: api.FakeContainer,
-							ContainerID:      "ContainerID",
-							OutputType:       api.FlameGraph,
-							Language:         api.Java,
-							Tool:             api.AsyncProfiler,
-						},
-						pid: "1000",
-					}
+					AsyncProfiler: NewAsyncProfiler(commander, publisher),
+				}, args{
+					job: &job.ProfilingJob{
+						Duration:         0,
+						ContainerRuntime: api.FakeContainer,
+						ContainerID:      "ContainerID",
+						OutputType:       api.FlameGraph,
+						Language:         api.Java,
+						Tool:             api.AsyncProfiler,
+					},
+					pid: "1000",
+				}
 			},
 			when: func(fields fields, args args) (error, time.Duration) {
 				return fields.AsyncProfiler.invoke(args.job, args.pid)
@@ -540,20 +519,20 @@ func Test_asyncProfilerManager_invoke(t *testing.T) {
 				publisher.On("Do").Return(errors.New("fake publisher with error"))
 
 				return fields{
-						AsyncProfiler: NewAsyncProfiler(commander, publisher),
-					}, args{
-						job: &job.ProfilingJob{
-							Duration:             0,
-							ContainerRuntime:     api.FakeContainer,
-							ContainerRuntimePath: common.TmpDir(),
-							ContainerID:          "ContainerID",
-							OutputType:           api.FlameGraph,
-							Language:             api.FakeLang,
-							Tool:                 api.AsyncProfiler,
-							Compressor:           compressor.None,
-						},
-						pid: "1000",
-					}
+					AsyncProfiler: NewAsyncProfiler(commander, publisher),
+				}, args{
+					job: &job.ProfilingJob{
+						Duration:             0,
+						ContainerRuntime:     api.FakeContainer,
+						ContainerRuntimePath: common.TmpDir(),
+						ContainerID:          "ContainerID",
+						OutputType:           api.FlameGraph,
+						Language:             api.FakeLang,
+						Tool:                 api.AsyncProfiler,
+						Compressor:           compressor.None,
+					},
+					pid: "1000",
+				}
 			},
 			when: func(fields fields, args args) (error, time.Duration) {
 				return fields.AsyncProfiler.invoke(args.job, args.pid)
@@ -573,6 +552,7 @@ func Test_asyncProfilerManager_invoke(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Given
+			withLocalTarget(t)
 			fields, args := tt.given()
 
 			// When
@@ -586,6 +566,22 @@ func Test_asyncProfilerManager_invoke(t *testing.T) {
 			}
 		})
 	}
+}
+
+func withLocalTarget(t *testing.T) {
+	t.Helper()
+
+	dir := t.TempDir()
+	creds, tmp := readTargetCredsFn, targetTmpDir
+
+	readTargetCredsFn = func(string) (targetCreds, error) {
+		return targetCreds{uid: os.Getuid(), gid: os.Getgid()}, nil
+	}
+	targetTmpDir = func(string) string { return dir }
+
+	t.Cleanup(func() {
+		readTargetCredsFn, targetTmpDir = creds, tmp
+	})
 }
 
 func Test_asyncProfilerManager_cleanUp(t *testing.T) {
