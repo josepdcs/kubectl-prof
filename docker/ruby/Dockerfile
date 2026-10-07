@@ -8,10 +8,10 @@ COPY . .
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof/cmd/agent
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /go/bin/agent
 
-FROM rust:1.89-trixie AS rbspybuild
+FROM rust:1.99-trixie AS rbspybuild
 WORKDIR /
 RUN git clone https://github.com/brendangregg/FlameGraph  \
-    && git clone --depth 1 --branch v0.39.0 https://github.com/rbspy/rbspy
+    && git clone --depth 1 --branch v0.53.0 https://github.com/rbspy/rbspy
 WORKDIR /rbspy
 RUN cargo build --release
 

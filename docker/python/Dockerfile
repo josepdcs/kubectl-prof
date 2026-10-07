@@ -9,7 +9,7 @@ WORKDIR /go/src/github.com/josepdcs/kubectl-prof/cmd/agent
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /go/bin/agent
 
 FROM python:3.14-slim-trixie AS pyspybuild
-RUN pip3 install py-spy==0.4.1 \
+RUN pip3 install py-spy==0.4.2 \
     && apt-get update && apt-get install -y git \
     && git clone https://github.com/brendangregg/FlameGraph
 

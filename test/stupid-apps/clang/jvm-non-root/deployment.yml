@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jvm-non-root-deployment
+  namespace: stupid-apps
+  labels:
+    app: jvm-non-root
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jvm-non-root
+  template:
+    metadata:
+      labels:
+        app: jvm-non-root
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+      containers:
+      - name: jvm-non-root
+        image: localhost/stupid-apps/jvm-non-root:latest
+        imagePullPolicy: Never
+        #image: docker.io/josepdcs/jvm-non-root:latest
+        #imagePullPolicy: Always
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+        resources:
+          limits:
+            cpu: 100m
+            memory: 200Mi
+          requests:
+            cpu: 20m
+            memory: 50Mi

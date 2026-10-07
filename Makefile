@@ -1,4 +1,4 @@
-VERSION ?= v2.2.0-dev
+VERSION ?= v2.3.0-dev
 CLI_NAME ?= kubectl-prof
 CLI_DIR ?= ./cmd/cli/
 AGENT_NAME ?= agent
@@ -345,6 +345,11 @@ minikube-build-and-push-python-stupid-app:
 minikube-build-and-push-jvm-stupid-app:
 	@test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/jvm" "stupid-apps" "jvm"
 
+## minikube-build-and-push-jvm-non-root-stupid-app: Build image of jvm non-root stupid app and load it into minikube
+.PHONY: minikube-build-and-push-jvm-non-root-stupid-app
+minikube-build-and-push-jvm-non-root-stupid-app:
+	@test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/jvm-non-root" "stupid-apps" "jvm-non-root"
+
 ## minikube-build-and-push-rust-stupid-app: Build image of rust stupid app and load it into minikube
 .PHONY: minikube-build-and-push-rust-stupid-app
 minikube-build-and-push-rust-stupid-app:
@@ -374,6 +379,11 @@ build-and-push-golang-stupid-app:
 .PHONY: build-and-push-jvm-stupid-app
 build-and-push-jvm-stupid-app:
 	REGISTRY=docker.io test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/jvm" "josepdcs" "jvm"
+
+## build-and-push-jvm-non-root-stupid-app: Build image of jvm non-root stupid app and push it to DockerHub
+.PHONY: build-and-push-jvm-non-root-stupid-app
+build-and-push-jvm-non-root-stupid-app:
+	REGISTRY=docker.io test/minikube-lab/build_and_push_stupid_app_image.sh "test/stupid-apps/jvm-non-root" "josepdcs" "jvm-non-root"
 
 ## build-and-push-multiprocess-stupid-app: Build image of multiprocess stupid app and push it to DockerHub
 .PHONY: build-and-push-multiprocess-stupid-app
@@ -415,6 +425,7 @@ build-and-push-dotnet-stupid-app:
 build-and-push-stupid-apps: build-and-push-clang-stupid-app \
 build-and-push-golang-stupid-app \
 build-and-push-jvm-stupid-app \
+build-and-push-jvm-non-root-stupid-app \
 build-and-push-multiprocess-stupid-app \
 build-and-push-node-stupid-app \
 build-and-push-python-stupid-app \
