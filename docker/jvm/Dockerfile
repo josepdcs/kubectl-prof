@@ -1,4 +1,5 @@
-ARG JAVA_VERSION_TAG=25
+ARG JAVA_VERSION_TAG=27
+ARG ASYNCP_VERSION=4.5
 FROM --platform=$BUILDPLATFORM golang:1.26.2-alpine AS agentbuild
 ARG TARGETOS
 ARG TARGETARCH
@@ -9,28 +10,27 @@ COPY . .
 WORKDIR /go/src/github.com/josepdcs/kubectl-prof/cmd/agent
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /go/bin/agent
 
+FROM --platform=$BUILDPLATFORM alpine:3.22.1 AS async-profiler-downloader
+ARG TARGETPLATFORM
+ARG ASYNCP_VERSION=4.5
+RUN apk add --no-cache tar wget ca-certificates
+RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then ARCHITECTURE=x64;  \
+    elif [ "$TARGETPLATFORM" = "linux/arm64" ]; then ARCHITECTURE=arm64;  \
+    else ARCHITECTURE=x64;  \
+    fi; \
+    wget -O async-profiler.tar.gz https://github.com/async-profiler/async-profiler/releases/download/v${ASYNCP_VERSION}/async-profiler-${ASYNCP_VERSION}-linux-${ARCHITECTURE}.tar.gz \
+    && mkdir -p /async-profiler \
+    && tar -xf async-profiler.tar.gz --strip-components=1 -C /async-profiler
 
 FROM eclipse-temurin:$JAVA_VERSION_TAG AS tools
-ARG TARGETPLATFORM
-ARG ASYNCP_VERSION=4.3
-RUN apt-get update  \
-    && apt-get install -y tar wget  \
-    && echo "ASYNCP_VERSION=${ASYNCP_VERSION}, TARGETPLATFORM=${TARGETPLATFORM}"  \
-    && "$JAVA_HOME"/bin/jlink \
+RUN "$JAVA_HOME"/bin/jlink \
          --module-path jmods \
          --add-modules jdk.jcmd \
          --strip-debug \
          --no-man-pages \
          --no-header-files \
          --compress=2 \
-         --output /jcmd; \
-    if [ "$TARGETPLATFORM" = "linux/amd64" ]; then ARCHITECTURE=x64;  \
-    elif [ "$TARGETPLATFORM" = "linux/arm64" ]; then ARCHITECTURE=arm64;  \
-    else ARCHITECTURE=x64;  \
-    fi; \
-    wget -O async-profiler-${ASYNCP_VERSION}-linux-${ARCHITECTURE}.tar.gz https://github.com/async-profiler/async-profiler/releases/download/v${ASYNCP_VERSION}/async-profiler-${ASYNCP_VERSION}-linux-${ARCHITECTURE}.tar.gz \
-    && tar -xf async-profiler-${ASYNCP_VERSION}-linux-${ARCHITECTURE}.tar.gz  \
-    && mv async-profiler-${ASYNCP_VERSION}-linux-${ARCHITECTURE} async-profiler
+         --output /jcmd
 
 FROM bitnami/minideb:trixie
 RUN apt-get update  \
@@ -38,7 +38,7 @@ RUN apt-get update  \
     && apt-get clean \
     && mkdir -p /app/async-profiler/build
 COPY --from=agentbuild /go/bin/agent /app
-COPY --from=tools /async-profiler /app/async-profiler/build
+COPY --from=async-profiler-downloader /async-profiler /app/async-profiler/build
 COPY --from=tools /jcmd /opt/jdk
 RUN mkdir -p /app/jfr/settings
 COPY --from=agentbuild /go/src/github.com/josepdcs/kubectl-prof/contrib/jvm/jfr-profile.jfc /app/jfr/settings

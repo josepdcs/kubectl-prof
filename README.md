@@ -13,6 +13,7 @@
 ✨ **Key Features:**
 - 🎯 **Zero modification** - Profile running pods without any changes to your deployment
 - 🌐 **Multi-language support** - Java, Go, Python, Ruby, Node.js, Rust, Clang/Clang++, PHP, **.NET**
+- ☕ **Non-root JVM support** - Seamless profiling of non-root Java applications using async-profiler
 - 📊 **Multiple output formats** - FlameGraphs, JFR, SpeedScope, thread dumps, heap dumps, GC dumps, memory dumps, and more
 - ⚡ **Low overhead** - Minimal impact on running applications
 - 🔄 **Continuous profiling** - Support for both discrete and continuous profiling modes
@@ -25,16 +26,16 @@
 - [Quick Start](#-quick-start)
 - [Installation](#-installation)
 - [Usage](#-usage)
-  - [Java Profiling](#-java-profiling)
-  - [Python Profiling](#-python-profiling)
-  - [Go Profiling](#-go-profiling)
-  - [Node.js Profiling](#-nodejs-profiling)
-  - [Ruby Profiling](#-ruby-profiling)
-  - [Rust Profiling](#-rust-profiling)
-  - [Clang/Clang++ Profiling](#-clangclang-profiling)
-  - [PHP Profiling](#-php-profiling)
-  - [.NET Profiling](#-net-profiling)
-  - [Advanced Usage](#-advanced-usage)
+    - [Java Profiling](#-java-profiling)
+    - [Python Profiling](#-python-profiling)
+    - [Go Profiling](#-go-profiling)
+    - [Node.js Profiling](#-nodejs-profiling)
+    - [Ruby Profiling](#-ruby-profiling)
+    - [Rust Profiling](#-rust-profiling)
+    - [Clang/Clang++ Profiling](#-clangclang-profiling)
+    - [PHP Profiling](#-php-profiling)
+    - [.NET Profiling](#-net-profiling)
+    - [Advanced Usage](#-advanced-usage)
 - [How It Works](#-how-it-works)
 - [Building from Source](#-building-from-source)
 - [Contributing](#-contributing)
@@ -46,7 +47,7 @@
 
 | Language | Status | Tools Available                                       |
 |----------|--------|-------------------------------------------------------|
-| ☕ **Java** (JVM) | ✅ Fully Supported | async-profiler, jcmd                                  |
+| ☕ **Java** (JVM) | ✅ Fully Supported | async-profiler (including non-root JVMs), jcmd                                  |
 | 🐹 **Go** | ✅ Fully Supported | eBPF profiling, pprof                                 |
 | 🐍 **Python** | ✅ Fully Supported | py-spy, memray                                  |
 | 💎 **Ruby** | ✅ Fully Supported | rbspy                                                 |
@@ -71,15 +72,15 @@ For eBPF profiling (Go, Node.js, Clang/Clang++), two tools are available:
 - **Compatibility:** Works on most systems with kernel headers installed
 
 #### BTF - CO-RE eBPF profiler (NEW - Experimental)
-- **Requirements:** 
-  - Linux kernel 5.2+ with BTF enabled (check `/sys/kernel/btf/vmlinux`)
-  - BPF CPU v2 support (kernel 5.2+)
+- **Requirements:**
+    - Linux kernel 5.2+ with BTF enabled (check `/sys/kernel/btf/vmlinux`)
+    - BPF CPU v2 support (kernel 5.2+)
 - **Usage:** Add `--tool btf` flag to your command
 - **Benefits:**
-  - ✅ No kernel headers required - works on DigitalOcean and other cloud providers without kheaders
-  - ✅ Uses [CO-RE](https://nakryiko.com/posts/bpf-core-reference-guide/) (Compile Once - Run Everywhere) technology
-  - ✅ Portable across different kernel versions without recompilation
-  - ✅ Smaller Docker image size
+    - ✅ No kernel headers required - works on DigitalOcean and other cloud providers without kheaders
+    - ✅ Uses [CO-RE](https://nakryiko.com/posts/bpf-core-reference-guide/) (Compile Once - Run Everywhere) technology
+    - ✅ Portable across different kernel versions without recompilation
+    - ✅ Smaller Docker image size
 - **Note:** Most modern distributions (Ubuntu 20.04+, RHEL 8+, etc.) include BTF by default and meet the kernel requirements
 
 **Example using BTF:**
@@ -142,6 +143,16 @@ kubectl prof mypod -t 1m -l java -o flamegraph --alpine
 ```
 
 > ⚠️ **Note:** The `--alpine` flag is only required for Java applications.
+
+#### Non-Root JVM Profiling
+
+`kubectl-prof` supports profiling Java applications running as non-root users (e.g. pods configured with `runAsNonRoot: true`, distroless images, or custom non-root UIDs) using `async-profiler`.
+
+The agent leverages `async-profiler`'s `fdtransfer` mechanism and stages the profiler library directly into the container's filesystem, enabling profiling without requiring root privileges in the target container:
+
+```shell
+kubectl prof my-non-root-pod -t 1m -l java -o flamegraph
+```
 
 #### JFR Output Generation
 
@@ -1056,15 +1067,15 @@ kubectl prof my-pod -t 30s -l go --tool pprof --pprof-port 8080        # custom 
 **eBPF Profiling** - Two options available (require `SYS_ADMIN` / privileged pod):
 
 1. **BPF (default)** - BCC-based profiler
-   - Uses BCC tools with runtime compilation
-   - Requires kernel headers (`/lib/modules`)
-   - Usage: No `--tool` flag needed (default)
+    - Uses BCC tools with runtime compilation
+    - Requires kernel headers (`/lib/modules`)
+    - Usage: No `--tool` flag needed (default)
 
 2. **BTF** - [CO-RE eBPF profiler](https://nakryiko.com/posts/bpf-core-reference-guide/)
-   - Uses libbpf-tools with CO-RE support
-   - **No kernel headers required** - only needs BTF (available on modern kernels)
-   - Usage: Add `--tool btf` flag
-   - Example: `kubectl prof my-pod -t 1m -l go --tool btf`
+    - Uses libbpf-tools with CO-RE support
+    - **No kernel headers required** - only needs BTF (available on modern kernels)
+    - Usage: Add `--tool btf` flag
+    - Example: `kubectl prof my-pod -t 1m -l go --tool btf`
 
 **Output formats (eBPF tools):**
 - FlameGraphs: `-o flamegraph` (default)
@@ -1122,13 +1133,13 @@ Four tools from the [.NET diagnostics suite](https://github.com/dotnet/diagnosti
 **eBPF Profiling** - Two options available (recommended):
 
 1. **BPF (default)** - BCC-based profiler
-   - Requires kernel headers (`/lib/modules`)
-   - Usage: No `--tool` flag needed (default)
+    - Requires kernel headers (`/lib/modules`)
+    - Usage: No `--tool` flag needed (default)
 
 2. **BTF** - [CO-RE eBPF profiler](https://nakryiko.com/posts/bpf-core-reference-guide/)
-   - **No kernel headers required** - only needs BTF
-   - Usage: Add `--tool btf` flag
-   - Example: `kubectl prof my-pod -t 1m -l node --tool btf`
+    - **No kernel headers required** - only needs BTF
+    - Usage: Add `--tool btf` flag
+    - Example: `kubectl prof my-pod -t 1m -l node --tool btf`
 
 **Alternative: [perf](https://perf.wiki.kernel.org/index.php/Main_Page)**
 - Available for fallback if eBPF profiling unavailable
@@ -1146,13 +1157,13 @@ Four tools from the [.NET diagnostics suite](https://github.com/dotnet/diagnosti
 **eBPF Profiling** - Two options available (recommended):
 
 1. **BPF (default)** - BCC-based profiler
-   - Requires kernel headers (`/lib/modules`)
-   - Usage: No `--tool` flag needed (default)
+    - Requires kernel headers (`/lib/modules`)
+    - Usage: No `--tool` flag needed (default)
 
 2. **BTF** - [CO-RE eBPF profiler](https://nakryiko.com/posts/bpf-core-reference-guide/)
-   - **No kernel headers required** - only needs BTF
-   - Usage: Add `--tool btf` flag
-   - Example: `kubectl prof my-pod -t 1m -l clang --tool btf`
+    - **No kernel headers required** - only needs BTF
+    - Usage: Add `--tool btf` flag
+    - Example: `kubectl prof my-pod -t 1m -l clang --tool btf`
 
 **Alternative: [perf](https://perf.wiki.kernel.org/index.php/Main_Page)**
 - Available for fallback if eBPF profiling unavailable
