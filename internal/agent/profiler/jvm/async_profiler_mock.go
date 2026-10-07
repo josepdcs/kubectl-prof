@@ -16,12 +16,8 @@ func newMockAsyncProfilerManager() *mockAsyncProfilerManager {
 	return &mockAsyncProfilerManager{}
 }
 
-func (m *mockAsyncProfilerManager) getTmpDir() string {
-	return sharedDir
-}
-
-func (m *mockAsyncProfilerManager) removeTmpDir() error {
-	args := m.Called()
+func (m *mockAsyncProfilerManager) stageProfilerLibrary(targetFs string) error {
+	args := m.Called(targetFs)
 	if a := args.Get(0); a != nil {
 		if err, ok := a.(error); ok {
 			return err
@@ -30,24 +26,8 @@ func (m *mockAsyncProfilerManager) removeTmpDir() error {
 	return nil
 }
 
-func (m *mockAsyncProfilerManager) linkTmpDirToTargetTmpDir(targetTmpDir string) error {
-	args := m.Called(targetTmpDir)
-	if a := args.Get(0); a != nil {
-		if err, ok := a.(error); ok {
-			return err
-		}
-	}
-	return nil
-}
-
-func (m *mockAsyncProfilerManager) copyProfilerToTmpDir() error {
-	args := m.Called()
-	if a := args.Get(0); a != nil {
-		if err, ok := a.(error); ok {
-			return err
-		}
-	}
-	return nil
+func (m *mockAsyncProfilerManager) releaseTargetArtifacts() {
+	_ = m.Called()
 }
 
 func (m *mockAsyncProfilerManager) invoke(j *job.ProfilingJob, pid string) (error, time.Duration) {
