@@ -938,16 +938,16 @@ Download pre-built binaries from the [releases page](https://github.com/josepdcs
 #### Linux x86_64
 
 ```shell
-wget https://github.com/josepdcs/kubectl-prof/releases/download/2.2.0/kubectl-prof_2.2.0_linux_amd64.tar.gz
-tar xvfz kubectl-prof_2.2.0_linux_amd64.tar.gz
+wget https://github.com/josepdcs/kubectl-prof/releases/download/2.3.0/kubectl-prof_2.3.0_linux_amd64.tar.gz
+tar xvfz kubectl-prof_2.3.0_linux_amd64.tar.gz
 sudo install kubectl-prof /usr/local/bin/
 ```
 
 #### macOS
 
 ```shell
-wget https://github.com/josepdcs/kubectl-prof/releases/download/2.2.0/kubectl-prof_2.2.0_darwin_amd64.tar.gz
-tar xvfz kubectl-prof_2.2.0_darwin_amd64.tar.gz
+wget https://github.com/josepdcs/kubectl-prof/releases/download/2.3.0/kubectl-prof_2.3.0_darwin_amd64.tar.gz
+tar xvfz kubectl-prof_2.3.0_darwin_amd64.tar.gz
 sudo install kubectl-prof /usr/local/bin/
 ```
 
